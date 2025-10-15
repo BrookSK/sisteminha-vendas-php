@@ -1,0 +1,8 @@
+RewriteEngine On
+
+# Se a URL for a raiz, envia para /public/
+RewriteRule ^$ public/ [L]
+
+# Se ainda não estiver em /public, redireciona mantendo o caminho
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule ^(.*)$ public/$1 [L]

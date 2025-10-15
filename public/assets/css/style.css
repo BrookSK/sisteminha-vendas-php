@@ -1,0 +1,16 @@
+body { background-color: #f8f9fa; }
+.navbar-brand { font-weight: 600; }
+.card { border-radius: .5rem; }
+
+/* Align items in navbar menu */
+.navbar-nav { align-items: center !important; }
+
+/* Client search overlay modal */
+.client-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: none; z-index: 1050; }
+.client-modal { position: absolute; left: 50%; top: 10%; transform: translateX(-50%); width: min(720px, 90vw); max-height: 80vh; background: #fff; border-radius: .5rem; box-shadow: 0 10px 30px rgba(0,0,0,.25); display: flex; flex-direction: column; }
+.client-modal-body { overflow-y: auto; max-height: calc(80vh - 56px); }
+.client-result { cursor: pointer; }
+.client-result:hover { background: #f8f9fa; }
+
+/* Anchored dropdown for client search (international sales) */
+.client-dropdown { position: fixed; z-index: 9999; display: none; background: #fff; border: 1px solid #dee2e6; border-radius: .375rem; box-shadow: 0 10px 20px rgba(0,0,0,.15); max-height: 300px; overflow-y: auto; }

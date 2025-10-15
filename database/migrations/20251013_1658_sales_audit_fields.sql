@@ -1,0 +1,14 @@
+-- Add audit fields for sales (internacionais and nacionais)
+ALTER TABLE vendas_internacionais
+  ADD COLUMN IF NOT EXISTS exchange_rate_used DECIMAL(10,4) NULL,
+  ADD COLUMN IF NOT EXISTS gross_usd DECIMAL(12,2) NULL,
+  ADD COLUMN IF NOT EXISTS gross_brl DECIMAL(12,2) NULL,
+  ADD COLUMN IF NOT EXISTS liquid_usd DECIMAL(12,2) NULL,
+  ADD COLUMN IF NOT EXISTS liquid_brl DECIMAL(12,2) NULL;
+
+ALTER TABLE vendas_nacionais
+  ADD COLUMN IF NOT EXISTS exchange_rate_used DECIMAL(10,4) NULL,
+  ADD COLUMN IF NOT EXISTS gross_usd DECIMAL(12,2) NULL,
+  ADD COLUMN IF NOT EXISTS gross_brl DECIMAL(12,2) NULL,
+  ADD COLUMN IF NOT EXISTS liquid_usd DECIMAL(12,2) NULL,
+  ADD COLUMN IF NOT EXISTS liquid_brl DECIMAL(12,2) NULL;
