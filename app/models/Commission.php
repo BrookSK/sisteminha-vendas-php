@@ -71,7 +71,7 @@ class Commission extends Model
             $aggRows[$uid]['bruto_total'] += (float)($r['bruto_total'] ?? 0);
             $aggRows[$uid]['liquido_total'] += (float)($r['liquido_total'] ?? 0);
         };
-        foreach ($rowsLegacy as $r) $add(['uid'=>$r['usuario_id'] ?? null,'bruto_total'=>$r['bruto_total'],'liquido_total'=>$r['liquido_total']]);
+        foreach ($rowsLegacy as $r) $add($r); // uses alias uid, bruto_total, liquido_total
         foreach ($rowsIntl as $r) $add($r);
         foreach ($rowsNat as $r) $add($r);
 
@@ -106,8 +106,9 @@ class Commission extends Model
         $teamBruto = 0.0;
         $activeCount = 0;
         foreach ($agg as $row) {
-            // Conta apenas vendedores ativos como elegíveis (exclui admin/manager)
-            if ((int)($row['user']['ativo'] ?? 0) === 1 && ($row['user']['role'] ?? 'seller') === 'seller') {
+            // Conta vendedores/gerentes ativos como elegíveis para rateio do bônus
+            $role = $row['user']['role'] ?? 'seller';
+            if ((int)($row['user']['ativo'] ?? 0) === 1 && in_array($role, ['seller','manager'], true)) {
                 $activeCount++;
             }
             // Bruto da equipe inclui todos (inclusive 'organic') para efeito de meta e custo global
@@ -163,8 +164,9 @@ class Commission extends Model
                 $perc = 0.25;
             }
             $individual_brl = round($liquido_apurado_brl * $perc, 2);
-            // Elegibilidade à comissão: somente 'seller' ativo. Outros (admin/manager/organic) não recebem, mas contam no time.
-            $isSellerActive = (($row['user']['role'] ?? '') === 'seller') && ((int)($row['user']['ativo'] ?? 0) === 1);
+            // Elegibilidade à comissão: sellers e managers ativos
+            $role = $row['user']['role'] ?? '';
+            $isSellerActive = in_array($role, ['seller','manager'], true) && ((int)($row['user']['ativo'] ?? 0) === 1);
             // Team bonus on BRL liquid if team reached goal (somente sellers ativos)
             $bonus_brl = 0.0;
             if ($isSellerActive && $teamBrutoBRL >= $metaEquipeBRL) {

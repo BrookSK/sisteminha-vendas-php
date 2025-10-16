@@ -114,7 +114,10 @@
         <td class="text-end">R$ ${(parseFloat(s.total_liquido_brl||0)).toFixed(2)}</td>
         <td class="text-end">$ ${(parseFloat(s.comissao_usd||0)).toFixed(2)}</td>
         <td class="text-end">R$ ${(parseFloat(s.comissao_brl||0)).toFixed(2)}</td>
-        <td><a class="btn btn-sm btn-outline-primary" href="/admin/international-sales/edit?id=${s.id}">Editar</a></td>
+        <td>
+          <a class="btn btn-sm btn-outline-primary me-1" href="/admin/international-sales/edit?id=${s.id}">Editar</a>
+          <a class="btn btn-sm btn-outline-secondary" href="/admin/international-sales/duplicate?id=${s.id}">Duplicar</a>
+        </td>
       `;
       tbody.appendChild(tr);
     });
@@ -145,7 +148,10 @@
           <td class="text-end">R$ ${(parseFloat(s.total_liquido_brl||0)).toFixed(2)}</td>
           <td class="text-end">$ ${(parseFloat(s.comissao_usd||0)).toFixed(2)}</td>
           <td class="text-end">R$ ${(parseFloat(s.comissao_brl||0)).toFixed(2)}</td>
-          <td><a class="btn btn-sm btn-outline-primary" href="${s._editUrl}">Editar</a></td>
+          <td>
+            <a class="btn btn-sm btn-outline-primary me-1" href="${s._editUrl}">Editar</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/admin/national-sales/duplicate?id=${s.id}">Duplicar</a>
+          </td>
         `;
         tbody.appendChild(tr);
       });

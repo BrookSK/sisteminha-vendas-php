@@ -201,6 +201,7 @@ $router->group('/admin', function($r) {
     $r->get('/international-sales/new', 'Controllers\\InternationalSalesController@new');
     $r->post('/international-sales/create', 'Controllers\\InternationalSalesController@create');
     $r->get('/international-sales/edit', 'Controllers\\InternationalSalesController@edit');
+    $r->get('/international-sales/duplicate', 'Controllers\\InternationalSalesController@duplicate');
     $r->post('/international-sales/update', 'Controllers\\InternationalSalesController@update');
     $r->get('/international-sales/export', 'Controllers\\InternationalSalesController@exportCsv');
     $r->get('/international-sales/data', 'Controllers\\InternationalSalesController@data');
@@ -210,6 +211,7 @@ $router->group('/admin', function($r) {
     $r->get('/national-sales/new', 'Controllers\\NationalSalesController@new');
     $r->post('/national-sales/create', 'Controllers\\NationalSalesController@create');
     $r->get('/national-sales/edit', 'Controllers\\NationalSalesController@edit');
+    $r->get('/national-sales/duplicate', 'Controllers\\NationalSalesController@duplicate');
     $r->post('/national-sales/update', 'Controllers\\NationalSalesController@update');
     $r->get('/national-sales/export', 'Controllers\\NationalSalesController@exportCsv');
     $r->get('/national-sales/data', 'Controllers\\NationalSalesController@data');
