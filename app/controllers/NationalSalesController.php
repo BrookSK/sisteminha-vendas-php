@@ -17,7 +17,7 @@ class NationalSalesController extends Controller
         $sellerId = isset($_GET['seller_id']) && $_GET['seller_id'] !== '' ? (int)$_GET['seller_id'] : null;
         $ym = $_GET['ym'] ?? null;
         $me = Auth::user();
-        if (($me['role'] ?? 'seller') === 'seller') {
+        if (in_array(($me['role'] ?? 'seller'), ['seller'], true)) {
             $sellerId = (int)($me['id'] ?? 0) ?: null;
         }
         $items = (new NationalSale())->list(200, 0, $sellerId, $ym);
@@ -99,7 +99,8 @@ class NationalSalesController extends Controller
         if (empty($data['cliente_id']) || (int)$data['cliente_id'] <= 0) {
             return $this->redirect('/admin/national-sales/edit?id=' . $id);
         }
-        $allowDateChange = (($me['role'] ?? 'seller') === 'admin');
+        // permitir alteração de data para seller/manager/admin
+        $allowDateChange = true;
         // Enforce USD rate for sellers on update as well
         if (($me['role'] ?? 'seller') === 'seller') {
             $data['taxa_dolar'] = (float)((new Setting())->get('usd_rate', '5.83'));
@@ -107,6 +108,34 @@ class NationalSalesController extends Controller
         (new NationalSale())->update($id, $data, (string)($me['name'] ?? $me['email'] ?? ''), $allowDateChange);
         (new Purchase())->upsertFromNat($id);
         return $this->redirect('/admin/national-sales');
+    }
+
+    public function duplicate()
+    {
+        $this->requireRole(['seller','manager','admin','organic']);
+        $id = (int)($_GET['id'] ?? 0);
+        $model = new \Models\NationalSale();
+        $row = $model->find($id);
+        if (!$row) return $this->redirect('/admin/national-sales');
+        $me = Auth::user();
+        if (($me['role'] ?? 'seller') === 'seller' && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
+            return $this->redirect('/admin/national-sales');
+        }
+        $data = [
+            'data_lancamento' => date('Y-m-d'),
+            'numero_pedido' => '',
+            'cliente_id' => (int)$row['cliente_id'],
+            'suite_cliente' => (string)($row['suite_cliente'] ?? ''),
+            'peso_kg' => (float)($row['peso_kg'] ?? 0),
+            'valor_produto_usd' => (float)($row['valor_produto_usd'] ?? 0),
+            'taxa_servico_usd' => (float)($row['taxa_servico_usd'] ?? 0),
+            'servico_compra_usd' => (float)($row['servico_compra_usd'] ?? 0),
+            'produtos_compra_usd' => (float)($row['produtos_compra_usd'] ?? 0),
+            'taxa_dolar' => (float)($row['taxa_dolar'] ?? 0),
+            'observacao' => null,
+        ];
+        $newId = $model->create($data, (int)($row['vendedor_id'] ?? ($me['id'] ?? 0)));
+        return $this->redirect('/admin/national-sales/edit?id='.$newId.'&dup=1');
     }
 
     public function exportCsv()

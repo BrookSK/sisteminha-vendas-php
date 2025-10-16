@@ -18,7 +18,7 @@ class DashboardController extends Controller
         [$from, $to] = $setting->currentPeriod();
         $me = Auth::user();
         $role = $me['role'] ?? 'seller';
-        $sellerId = ($role === 'seller') ? (int)($me['id'] ?? 0) : null;
+        $sellerId = (in_array($role, ['seller','manager'], true)) ? (int)($me['id'] ?? 0) : null;
 
         // Sumário do período (filtra por vendedor quando for seller)
         $report = new Report();

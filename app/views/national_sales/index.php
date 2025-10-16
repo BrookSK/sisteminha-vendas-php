@@ -64,7 +64,8 @@
             <td class="text-end">$ <?= number_format((float)$s['comissao_usd'], 2) ?></td>
             <td class="text-end">R$ <?= number_format((float)$s['comissao_brl'], 2, ',', '.') ?></td>
             <td>
-              <a class="btn btn-sm btn-outline-primary" href="/admin/national-sales/edit?id=<?= (int)$s['id'] ?>">Editar</a>
+              <a class="btn btn-sm btn-outline-primary me-1" href="/admin/national-sales/edit?id=<?= (int)$s['id'] ?>">Editar</a>
+              <a class="btn btn-sm btn-outline-secondary" href="/admin/national-sales/duplicate?id=<?= (int)$s['id'] ?>">Duplicar</a>
             </td>
           </tr>
         <?php endforeach; endif; ?>

@@ -69,6 +69,36 @@ class InternationalSalesController extends Controller
         return $this->redirect('/admin/international-sales');
     }
 
+    public function duplicate()
+    {
+        $this->requireRole(['seller','manager','admin','organic']);
+        $id = (int)($_GET['id'] ?? 0);
+        $model = new \Models\InternationalSale();
+        $row = $model->find($id);
+        if (!$row) return $this->redirect('/admin/international-sales');
+        $me = Auth::user();
+        if (($me['role'] ?? 'seller') === 'seller' && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
+            return $this->redirect('/admin/international-sales');
+        }
+        $data = [
+            'data_lancamento' => date('Y-m-d'),
+            'numero_pedido' => '',
+            'cliente_id' => (int)$row['cliente_id'],
+            'suite_cliente' => (string)($row['suite_cliente'] ?? ''),
+            'peso_kg' => (float)($row['peso_kg'] ?? 0),
+            'valor_produto_usd' => (float)($row['valor_produto_usd'] ?? 0),
+            'frete_ups_usd' => (float)($row['frete_ups_usd'] ?? 0),
+            'valor_redirecionamento_usd' => (float)($row['valor_redirecionamento_usd'] ?? 0),
+            'servico_compra_usd' => (float)($row['servico_compra_usd'] ?? 0),
+            'frete_etiqueta_usd' => (float)($row['frete_etiqueta_usd'] ?? 0),
+            'produtos_compra_usd' => (float)($row['produtos_compra_usd'] ?? 0),
+            'taxa_dolar' => (float)($row['taxa_dolar'] ?? 0),
+            'observacao' => null,
+        ];
+        $newId = $model->create($data, (int)($row['vendedor_id'] ?? ($me['id'] ?? 0)), (string)($me['name'] ?? $me['email'] ?? ''));
+        return $this->redirect('/admin/international-sales/edit?id='.$newId.'&dup=1');
+    }
+
     public function edit()
     {
         $this->requireRole(['seller','manager','admin','organic']);
@@ -102,12 +132,8 @@ class InternationalSalesController extends Controller
         if (empty($data['cliente_id']) || (int)$data['cliente_id'] <= 0) {
             return $this->redirect('/admin/international-sales/edit?id=' . $id);
         }
-        // block date edit after 48h unless admin
-        $allowDateChange = (($me['role'] ?? 'seller') === 'admin');
-        if (!$allowDateChange) {
-            // We'll approximate by checking 48h window since created time; if we had criado_em accessible, we'd fetch; for simplicity, allow seller to change only if within 48h via query
-            $allowDateChange = false; // will be enforced in model update by keeping existing if not allowed
-        }
+        // permitir alteração de data para seller/manager/admin
+        $allowDateChange = true;
         // Enforce USD rate for sellers on update as well
         if (($me['role'] ?? 'seller') === 'seller') {
             $data['taxa_dolar'] = (float)((new Setting())->get('usd_rate', '5.83'));
