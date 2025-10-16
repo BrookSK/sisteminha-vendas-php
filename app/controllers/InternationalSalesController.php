@@ -37,10 +37,38 @@ class InternationalSalesController extends Controller
         $this->requireRole(['seller','manager','admin','organic']);
         $clients = (new Client())->search(null, 1000, 0);
         $rate = (float)((new Setting())->get('usd_rate', '5.83'));
+        $fromId = isset($_GET['from']) ? (int)$_GET['from'] : 0;
+        $prefill = null;
+        if ($fromId > 0) {
+            $src = (new InternationalSale())->find($fromId);
+            if ($src) {
+                $prefill = [
+                    'data_lancamento' => date('Y-m-d'),
+                    'numero_pedido' => '',
+                    'cliente_id' => (int)($src['cliente_id'] ?? 0),
+                    'suite_cliente' => (string)($src['suite_cliente'] ?? ''),
+                    'peso_kg' => (float)($src['peso_kg'] ?? 0),
+                    'valor_produto_usd' => (float)($src['valor_produto_usd'] ?? 0),
+                    'frete_ups_usd' => (float)($src['frete_ups_usd'] ?? 0),
+                    'valor_redirecionamento_usd' => (float)($src['valor_redirecionamento_usd'] ?? 0),
+                    'servico_compra_usd' => (float)($src['servico_compra_usd'] ?? 0),
+                    'frete_etiqueta_usd' => (float)($src['frete_etiqueta_usd'] ?? 0),
+                    'produtos_compra_usd' => (float)($src['produtos_compra_usd'] ?? 0),
+                    'taxa_dolar' => (float)($src['taxa_dolar'] ?? $rate),
+                    'total_bruto_usd' => (float)($src['total_bruto_usd'] ?? 0),
+                    'total_bruto_brl' => (float)($src['total_bruto_brl'] ?? 0),
+                    'total_liquido_usd' => (float)($src['total_liquido_usd'] ?? 0),
+                    'total_liquido_brl' => (float)($src['total_liquido_brl'] ?? 0),
+                    'comissao_usd' => (float)($src['comissao_usd'] ?? 0),
+                    'comissao_brl' => (float)($src['comissao_brl'] ?? 0),
+                    'observacao' => '',
+                ];
+            }
+        }
         $this->render('international_sales/form', [
             'title' => 'Nova Venda Internacional',
             'action' => '/admin/international-sales/create',
-            'sale' => null,
+            'sale' => $prefill,
             'clients' => $clients,
             'now' => date('Y-m-d'),
             'rate' => $rate,
@@ -67,6 +95,21 @@ class InternationalSalesController extends Controller
         // ensure purchase queue reflects this sale
         (new Purchase())->upsertFromIntl($id);
         return $this->redirect('/admin/international-sales');
+    }
+
+    public function duplicate()
+    {
+        $this->requireRole(['seller','manager','admin','organic']);
+        $id = (int)($_GET['id'] ?? 0);
+        $model = new \Models\InternationalSale();
+        $row = $model->find($id);
+        if (!$row) return $this->redirect('/admin/international-sales');
+        $me = Auth::user();
+        if (($me['role'] ?? 'seller') === 'seller' && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
+            return $this->redirect('/admin/international-sales');
+        }
+        // Não persiste, apenas redireciona para o formulário novo com prefill
+        return $this->redirect('/admin/international-sales/new?dup=1&from='.$id);
     }
 
     public function edit()
@@ -102,12 +145,8 @@ class InternationalSalesController extends Controller
         if (empty($data['cliente_id']) || (int)$data['cliente_id'] <= 0) {
             return $this->redirect('/admin/international-sales/edit?id=' . $id);
         }
-        // block date edit after 48h unless admin
-        $allowDateChange = (($me['role'] ?? 'seller') === 'admin');
-        if (!$allowDateChange) {
-            // We'll approximate by checking 48h window since created time; if we had criado_em accessible, we'd fetch; for simplicity, allow seller to change only if within 48h via query
-            $allowDateChange = false; // will be enforced in model update by keeping existing if not allowed
-        }
+        // permitir alteração de data para seller/manager/admin
+        $allowDateChange = true;
         // Enforce USD rate for sellers on update as well
         if (($me['role'] ?? 'seller') === 'seller') {
             $data['taxa_dolar'] = (float)((new Setting())->get('usd_rate', '5.83'));

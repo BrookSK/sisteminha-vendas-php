@@ -2,6 +2,9 @@
 <?php use Core\Auth; ?>
 <div class="container py-3">
   <h3 class="mb-3"><?= htmlspecialchars($title ?? 'Venda Brasil') ?></h3>
+  <?php if ((string)($_GET['dup'] ?? '') === '1'): ?>
+    <div class="alert alert-warning">Essa edição da venda duplicada, edite as informações e salve para salvar a venda.</div>
+  <?php endif; ?>
 
   <form method="post" action="<?= htmlspecialchars($action) ?>" id="nat-sale-form">
     <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrf()) ?>">

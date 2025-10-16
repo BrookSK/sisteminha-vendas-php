@@ -2,6 +2,9 @@
 <?php use Core\Auth; ?>
 <div class="container py-3">
   <h3 class="mb-3"><?= htmlspecialchars($title ?? 'Venda Internacional') ?></h3>
+  <?php if ((string)($_GET['dup'] ?? '') === '1'): ?>
+    <div class="alert alert-warning">Essa edição da venda duplicada, edite as informações e salve para salvar a venda.</div>
+  <?php endif; ?>
 
   <form method="post" action="<?= htmlspecialchars($action) ?>" id="intl-sale-form">
     <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrf()) ?>">
@@ -329,14 +332,7 @@
     }
   });
 
-  // Date edit hint (locking enforced server-side for non-admin)
-  const createdAt = new Date(<?= json_encode($sale['criado_em'] ?? ($now.' 00:00:00' ?? date('Y-m-d 00:00:00'))) ?>);
-  const now = new Date();
-  const diffH = (now - createdAt) / 36e5;
-  if (diffH > 48 && <?= json_encode((Auth::user()['role'] ?? 'seller') !== 'admin') ?>) {
-    dataLanc.readOnly = true;
-    dateHelp.textContent = 'Edição da data bloqueada após 48h (somente admin pode alterar).';
-  }
+  // Dica opcional pode ser adicionada aqui; edição de data liberada no servidor.
 
   // Modal handlers
   const btn = document.getElementById('btnVerCalculo');
