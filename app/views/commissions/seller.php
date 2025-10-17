@@ -25,10 +25,10 @@
     </div>
     <div class="col-md-4">
       <div class="p-3 bg-light border rounded">
-        <div class="fw-bold">Líquido (USD)</div>
-        <div>US$ <?= number_format($mine['liquido_total'] ?? 0, 2) ?></div>
-        <?php if (isset($mine['liquido_total_brl'])): ?>
-          <div class="small text-muted">BRL R$ <?= number_format((float)$mine['liquido_total_brl'], 2) ?></div>
+        <div class="fw-bold">Líquido (após custos)</div>
+        <div>US$ <?= number_format($mine['liquido_apurado'] ?? ($mine['liquido_total'] ?? 0), 2) ?></div>
+        <?php if (isset($mine['liquido_apurado_brl'])): ?>
+          <div class="small text-muted">BRL R$ <?= number_format((float)$mine['liquido_apurado_brl'], 2) ?></div>
         <?php endif; ?>
       </div>
     </div>
@@ -66,8 +66,8 @@
         <?php if (isset($team['team_bruto_total_brl'])): ?>
           <small class="text-muted d-block">BRL R$ <?= number_format((float)$team['team_bruto_total_brl'], 2) ?> de R$ <?= number_format((float)($team['meta_equipe_brl'] ?? 0), 2) ?></small>
         <?php endif; ?>
-        <?php if (isset($team['team_cost_rate'])): ?>
-          <span class="badge text-bg-warning mt-2">Custo Global: <?= number_format((float)$team['team_cost_rate']*100, 2) ?>%</span>
+        <?php if (isset($team['team_cost_settings_rate'])): ?>
+          <span class="badge text-bg-warning mt-2">Custo Global: <?= number_format((float)$team['team_cost_settings_rate']*100, 2) ?>%</span>
         <?php endif; ?>
       </div>
     </div>
