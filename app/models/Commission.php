@@ -270,4 +270,32 @@ class Commission extends Model
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
+
+    /** Detailed costs for a given range, including settings cost rate and explicit custos rows. */
+    public function costsInRange(string $from, string $to): array
+    {
+        try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
+        $costRate = $set ? (float)$set->get('cost_rate', '0.15') : 0.15;
+        if ($costRate < 0) $costRate = 0; if ($costRate > 1) $costRate = 1;
+
+        $stmt = $this->db->prepare("SELECT id, data, descricao, valor_tipo, valor_usd, valor_percent FROM custos WHERE data BETWEEN :from_d AND :to_d ORDER BY data ASC, id ASC");
+        $stmt->execute([':from_d' => substr($from,0,10), ':to_d' => substr($to,0,10)]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $fixedUsd = 0.0; $percentSum = 0.0;
+        foreach ($rows as $r) {
+            $tipo = $r['valor_tipo'] ?? null;
+            if ($tipo === 'percent') {
+                $percentSum += (float)($r['valor_percent'] ?? 0);
+            } else {
+                $fixedUsd += (float)($r['valor_usd'] ?? 0);
+            }
+        }
+        return [
+            'settings_cost_rate' => $costRate,
+            'explicit_costs' => $rows,
+            'explicit_fixed_usd' => round($fixedUsd, 2),
+            'explicit_percent_sum' => round($percentSum, 2),
+        ];
+    }
 }

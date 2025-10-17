@@ -134,6 +134,7 @@ $router->group('/admin', function($r) {
     $r->post('/commissions/recalc', 'Controllers\\CommissionsController@recalc'); // admin
     $r->get('/commissions/me', 'Controllers\\CommissionsController@me'); // seller/manager/admin
     $r->get('/commissions/export', 'Controllers\\CommissionsController@exportCsv'); // admin
+    $r->get('/commissions/debug', 'Controllers\\CommissionsController@debug'); // seller/manager/admin
     // Atendimentos
     $r->get('/attendances', 'Controllers\\AttendancesController@index');
     $r->post('/attendances/save', 'Controllers\\AttendancesController@save');
