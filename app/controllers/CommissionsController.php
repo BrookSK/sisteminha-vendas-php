@@ -149,4 +149,29 @@ class CommissionsController extends Controller
         fclose($out);
         exit;
     }
+
+    // Debug page: show raw variables and costs breakdown for the logged-in user
+    public function debug()
+    {
+        $this->requireRole(['seller','manager','admin']);
+        $u = Auth::user();
+        $period = trim($_GET['period'] ?? date('Y-m'));
+        $model = new Commission();
+        [$from, $to] = $model->monthRange($period);
+        $calc = $model->computeRange($from, $to);
+        $mine = null; $team = $calc['team'];
+        foreach ($calc['items'] as $it) {
+            if ((int)$it['vendedor_id'] === (int)($u['id'] ?? 0)) { $mine = $it; break; }
+        }
+        $costs = $model->costsInRange($from, $to);
+        $this->render('commissions/debug', [
+            'title' => 'Debug de Comissões',
+            'period' => $period,
+            'from' => $from,
+            'to' => $to,
+            'mine' => $mine,
+            'team' => $team,
+            'costs' => $costs,
+        ]);
+    }
 }
