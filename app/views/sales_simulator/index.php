@@ -40,10 +40,9 @@
     </div>
 
     <div class="col-md-4">
-      <div class="form-check form-switch mt-4">
-        <input class="form-check-input" type="checkbox" id="imposto_local">
-        <label class="form-check-label" for="imposto_local">Aplicar imposto local de 7%?</label>
-      </div>
+      <label class="form-label">Imposto local (USD)</label>
+      <input type="number" step="0.01" min="0" class="form-control" id="imposto_local_usd" value="0">
+      <div class="form-text">Informe o valor cobrado localmente (em USD). Não é calculado automaticamente.</div>
     </div>
 
     <div class="col-md-4">
@@ -105,18 +104,21 @@
     const taxaCambio = parseFloat(document.getElementById('taxa_cambio').value||0);
     const isFrete = precisaFrete.checked;
     const freteUsd = isFrete ? parseFloat(document.getElementById('frete_usd').value||0) : 0;
-    const impLocal = document.getElementById('imposto_local').checked ? (valorProduto * 0.07) : 0;
+    const impLocal = parseFloat(document.getElementById('imposto_local_usd').value||0);
     const taxaServico = (peso > 0 ? (peso * 39.0) : 0);
     const subtotalUSD = valorProduto + taxaServico + freteUsd + impLocal;
     const subtotalBRL = subtotalUSD * taxaCambio;
 
     const envioBrasil = document.getElementById('envio_brasil').checked;
-    let impostoImport = 0, icms = 0, subtotalComImport = subtotalBRL, totalBRL = subtotalBRL;
+    // Base dos impostos de importação: APENAS o valor do produto em BRL
+    const baseProdutoBRL = valorProduto * taxaCambio;
+    let impostoImport = 0, icms = 0, subtotalComImport = baseProdutoBRL, totalBRL = subtotalBRL;
     if (envioBrasil) {
-      impostoImport = subtotalBRL * 0.60;
-      subtotalComImport = subtotalBRL + impostoImport;
-      icms = subtotalComImport * 0.20;
-      totalBRL = subtotalComImport + icms;
+      impostoImport = baseProdutoBRL * 0.60; // 60% sobre valor do produto (BRL)
+      subtotalComImport = baseProdutoBRL + impostoImport;
+      icms = subtotalComImport * 0.20; // 20% sobre (produto + 60%)
+      // Total final estimado em BRL: conversão do total em USD (produto + taxa + frete + imposto local) + impostos estimados
+      totalBRL = subtotalBRL + impostoImport + icms;
     }
 
     // USD list
@@ -126,7 +128,7 @@
       ['Valor do produto', valorProduto],
       ['Taxa de serviço (US$ 39/kg)', taxaServico],
       ...(isFrete ? [['Frete até a sede', freteUsd]] : []),
-      ...(impLocal>0 ? [['Imposto local 7%', impLocal]] : []),
+      ...(impLocal>0 ? [['Imposto local (USD)', impLocal]] : []),
       ['Total em dólar', subtotalUSD],
     ];
     usdItems.forEach(([k,v])=>{
@@ -139,8 +141,8 @@
     brlList.innerHTML = '';
     const brlItems = [
       ['Conversão do total em dólar', subtotalBRL],
-      ...(envioBrasil ? [['Imposto de Importação (60%)', impostoImport]] : []),
-      ...(envioBrasil ? [['ICMS (20%)', icms]] : []),
+      ...(envioBrasil ? [['Imposto de Importação (60%) sobre produto', impostoImport]] : []),
+      ...(envioBrasil ? [['ICMS (20%) sobre (produto+60%)', icms]] : []),
       ['Total final estimado (BRL)', totalBRL],
     ];
     brlItems.forEach(([k,v])=>{
@@ -159,11 +161,11 @@
     linhas.push('💬 Simulação de compra internacional – Brasiliana');
     linhas.push(`O produto ${nome} tem o valor de ${nfUSD(s.valorProduto||0)}, e a taxa de serviço é de ${nfUSD(s.taxaServico||0)} (calculada a US$ 39 por kg).`);
     const compUSD = s.subtotalUSD||0;
-    linhas.push(`O total, já com o frete até nossa sede e o imposto local de 7% (quando aplicável), fica aproximadamente em ${nfUSD(compUSD)}, o que convertido pela taxa de câmbio atual (${nfBRL(s.taxaCambio||0)}) fica em torno de ${nfBRL(s.subtotalBRL||0)}.`);
+    linhas.push(`O total, já com o frete até nossa sede e o imposto local (quando aplicável), fica aproximadamente em ${nfUSD(compUSD)}, o que convertido pela taxa de câmbio atual (${nfBRL(s.taxaCambio||0)}) fica em torno de ${nfBRL(s.subtotalBRL||0)}.`);
     if (s.envioBrasil) {
-      linhas.push('A estimativa dos impostos de importação seria:');
+      linhas.push('A estimativa dos impostos de importação, calculados sobre o valor do produto em reais, seria:');
       linhas.push(`Imposto de Importação (60%): ${nfBRL(s.impostoImport||0)}`);
-      linhas.push(`ICMS (20%): ${nfBRL(s.icms||0)}`);
+      linhas.push(`ICMS (20% sobre (produto + 60%)): ${nfBRL(s.icms||0)}`);
       linhas.push('⚠️ Lembrando que esses valores de impostos são apenas estimativas.');
       linhas.push('O pagamento dos impostos é feito diretamente à Receita Federal, quando o produto chega à alfândega.');
     }
