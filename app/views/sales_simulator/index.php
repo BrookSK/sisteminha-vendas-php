@@ -9,6 +9,12 @@
     </div>
   </div>
 
+  <div class="alert alert-warning" role="alert">
+    <div class="fw-bold mb-1">Orientação de pesquisa de produtos</div>
+    <div class="mb-1">Priorize sites confiáveis: <strong>Costco</strong>, <strong>Sam's Club</strong> e os <strong>sites oficiais das marcas</strong>. Apenas se não encontrar nestes, busque em outros.</div>
+    <div class="mb-0"><strong>Sobre eBay:</strong> lembre o cliente que qualquer pessoa pode criar conta e anunciar. A procedência do produto pode ser incerta e há riscos (produto não original, não entrega, etc.).</div>
+  </div>
+
   <form class="row g-3" id="sim-form" onsubmit="return false;">
     <div class="col-12">
       <label class="form-label">Nome do Produto</label>
