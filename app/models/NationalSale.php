@@ -22,6 +22,20 @@ class NationalSale extends Model
         return $map[$ceil] ?? 0.0;
     }
 
+    public function count(?int $sellerId = null, ?string $ym = null): int
+    {
+        $where = [];$p = [];
+        if ($sellerId) { $where[] = 'vendedor_id = :sid'; $p[':sid'] = $sellerId; }
+        if ($ym) { $where[] = "DATE_FORMAT(data_lancamento, '%Y-%m') = :ym"; $p[':ym'] = $ym; }
+        $sql = 'SELECT COUNT(*) c FROM vendas_nacionais vn';
+        if ($where) $sql .= ' WHERE '.implode(' AND ',$where);
+        $stmt = $this->db->prepare($sql);
+        foreach ($p as $k=>$v) { $stmt->bindValue($k, $v); }
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        return (int)($row['c'] ?? 0);
+    }
+
     private function compute(array $in): array
     {
         $peso = (float)($in['peso_kg'] ?? 0);

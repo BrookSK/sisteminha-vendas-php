@@ -192,13 +192,18 @@ class InternationalSalesController extends Controller
         $this->requireRole(['seller','manager','admin','organic']);
         $sellerId = isset($_GET['seller_id']) && $_GET['seller_id'] !== '' ? (int)$_GET['seller_id'] : null;
         $ym = $_GET['ym'] ?? null;
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $per = max(1, min(100, (int)($_GET['per'] ?? 25)));
         $me = Auth::user();
         if (($me['role'] ?? 'seller') === 'seller') {
             $sellerId = (int)($me['id'] ?? 0) ?: null;
         }
-        $items = (new InternationalSale())->list(5000, 0, $sellerId, $ym);
+        $model = new InternationalSale();
+        $total = $model->count($sellerId, $ym);
+        $offset = ($page - 1) * $per;
+        $items = $model->list($per, $offset, $sellerId, $ym);
         header('Content-Type: application/json');
-        echo json_encode(['data' => $items]);
+        echo json_encode(['data' => $items, 'page'=>$page, 'per'=>$per, 'total'=>$total]);
         exit;
     }
 
