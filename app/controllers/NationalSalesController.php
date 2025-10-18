@@ -16,11 +16,16 @@ class NationalSalesController extends Controller
         $this->requireRole(['seller','manager','admin','organic']);
         $sellerId = isset($_GET['seller_id']) && $_GET['seller_id'] !== '' ? (int)$_GET['seller_id'] : null;
         $ym = $_GET['ym'] ?? null;
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $per = max(1, min(100, (int)($_GET['per'] ?? 20)));
         $me = Auth::user();
         if (in_array(($me['role'] ?? 'seller'), ['seller'], true)) {
             $sellerId = (int)($me['id'] ?? 0) ?: null;
         }
-        $items = (new NationalSale())->list(200, 0, $sellerId, $ym);
+        $model = new NationalSale();
+        $total = $model->count($sellerId, $ym);
+        $offset = ($page - 1) * $per;
+        $items = $model->list($per, $offset, $sellerId, $ym);
         $users = (new User())->allBasic();
         $this->render('national_sales/index', [
             'title' => 'Vendas Nacionais',
@@ -28,6 +33,9 @@ class NationalSalesController extends Controller
             'seller_id' => $sellerId,
             'ym' => $ym,
             'users' => $users,
+            'total' => $total,
+            'page' => $page,
+            'per' => $per,
         ]);
     }
 
@@ -188,7 +196,7 @@ class NationalSalesController extends Controller
         $sellerId = isset($_GET['seller_id']) && $_GET['seller_id'] !== '' ? (int)$_GET['seller_id'] : null;
         $ym = $_GET['ym'] ?? null;
         $page = max(1, (int)($_GET['page'] ?? 1));
-        $per = max(1, min(100, (int)($_GET['per'] ?? 25)));
+        $per = max(1, min(100, (int)($_GET['per'] ?? 20)));
         $me = Auth::user();
         if (($me['role'] ?? 'seller') === 'seller') {
             $sellerId = (int)($me['id'] ?? 0) ?: null;
