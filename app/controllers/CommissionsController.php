@@ -164,6 +164,7 @@ class CommissionsController extends Controller
             if ((int)$it['vendedor_id'] === (int)($u['id'] ?? 0)) { $mine = $it; break; }
         }
         $costs = $model->costsInRange($from, $to);
+        $sources = $model->sellerSourceSums((int)($u['id'] ?? 0), $from, $to);
         $this->render('commissions/debug', [
             'title' => 'Debug de Comissões',
             'period' => $period,
@@ -172,6 +173,7 @@ class CommissionsController extends Controller
             'mine' => $mine,
             'team' => $team,
             'costs' => $costs,
+            'sources' => $sources,
         ]);
     }
 }
