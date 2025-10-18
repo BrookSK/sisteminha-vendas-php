@@ -53,6 +53,8 @@
         <?php if (isset($mine['allocated_cost_brl'])): ?>
           <div class="mt-2 text-muted small">Custo rateado: US$ <?= number_format((float)($mine['allocated_cost'] ?? 0), 2) ?> (R$ <?= number_format((float)$mine['allocated_cost_brl'], 2) ?>)</div>
         <?php endif; ?>
+        <?php $remVend = max(0.0, (float)($mine['allocated_cost'] ?? 0) - (float)($mine['liquido_total'] ?? 0)); ?>
+        <div class="mt-2 small <?= $remVend>0 ? 'text-danger' : 'text-muted' ?>">Falta cobrir custos (vendedor): US$ <?= number_format($remVend, 2) ?></div>
       </div>
     </div>
     <div class="col-md-6">
@@ -68,6 +70,9 @@
         <?php endif; ?>
         <?php if (isset($team['team_cost_settings_rate'])): ?>
           <span class="badge text-bg-warning mt-2">Custo Global: <?= number_format((float)$team['team_cost_settings_rate']*100, 2) ?>%</span>
+        <?php endif; ?>
+        <?php if (isset($team['team_remaining_cost_to_cover'])): ?>
+          <div class="mt-2 small <?= ((float)$team['team_remaining_cost_to_cover']>0?'text-danger':'text-muted') ?>">Falta cobrir custos da empresa: US$ <?= number_format((float)$team['team_remaining_cost_to_cover'], 2) ?></div>
         <?php endif; ?>
       </div>
     </div>

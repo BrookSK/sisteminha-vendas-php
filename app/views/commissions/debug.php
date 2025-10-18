@@ -27,6 +27,8 @@
             <li class="list-group-item"><strong>Comissão Individual USD:</strong> <?= number_format((float)($mine['comissao_individual'] ?? 0), 2) ?></li>
             <li class="list-group-item"><strong>Bônus USD:</strong> <?= number_format((float)($mine['bonus'] ?? 0), 2) ?></li>
             <li class="list-group-item"><strong>Comissão Final USD:</strong> <?= number_format((float)($mine['comissao_final'] ?? 0), 2) ?></li>
+            <?php $remVendDbg = max(0.0, (float)($mine['allocated_cost'] ?? 0) - (float)($mine['liquido_total'] ?? 0)); ?>
+            <li class="list-group-item"><strong>Falta cobrir custos (vendedor):</strong> US$ <?= number_format($remVendDbg, 2) ?></li>
           </ul>
           <?php else: ?>
           <div class="alert alert-info">Sem dados para o período selecionado.</div>
@@ -41,6 +43,7 @@
         <div class="card-body">
           <ul class="list-group list-group-flush">
             <li class="list-group-item"><strong>Bruto Equipe USD:</strong> <?= number_format((float)($team['team_bruto_total'] ?? 0), 2) ?></li>
+            <li class="list-group-item"><strong>Líquido Equipe USD:</strong> <?= number_format((float)($team['team_liquido_total'] ?? 0), 2) ?></li>
             <li class="list-group-item"><strong>Taxa Custo Global (Admin):</strong> <?= number_format(((float)($team['team_cost_settings_rate'] ?? 0))*100, 2) ?>%</li>
             <li class="list-group-item"><strong>Custo Global (Estimado) USD:</strong> <?= number_format(((float)($team['team_cost_settings_rate'] ?? 0)) * (float)($team['team_bruto_total'] ?? 0), 2) ?></li>
             <li class="list-group-item"><strong>Custos Fixos USD:</strong> <?= number_format((float)($team['team_cost_fixed_usd'] ?? 0), 2) ?></li>
@@ -49,6 +52,7 @@
             <li class="list-group-item"><strong>Custo Total Equipe USD:</strong> <?= number_format((float)($team['team_cost_total'] ?? 0), 2) ?></li>
             <li class="list-group-item"><strong>Elegíveis p/ Bônus:</strong> <?= (int)($team['active_count'] ?? 0) ?></li>
             <li class="list-group-item"><strong>Taxa Bônus (se meta):</strong> <?= number_format(((float)($team['bonus_rate'] ?? 0))*100, 2) ?>%</li>
+            <li class="list-group-item"><strong>Falta cobrir custos da empresa:</strong> US$ <?= number_format((float)($team['team_remaining_cost_to_cover'] ?? 0), 2) ?></li>
           </ul>
         </div>
       </div>
