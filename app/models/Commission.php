@@ -104,6 +104,7 @@ class Commission extends Model
     {
         $agg = $this->aggregateByUser($from, $to);
         $teamBruto = 0.0;
+        $teamLiquido = 0.0;
         $activeCount = 0;
         foreach ($agg as $row) {
             // Conta vendedores/gerentes ativos como elegíveis para rateio do bônus
@@ -113,6 +114,7 @@ class Commission extends Model
             }
             // Bruto da equipe inclui todos (inclusive 'organic') para efeito de meta e custo global
             $teamBruto += (float)$row['bruto_total'];
+            $teamLiquido += (float)$row['liquido_total'];
         }
         // Global cost allocation from Settings (applied on team gross)
         try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
@@ -204,6 +206,7 @@ class Commission extends Model
             'items' => $items,
             'team' => [
                 'team_bruto_total' => round($teamBruto, 2),
+                'team_liquido_total' => round($teamLiquido, 2),
                 // Effective total cost rate including settings, fixed and percent custos
                 'team_cost_rate' => ($teamBruto > 0 ? ($teamCost / $teamBruto) : 0.0),
                 'team_cost_total' => round($teamCost, 2),
@@ -211,6 +214,7 @@ class Commission extends Model
                 'team_cost_fixed_usd' => round($fixedUsd, 2),
                 'team_cost_percent_rate' => $percentSum / 100.0,
                 'team_cost_percent_total' => round($teamCostPercent, 2),
+                'team_remaining_cost_to_cover' => round(max(0.0, $teamCost - $teamLiquido), 2),
                 'apply_bonus' => ($teamBrutoBRL >= $metaEquipeBRL),
                 'active_count' => $activeCount,
                 'bonus_rate' => $bonusRate,
