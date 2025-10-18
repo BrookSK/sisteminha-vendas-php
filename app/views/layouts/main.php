@@ -77,6 +77,8 @@ use Core\Auth;
               <ul class="dropdown-menu" aria-labelledby="menuVendas">
                 <li><a class="dropdown-item" href="/admin/international-sales">Internacionais</a></li>
                 <li><a class="dropdown-item" href="/admin/national-sales">Nacionais</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="/admin/sales-simulator">Simulador de Cálculo</a></li>
               </ul>
             </li>
 
