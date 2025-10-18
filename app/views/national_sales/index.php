@@ -32,6 +32,25 @@
       <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
     </div>
   </form>
+  <?php
+    $curPage = (int)($page ?? 1);
+    $perPage = (int)($per ?? 20);
+    $totalItems = (int)($total ?? 0);
+    $pages = max(1, (int)ceil($totalItems / max(1,$perPage)));
+    $q = [];
+    if (!empty($seller_id)) { $q['seller_id'] = (int)$seller_id; }
+    if (!empty($ym)) { $q['ym'] = (string)$ym; }
+    $q['per'] = $perPage;
+    $qPrev = $q; $qPrev['page'] = max(1, $curPage - 1);
+    $qNext = $q; $qNext['page'] = min($pages, $curPage + 1);
+  ?>
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <div class="small text-muted">Página <?= $curPage ?> de <?= $pages ?> (total <?= $totalItems ?>)</div>
+    <div class="btn-group" role="group">
+      <a class="btn btn-sm btn-outline-secondary <?= $curPage<=1 ? 'disabled' : '' ?>" href="/admin/national-sales?<?= http_build_query($qPrev) ?>" <?= $curPage<=1 ? 'aria-disabled="true" tabindex="-1"' : '' ?>>Anterior</a>
+      <a class="btn btn-sm btn-outline-secondary <?= $curPage>=$pages ? 'disabled' : '' ?>" href="/admin/national-sales?<?= http_build_query($qNext) ?>" <?= $curPage>=$pages ? 'aria-disabled="true" tabindex="-1"' : '' ?>>Próximo</a>
+    </div>
+  </div>
 
   <div class="table-responsive">
     <table class="table table-striped align-middle">
