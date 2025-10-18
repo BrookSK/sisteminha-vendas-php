@@ -171,8 +171,20 @@ class DocumentationsController extends Controller
         $id = (int)($_POST['id'] ?? 0);
         $published = ($_POST['published'] ?? '0') === '1';
         if ($id > 0) {
-            (new Documentation())->setPublished($id, $published);
-            $this->flash('success', $published ? 'Documentação publicada.' : 'Documentação despublicada.');
+            $m = new Documentation();
+            $m->setPublished($id, $published);
+            if ($published) {
+                $doc = $m->find($id);
+                $slug = (string)($doc['external_slug'] ?? '');
+                if ($slug === '') {
+                    $base = $m->makeSlug((string)($doc['title'] ?? ''));
+                    $slug = $m->nextAvailableSlug($base, $id);
+                    $m->setSlug($id, $slug);
+                }
+                $this->flash('success', 'Documentação publicada. Link: /docs?s='.$slug.'&email=SEU_EMAIL');
+            } else {
+                $this->flash('success', 'Documentação despublicada.');
+            }
         }
         return $this->redirect('/admin/documentations/view?id='.(int)$id);
     }
