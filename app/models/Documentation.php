@@ -152,4 +152,29 @@ class Documentation extends Model
         }
         return (bool)$st->fetchColumn();
     }
+
+    public function makeSlug(string $text): string
+    {
+        $slug = strtolower(trim($text));
+        // replace non-alphanumeric with dashes
+        $slug = preg_replace('/[^a-z0-9\-]+/i', '-', $slug);
+        // normalize multiple dashes
+        $slug = preg_replace('/-+/', '-', $slug);
+        // trim dashes
+        $slug = trim($slug, '-');
+        return $slug ?: 'doc';
+    }
+
+    public function nextAvailableSlug(string $base, ?int $excludeId = null): string
+    {
+        $slug = $base;
+        if (!$this->slugExists($slug, $excludeId)) return $slug;
+        $i = 1;
+        while (true) {
+            $candidate = $base . '-' . $i;
+            if (!$this->slugExists($candidate, $excludeId)) return $candidate;
+            $i++;
+            if ($i > 10000) { return $base . '-' . uniqid(); }
+        }
+    }
 }

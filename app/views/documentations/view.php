@@ -39,7 +39,7 @@ if (!$doc) { echo '<div class="alert alert-warning">Documento não encontrado.</
             <option value="1" <?= ((int)($doc['published'] ?? 0)===1)?'selected':'' ?>>Sim</option>
           </select>
         </div>
-        <button id="publishSubmitBtn" class="btn btn-primary" type="button">Salvar</button>
+        <button id="publishSubmitBtn" class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#publishConfirmModal">Salvar</button>
       </form>
       <hr>
       <form method="post" action="/admin/documentations/set-slug" class="d-flex align-items-end gap-2 flex-wrap">
@@ -151,20 +151,16 @@ if (!$doc) { echo '<div class="alert alert-warning">Documento não encontrado.</
   (function(){
     const form = document.getElementById('publishForm');
     const trigger = document.getElementById('publishSubmitBtn');
-    const modalEl = document.getElementById('publishConfirmModal');
     const actionText = document.getElementById('pubActionText');
     const confirmBtn = document.getElementById('confirmPublishBtn');
-    if (form && trigger && modalEl && actionText && confirmBtn) {
-      const modal = new bootstrap.Modal(modalEl);
+    if (form && trigger && actionText && confirmBtn) {
       trigger.addEventListener('click', function(){
         const val = (form.querySelector('select[name="published"]').value || '0');
         actionText.textContent = (val === '1') ? 'PUBLICAR' : 'DESPUBLICAR';
-        modal.show();
       });
       confirmBtn.addEventListener('click', function(){
-        modal.hide();
         form.submit();
       });
     }
   })();
-</script>
+  </script>
