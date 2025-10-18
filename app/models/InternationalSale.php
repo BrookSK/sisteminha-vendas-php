@@ -235,4 +235,10 @@ class InternationalSale extends Model
         rewind($fh);
         return stream_get_contents($fh) ?: '';
     }
+
+    public function delete(int $id): void
+    {
+        $stmt = $this->db->prepare('DELETE FROM vendas_internacionais WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+    }
 }

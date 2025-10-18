@@ -65,7 +65,12 @@
             <td class="text-end">R$ <?= number_format((float)$s['comissao_brl'], 2, ',', '.') ?></td>
             <td>
               <a class="btn btn-sm btn-outline-primary me-1" href="/admin/national-sales/edit?id=<?= (int)$s['id'] ?>">Editar</a>
-              <a class="btn btn-sm btn-outline-secondary" href="/admin/national-sales/duplicate?id=<?= (int)$s['id'] ?>">Duplicar</a>
+              <a class="btn btn-sm btn-outline-secondary me-1" href="/admin/national-sales/duplicate?id=<?= (int)$s['id'] ?>">Duplicar</a>
+              <form method="post" action="/admin/national-sales/delete" class="d-inline" onsubmit="return confirm('Excluir esta venda?');">
+                <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Core\Auth::csrf()) ?>">
+                <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+              </form>
             </td>
           </tr>
         <?php endforeach; endif; ?>
