@@ -27,6 +27,19 @@ class InternationalSale extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    public function count(?int $sellerId = null, ?string $ym = null): int
+    {
+        $where = [];$p = [];
+        if ($sellerId) { $where[] = 'vendedor_id = :sid'; $p[':sid'] = $sellerId; }
+        if ($ym) { $where[] = "DATE_FORMAT(data_lancamento, '%Y-%m') = :ym"; $p[':ym'] = $ym; }
+        $sql = 'SELECT COUNT(*) c FROM vendas_internacionais';
+        if ($where) { $sql .= ' WHERE '.implode(' AND ',$where); }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($p);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        return (int)($row['c'] ?? 0);
+    }
+
     public function find(int $id): ?array
     {
         $stmt = $this->db->prepare('SELECT * FROM vendas_internacionais WHERE id=:id');

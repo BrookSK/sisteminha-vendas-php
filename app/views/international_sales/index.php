@@ -9,6 +9,7 @@
   </div>
 
   <form class="row g-2 mb-3" method="get" action="/admin/international-sales">
+    <?php if (in_array((Core\Auth::user()['role'] ?? 'seller'), ['manager','admin'], true)): ?>
     <div class="col-auto">
       <label class="form-label">Vendedor</label>
       <select class="form-select" name="seller_id">
@@ -20,6 +21,7 @@
         <?php endforeach; ?>
       </select>
     </div>
+    <?php endif; ?>
     <div class="col-auto">
       <label class="form-label">Mês</label>
       <input type="month" class="form-control" name="ym" value="<?= htmlspecialchars((string)($ym ?? '')) ?>">
