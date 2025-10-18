@@ -31,9 +31,10 @@ class CostsController extends Controller
         $cat = trim($_POST['categoria'] ?? 'geral');
         $desc = trim($_POST['descricao'] ?? '');
         $valType = $_POST['valor_tipo'] ?? 'usd';
-        $inputUsd = (float)($_POST['valor_usd'] ?? 0);
-        $inputBrl = (float)($_POST['valor_brl'] ?? 0);
-        $inputPct = isset($_POST['valor_percent']) ? (float)$_POST['valor_percent'] : null;
+        $norm = function($v){ if ($v===null) return null; if (is_string($v)) { $v = str_replace(['.',' ,',' '],['','.',''], $v); $v = str_replace(',','.', $v); } return (float)$v; };
+        $inputUsd = $norm($_POST['valor_usd'] ?? 0);
+        $inputBrl = $norm($_POST['valor_brl'] ?? 0);
+        $inputPct = isset($_POST['valor_percent']) ? $norm($_POST['valor_percent']) : null;
         $rate = (float)((new Setting())->get('usd_rate', '5.83'));
         if ($rate <= 0) $rate = 5.83;
         $val = 0.0;

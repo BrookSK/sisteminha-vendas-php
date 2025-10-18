@@ -120,7 +120,7 @@
         <th>Data</th>
         <th>Categoria</th>
         <th>Descrição</th>
-        <th>Valor (USD)</th>
+        <th>Valor</th>
         <th class="text-end">Ações</th>
       </tr>
     </thead>
@@ -132,7 +132,16 @@
           <td><?= htmlspecialchars($c['data']) ?></td>
           <td><span class="badge text-bg-secondary"><?= htmlspecialchars($c['categoria']) ?></span></td>
           <td><?= htmlspecialchars($c['descricao'] ?? '') ?></td>
-          <td>$ <?= number_format((float)($c['valor_usd'] ?? 0), 2) ?></td>
+          <td>
+            <?php $tipo = $c['valor_tipo'] ?? 'usd'; ?>
+            <?php if ($tipo === 'percent'): ?>
+              <?= number_format((float)($c['valor_percent'] ?? 0), 2) ?> %
+            <?php elseif ($tipo === 'brl'): ?>
+              R$ <?= number_format((float)($c['valor_brl'] ?? 0), 2, ',', '.') ?>
+            <?php else: ?>
+              $ <?= number_format((float)($c['valor_usd'] ?? 0), 2) ?>
+            <?php endif; ?>
+          </td>
           <td class="text-end">
             <form method="post" action="/admin/costs/delete" class="d-inline" onsubmit="return confirm('Excluir este custo?');">
               <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrf()) ?>">
