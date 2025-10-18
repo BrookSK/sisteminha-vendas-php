@@ -193,7 +193,7 @@ class InternationalSalesController extends Controller
         $sellerId = isset($_GET['seller_id']) && $_GET['seller_id'] !== '' ? (int)$_GET['seller_id'] : null;
         $ym = $_GET['ym'] ?? null;
         $page = max(1, (int)($_GET['page'] ?? 1));
-        $per = max(1, min(100, (int)($_GET['per'] ?? 25)));
+        $per = max(1, min(100, (int)($_GET['per'] ?? 20)));
         $me = Auth::user();
         if (($me['role'] ?? 'seller') === 'seller') {
             $sellerId = (int)($me['id'] ?? 0) ?: null;
