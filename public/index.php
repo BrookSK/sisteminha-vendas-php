@@ -208,6 +208,9 @@ $router->group('/admin', function($r) {
     $r->get('/international-sales/export', 'Controllers\\InternationalSalesController@exportCsv');
     $r->get('/international-sales/data', 'Controllers\\InternationalSalesController@data');
 
+    // Simulador de Cálculo
+    $r->get('/sales-simulator', 'Controllers\\SalesSimulatorController@index');
+
     // Vendas Nacionais
     $r->get('/national-sales', 'Controllers\\NationalSalesController@index');
     $r->get('/national-sales/new', 'Controllers\\NationalSalesController@new');
