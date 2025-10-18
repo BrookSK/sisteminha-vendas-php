@@ -29,6 +29,7 @@ use Core\Auth;
           <?php if ($isDemands): ?>
             <!-- Contexto: Demandas -->
             <li class="nav-item"><a class="nav-link" href="/admin">Vendas</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/documentations">Documentações</a></li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="menuDemandas" role="button" data-bs-toggle="dropdown" aria-expanded="false">Demandas</a>
               <ul class="dropdown-menu" aria-labelledby="menuDemandas">
@@ -56,6 +57,7 @@ use Core\Auth;
           <?php else: ?>
             <!-- Contexto: Vendas/Admin (padrão) -->
             <li class="nav-item"><a class="nav-link" href="/admin/demands/dashboard">Demandas</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/documentations">Documentações</a></li>
             <!-- Cadastros -->
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="menuCadastros" role="button" data-bs-toggle="dropdown" aria-expanded="false">Cadastros</a>
@@ -135,6 +137,7 @@ use Core\Auth;
                 <?php if ((Auth::user()['role'] ?? 'seller') === 'admin'): ?>
                   <li><a class="dropdown-item" href="/admin/logs">Logs</a></li>
                   <li><a class="dropdown-item" href="/admin/donations">Doações</a></li>
+                  <li><a class="dropdown-item" href="/admin/documentation-areas">Áreas Técnicas</a></li>
                   <li><hr class="dropdown-divider"></li>
                   <li><a class="dropdown-item" href="/admin/settings">Configurações</a></li>
                 <?php endif; ?>
@@ -168,6 +171,14 @@ use Core\Auth;
   </div>
 </nav>
 <main class="container my-4">
+  <?php if (!empty($_SESSION['flash'])): ?>
+    <?php foreach (($_SESSION['flash'] ?? []) as $f): ?>
+      <div class="alert alert-<?= htmlspecialchars($f['type'] ?? 'info') ?> alert-dismissible fade show" role="alert">
+        <?= htmlspecialchars($f['message'] ?? '') ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <?php endforeach; unset($_SESSION['flash']); ?>
+  <?php endif; ?>
   <?= $content ?>
 </main>
 <footer class="bg-light py-3 mt-4 border-top">
