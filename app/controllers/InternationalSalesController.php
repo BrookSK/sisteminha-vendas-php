@@ -170,6 +170,23 @@ class InternationalSalesController extends Controller
         exit;
     }
 
+    public function delete()
+    {
+        $this->requireRole(['seller','manager','admin']);
+        $this->csrfCheck();
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) return $this->redirect('/admin/international-sales');
+        $model = new InternationalSale();
+        $row = $model->find($id);
+        if (!$row) return $this->redirect('/admin/international-sales');
+        $me = Auth::user();
+        if (($me['role'] ?? 'seller') === 'seller' && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
+            return $this->redirect('/admin/international-sales');
+        }
+        $model->delete($id);
+        return $this->redirect('/admin/international-sales');
+    }
+
     public function data()
     {
         $this->requireRole(['seller','manager','admin','organic']);

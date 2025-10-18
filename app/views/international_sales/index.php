@@ -98,6 +98,7 @@
     seller_id: '<?= htmlspecialchars((string)($seller_id ?? '')) ?>',
     ym: '<?= htmlspecialchars((string)($ym ?? '')) ?>'
   });
+  const CSRF = '<?= htmlspecialchars(Core\Auth::csrf()) ?>';
   function renderRows(tbl, rows) {
     const tbody = tbl.querySelector('tbody');
     tbody.innerHTML='';
@@ -116,7 +117,12 @@
         <td class="text-end">R$ ${(parseFloat(s.comissao_brl||0)).toFixed(2)}</td>
         <td>
           <a class="btn btn-sm btn-outline-primary me-1" href="/admin/international-sales/edit?id=${s.id}">Editar</a>
-          <a class="btn btn-sm btn-outline-secondary" href="/admin/international-sales/duplicate?id=${s.id}">Duplicar</a>
+          <a class="btn btn-sm btn-outline-secondary me-1" href="/admin/international-sales/duplicate?id=${s.id}">Duplicar</a>
+          <form method="post" action="/admin/international-sales/delete" class="d-inline" onsubmit="return confirm('Excluir esta venda?');">
+            <input type="hidden" name="_csrf" value="${CSRF}">
+            <input type="hidden" name="id" value="${s.id}">
+            <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+          </form>
         </td>
       `;
       tbody.appendChild(tr);
@@ -150,7 +156,12 @@
           <td class="text-end">R$ ${(parseFloat(s.comissao_brl||0)).toFixed(2)}</td>
           <td>
             <a class="btn btn-sm btn-outline-primary me-1" href="${s._editUrl}">Editar</a>
-            <a class="btn btn-sm btn-outline-secondary" href="/admin/national-sales/duplicate?id=${s.id}">Duplicar</a>
+            <a class="btn btn-sm btn-outline-secondary me-1" href="/admin/national-sales/duplicate?id=${s.id}">Duplicar</a>
+            <form method="post" action="/admin/national-sales/delete" class="d-inline" onsubmit="return confirm('Excluir esta venda?');">
+              <input type="hidden" name="_csrf" value="${CSRF}">
+              <input type="hidden" name="id" value="${s.id}">
+              <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+            </form>
           </td>
         `;
         tbody.appendChild(tr);
