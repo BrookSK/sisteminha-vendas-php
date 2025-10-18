@@ -298,4 +298,32 @@ class Commission extends Model
             'explicit_percent_sum' => round($percentSum, 2),
         ];
     }
+
+    /** Per-source sums for a seller within range: legacy, international, national. */
+    public function sellerSourceSums(int $sellerId, string $from, string $to): array
+    {
+        $out = [
+            'legacy' => ['bruto_total'=>0.0,'liquido_total'=>0.0],
+            'intl' => ['bruto_total'=>0.0,'liquido_total'=>0.0],
+            'nat' => ['bruto_total'=>0.0,'liquido_total'=>0.0],
+        ];
+        // Legacy vendas
+        $stmt1 = $this->db->prepare('SELECT COALESCE(SUM(bruto_usd),0) as b, COALESCE(SUM(liquido_usd),0) as l FROM vendas WHERE usuario_id=:id AND created_at BETWEEN :f AND :t');
+        $stmt1->execute([':id'=>$sellerId, ':f'=>$from, ':t'=>$to]);
+        if ($r=$stmt1->fetch(PDO::FETCH_ASSOC)) { $out['legacy']['bruto_total']=(float)$r['b']; $out['legacy']['liquido_total']=(float)$r['l']; }
+        // International
+        $stmt2 = $this->db->prepare('SELECT COALESCE(SUM(total_bruto_usd),0) as b, COALESCE(SUM(total_liquido_usd),0) as l FROM vendas_internacionais WHERE vendedor_id=:id AND data_lancamento BETWEEN :f AND :t');
+        $stmt2->execute([':id'=>$sellerId, ':f'=>substr($from,0,10), ':t'=>substr($to,0,10)]);
+        if ($r=$stmt2->fetch(PDO::FETCH_ASSOC)) { $out['intl']['bruto_total']=(float)$r['b']; $out['intl']['liquido_total']=(float)$r['l']; }
+        // National
+        $stmt3 = $this->db->prepare('SELECT COALESCE(SUM(total_bruto_usd),0) as b, COALESCE(SUM(total_liquido_usd),0) as l FROM vendas_nacionais WHERE vendedor_id=:id AND data_lancamento BETWEEN :f AND :t');
+        $stmt3->execute([':id'=>$sellerId, ':f'=>substr($from,0,10), ':t'=>substr($to,0,10)]);
+        if ($r=$stmt3->fetch(PDO::FETCH_ASSOC)) { $out['nat']['bruto_total']=(float)$r['b']; $out['nat']['liquido_total']=(float)$r['l']; }
+        // Totals
+        $out['total'] = [
+            'bruto_total' => $out['legacy']['bruto_total'] + $out['intl']['bruto_total'] + $out['nat']['bruto_total'],
+            'liquido_total' => $out['legacy']['liquido_total'] + $out['intl']['liquido_total'] + $out['nat']['liquido_total'],
+        ];
+        return $out;
+    }
 }
