@@ -151,15 +151,53 @@ class DocumentationsController extends Controller
         if ($slug === '') { http_response_code(404); echo 'Not found'; return; }
         $doc = (new Documentation())->findBySlug($slug);
         if (!$doc || (int)($doc['published'] ?? 0) !== 1) { http_response_code(404); echo 'Not found'; return; }
-        // Email gate: require email param and check permission
         $email = trim($_GET['email'] ?? '');
-        if ($email === '' || !(new \Models\DocumentationEmailPermission())->isAllowed((int)$doc['id'], $email)) {
-            http_response_code(403);
-            echo 'Acesso negado. E-mail não autorizado.';
+        $title = $doc['title'];
+        if ($email === '') {
+            // ask for email via modal
+            $content = '<div class="container my-4"><h2>'.htmlspecialchars($title).'</h2><div class="mt-3">'
+                .'<div class="alert alert-info">Informe seu e-mail para acessar este documento.</div>'
+                .'</div></div>'
+                .'<div class="modal fade show" id="emailGateModal" tabindex="-1" style="display:block; background: rgba(0,0,0,.5);" aria-modal="true" role="dialog">'
+                .'<div class="modal-dialog"><div class="modal-content">'
+                .'<div class="modal-header"><h5 class="modal-title">Acesso por e-mail</h5></div>'
+                .'<div class="modal-body">'
+                .'<form method="get" action="/docs">'
+                .'<input type="hidden" name="s" value="'.htmlspecialchars($slug).'">'
+                .'<label class="form-label">Seu e-mail</label>'
+                .'<input type="email" name="email" class="form-control" required placeholder="usuario@dominio.com">'
+                .'</div>'
+                .'<div class="modal-footer">'
+                .'<button type="submit" class="btn btn-primary">Continuar</button>'
+                .'</div></form>'
+                .'</div></div></div>'
+                .'<script>document.addEventListener("DOMContentLoaded",function(){ /* modal already shown */ });</script>';
+            include dirname(__DIR__) . '/views/layouts/main.php';
             return;
         }
-        // basic render without admin layout
-        $title = $doc['title'];
+        if (!(new \Models\DocumentationEmailPermission())->isAllowed((int)$doc['id'], $email)) {
+            // unauthorized: show modal with error
+            $content = '<div class="container my-4"><h2>'.htmlspecialchars($title).'</h2><div class="mt-3">'
+                .'<div class="alert alert-danger">Acesso negado para o e-mail informado.</div>'
+                .'</div></div>'
+                .'<div class="modal fade show" id="emailGateModal" tabindex="-1" style="display:block; background: rgba(0,0,0,.5);" aria-modal="true" role="dialog">'
+                .'<div class="modal-dialog"><div class="modal-content">'
+                .'<div class="modal-header"><h5 class="modal-title">Acesso por e-mail</h5></div>'
+                .'<div class="modal-body">'
+                .'<form method="get" action="/docs">'
+                .'<input type="hidden" name="s" value="'.htmlspecialchars($slug).'">'
+                .'<label class="form-label">Seu e-mail</label>'
+                .'<input type="email" name="email" class="form-control" required placeholder="usuario@dominio.com">'
+                .'</div>'
+                .'<div class="modal-footer">'
+                .'<button type="submit" class="btn btn-primary">Tentar novamente</button>'
+                .'</div></form>'
+                .'</div></div></div>'
+                .'<script>document.addEventListener("DOMContentLoaded",function(){ /* modal already shown */ });</script>';
+            include dirname(__DIR__) . '/views/layouts/main.php';
+            return;
+        }
+        // authorized: render content
         $content = '<div class="container my-4"><h2>'.htmlspecialchars($title).'</h2><div class="mt-3">'.($doc['content'] ?? '').'</div></div>';
         include dirname(__DIR__) . '/views/layouts/main.php';
     }
@@ -181,7 +219,10 @@ class DocumentationsController extends Controller
                     $slug = $m->nextAvailableSlug($base, $id);
                     $m->setSlug($id, $slug);
                 }
-                $this->flash('success', 'Documentação publicada. Link: /docs?s='.$slug.'&email=SEU_EMAIL');
+                $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                $url = $scheme . '://' . $host . '/docs/?s=' . urlencode($slug);
+                $this->flash('success', 'Documentação publicada. Link: ' . $url);
             } else {
                 $this->flash('success', 'Documentação despublicada.');
             }
