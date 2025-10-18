@@ -57,4 +57,22 @@ class Project extends Model
         $st->execute([':pid'=>$projectId]);
         return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
+
+    public function options(string $q = '', int $limit = 10): array
+    {
+        if ($q === '') {
+            $st = $this->db->prepare('SELECT id, name FROM projects ORDER BY id DESC LIMIT :lim');
+            $st->bindValue(':lim', $limit, PDO::PARAM_INT);
+            $st->execute();
+            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        }
+        $like = '%' . $q . '%';
+        $st = $this->db->prepare('SELECT id, name FROM projects WHERE name LIKE :q OR id = :id ORDER BY id DESC LIMIT :lim');
+        $idTry = ctype_digit($q) ? (int)$q : -1;
+        $st->bindValue(':q', $like, PDO::PARAM_STR);
+        $st->bindValue(':id', $idTry, PDO::PARAM_INT);
+        $st->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $st->execute();
+        return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
 }

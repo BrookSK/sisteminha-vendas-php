@@ -188,9 +188,29 @@ $router->group('/admin', function($r) {
 
     // Projetos
     $r->get('/projects', 'Controllers\\ProjectsController@index');
+    $r->get('/projects/options', 'Controllers\\ProjectsController@options');
     $r->post('/projects/create', 'Controllers\\ProjectsController@create');
     $r->post('/projects/update', 'Controllers\\ProjectsController@update');
     $r->get('/projects/view', 'Controllers\\ProjectsController@view');
+
+    // Documentações e Procedimentos
+    $r->get('/documentations', 'Controllers\\DocumentationsController@index');
+    $r->get('/documentations/new', 'Controllers\\DocumentationsController@new');
+    $r->post('/documentations/create', 'Controllers\\DocumentationsController@create');
+    $r->get('/documentations/view', 'Controllers\\DocumentationsController@view');
+    $r->get('/documentations/edit', 'Controllers\\DocumentationsController@edit');
+    $r->post('/documentations/update', 'Controllers\\DocumentationsController@update');
+    $r->post('/documentations/publish', 'Controllers\\DocumentationsController@publish');
+    $r->post('/documentations/set-slug', 'Controllers\\DocumentationsController@setSlug');
+    $r->post('/documentations/email-add', 'Controllers\\DocumentationsController@emailAdd');
+    $r->post('/documentations/email-remove', 'Controllers\\DocumentationsController@emailRemove');
+    $r->post('/documentations/comment-add', 'Controllers\\DocumentationsController@commentAdd');
+
+    // Áreas Técnicas (admin)
+    $r->get('/documentation-areas', 'Controllers\\DocumentationAreasController@index');
+    $r->post('/documentation-areas/create', 'Controllers\\DocumentationAreasController@create');
+    $r->post('/documentation-areas/update', 'Controllers\\DocumentationAreasController@update');
+    $r->post('/documentation-areas/delete', 'Controllers\\DocumentationAreasController@delete');
 
     // Time Off
     $r->post('/timeoff/create', 'Controllers\\TimeOffController@createToday');
@@ -248,6 +268,9 @@ $router->group('/admin', function($r) {
 $router->post('/webhooks/containers', 'Controllers\\WebhooksController@containers');
 $router->post('/webhooks/sales', 'Controllers\\WebhooksController@sales');
 $router->post('/webhooks/demands', 'Controllers\\WebhooksController@demands');
+
+// Public documentation viewing (email-gated)
+$router->get('/docs', 'Controllers\\DocumentationsController@publicView');
 
 // Dispatch
 $router->dispatch($_SERVER['REQUEST_METHOD'] ?? 'GET', $_SERVER['REQUEST_URI'] ?? '/');
