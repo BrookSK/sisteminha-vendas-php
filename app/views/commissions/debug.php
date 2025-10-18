@@ -79,4 +79,33 @@
       </div>
     </div>
   </div>
+
+  <div class="card mt-3">
+    <div class="card-header">Como é calculado (Fórmulas com valores)</div>
+    <div class="card-body">
+      <?php 
+        $teamBruto = (float)($team['team_bruto_total'] ?? 0);
+        $rateAdmin = (float)($team['team_cost_settings_rate'] ?? 0);
+        $globalCost = $teamBruto * $rateAdmin;
+        $fixos = (float)($team['team_cost_fixed_usd'] ?? 0);
+        $percRate = (float)($team['team_cost_percent_rate'] ?? 0);
+        $percTotal = (float)($team['team_cost_percent_total'] ?? 0);
+        $teamTotalCost = (float)($team['team_cost_total'] ?? 0);
+        $sellerBruto = (float)($mine['bruto_total'] ?? 0);
+        $sellerLiquido = (float)($mine['liquido_total'] ?? 0);
+        $share = ($teamBruto > 0 ? ($sellerBruto / $teamBruto) : 0);
+        $allocated = (float)($mine['allocated_cost'] ?? 0);
+        $liquidoApurado = (float)($mine['liquido_apurado'] ?? ($sellerLiquido - $allocated));
+      ?>
+      <div class="mb-2"><strong>Janela:</strong> <?= htmlspecialchars($from) ?> a <?= htmlspecialchars($to) ?></div>
+      <ol class="mb-0">
+        <li><strong>Custo Global (empresa):</strong> global = taxa_admin × bruto_equipe = <?= number_format($rateAdmin*100,2) ?>% × US$ <?= number_format($teamBruto,2) ?> = <strong>US$ <?= number_format($globalCost,2) ?></strong></li>
+        <li><strong>Custos explícitos fixos:</strong> <strong>US$ <?= number_format($fixos,2) ?></strong></li>
+        <li><strong>Custos explícitos percentuais:</strong> percent_total = <?= number_format($percRate*100,2) ?>% × US$ <?= number_format($teamBruto,2) ?> = <strong>US$ <?= number_format($percTotal,2) ?></strong></li>
+        <li><strong>Custo Total da Equipe:</strong> total = global + fixos + percentuais = US$ <?= number_format($globalCost,2) ?> + US$ <?= number_format($fixos,2) ?> + US$ <?= number_format($percTotal,2) ?> = <strong>US$ <?= number_format($teamTotalCost,2) ?></strong></li>
+        <li><strong>Rateio pro vendedor:</strong> parcela = total × (bruto_vendedor / bruto_equipe) = US$ <?= number_format($teamTotalCost,2) ?> × (US$ <?= number_format($sellerBruto,2) ?> / US$ <?= number_format($teamBruto,2) ?>) = <strong>US$ <?= number_format($allocated,2) ?></strong> (<?php if($teamBruto>0): ?><?= number_format($share*100,2) ?>%<?php else: ?>0%<?php endif; ?> do total)</li>
+        <li><strong>Líquido Apurado do vendedor:</strong> líquido_apurado = líquido_total − parcela = US$ <?= number_format($sellerLiquido,2) ?> − US$ <?= number_format($allocated,2) ?> = <strong>US$ <?= number_format($liquidoApurado,2) ?></strong></li>
+      </ol>
+    </div>
+  </div>
 </div>
