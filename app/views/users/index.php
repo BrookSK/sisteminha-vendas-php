@@ -39,6 +39,8 @@
               <span class="badge bg-warning text-dark">manager</span>
             <?php elseif ($role === 'organic'): ?>
               <span class="badge bg-info text-dark">organic</span>
+            <?php elseif ($role === 'trainee'): ?>
+              <span class="badge bg-secondary">seller_trainee</span>
             <?php else: ?>
               <span class="badge bg-secondary">seller</span>
             <?php endif; ?>
