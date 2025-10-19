@@ -134,7 +134,6 @@ use Core\Auth;
               <a class="nav-link dropdown-toggle" href="#" id="menuAdmin" role="button" data-bs-toggle="dropdown" aria-expanded="false">Administração</a>
               <ul class="dropdown-menu" aria-labelledby="menuAdmin">
                 <li><a class="dropdown-item" href="/admin/users">Usuários</a></li>
-                <li><a class="dropdown-item" href="/admin/clients">Clientes</a></li>
                 <li><a class="dropdown-item" href="/admin/hostings">Hospedagens</a></li>
                 <li><a class="dropdown-item" href="/admin/hosting-assets">Ativos (Sites/Sistemas/E-mails)</a></li>
                 <li><a class="dropdown-item" href="/admin/site-clients">Clientes (Sites)</a></li>
