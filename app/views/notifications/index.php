@@ -97,7 +97,7 @@
                   <button class="btn btn-sm btn-outline-success" type="submit">Marcar como lida</button>
                 </form>
               <?php endif; ?>
-              <?php if ($apprId && in_array((\Core\Auth::user()['role'] ?? 'seller'), ['admin','manager'], true)): ?>
+              <?php if ($apprId): ?>
                 <form class="d-inline" method="post" action="/admin/approvals/approve">
                   <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
                   <input type="hidden" name="id" value="<?= (int)$apprId ?>">

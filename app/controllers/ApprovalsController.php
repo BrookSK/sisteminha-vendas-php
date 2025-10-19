@@ -26,7 +26,6 @@ class ApprovalsController extends Controller
 
     public function approve()
     {
-        $this->requireRole(['manager','admin']);
         $this->csrfCheck();
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) return $this->redirect('/admin/approvals');
@@ -34,6 +33,13 @@ class ApprovalsController extends Controller
         $apprModel = new Approval();
         $appr = $apprModel->find($id);
         if (!$appr || ($appr['status'] ?? '') !== 'pending') return $this->redirect('/admin/approvals');
+        // Authorization: admin/manager OR assigned reviewer
+        $role = (string)($me['role'] ?? 'seller');
+        $isReviewer = ((int)($appr['reviewer_id'] ?? 0) === (int)($me['id'] ?? 0));
+        if (!in_array($role, ['admin','manager'], true) && !$isReviewer) {
+            http_response_code(403);
+            return $this->render('errors/403', [ 'title' => 'Acesso negado', 'required_roles' => ['admin','manager','assigned reviewer'], 'user' => $me ]);
+        }
 
         // Materialize based on entity_type
         $etype = (string)($appr['entity_type'] ?? '');
@@ -95,13 +101,20 @@ class ApprovalsController extends Controller
 
     public function reject()
     {
-        $this->requireRole(['manager','admin']);
         $this->csrfCheck();
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) return $this->redirect('/admin/approvals');
         $me = Auth::user();
         $apprModel = new Approval();
         $appr = $apprModel->find($id);
+        if (!$appr) return $this->redirect('/admin/approvals');
+        // Authorization: admin/manager OR assigned reviewer
+        $role = (string)($me['role'] ?? 'seller');
+        $isReviewer = ((int)($appr['reviewer_id'] ?? 0) === (int)($me['id'] ?? 0));
+        if (!in_array($role, ['admin','manager'], true) && !$isReviewer) {
+            http_response_code(403);
+            return $this->render('errors/403', [ 'title' => 'Acesso negado', 'required_roles' => ['admin','manager','assigned reviewer'], 'user' => $me ]);
+        }
         $apprModel->reject($id, (int)($me['id'] ?? 0));
         $createdBy = (int)($appr['created_by'] ?? 0);
         if ($createdBy) {
