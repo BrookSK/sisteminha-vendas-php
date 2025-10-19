@@ -43,7 +43,7 @@ class NationalSalesController extends Controller
 
     public function new()
     {
-        $this->requireRole(['seller','manager','admin','organic']);
+        $this->requireRole(['seller','trainee','manager','admin','organic']);
         $clients = (new Client())->search(null, 1000, 0);
         $rate = (float)((new Setting())->get('usd_rate', '5.83'));
         $fromId = isset($_GET['from']) ? (int)$_GET['from'] : 0;
