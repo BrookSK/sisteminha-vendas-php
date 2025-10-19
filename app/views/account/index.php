@@ -18,6 +18,13 @@
               <label class="form-label">Email</label>
               <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($user['email'] ?? '') ?>" required>
             </div>
+            <div class="mb-3">
+              <label class="form-label">Permissão</label>
+              <?php $role = (string)($user['role'] ?? '');
+                    $roleMap = ['seller'=>'Vendedor','trainee'=>'Trainee','organic'=>'Orgânico','manager'=>'Gerente','admin'=>'Admin'];
+                    $roleLabel = $roleMap[$role] ?? $role; ?>
+              <input type="text" class="form-control" value="<?= htmlspecialchars($roleLabel) ?>" readonly>
+            </div>
             <button class="btn btn-primary" type="submit">Salvar</button>
           </form>
         </div>

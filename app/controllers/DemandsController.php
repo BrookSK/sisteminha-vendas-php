@@ -13,7 +13,7 @@ class DemandsController extends Controller
 {
     public function dashboard()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $user = Auth::user();
         $role = $user['role'] ?? 'seller';
         $restrict = ($role !== 'admin');
@@ -49,7 +49,7 @@ class DemandsController extends Controller
 
     public function index()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $tab = $_GET['tab'] ?? 'pendentes';
         $user = Auth::user();
         $role = $user['role'] ?? 'seller';
@@ -73,7 +73,7 @@ class DemandsController extends Controller
 
     public function create()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $this->csrfCheck();
         $user = Auth::user();
         $data = [
@@ -151,7 +151,7 @@ class DemandsController extends Controller
 
     public function status()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $this->csrfCheck();
         $user = Auth::user();
         $uid = (int)($user['id'] ?? 0);
@@ -194,7 +194,7 @@ class DemandsController extends Controller
 
     public function update()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $this->csrfCheck();
         $user = Auth::user();
         $uid = (int)($user['id'] ?? 0);

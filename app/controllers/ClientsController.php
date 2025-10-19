@@ -5,12 +5,15 @@ use Core\Controller;
 use Core\Auth;
 use Models\Client;
 use Models\Log;
+use Models\Approval;
+use Models\Notification;
+use Models\User;
 
 class ClientsController extends Controller
 {
     public function index()
     {
-        $this->requireRole(['seller','organic','manager','admin']);
+        $this->requireRole(['seller','organic','trainee','manager','admin']);
         $q = trim($_GET['q'] ?? '');
         $client = new Client();
         // Pagination: 20 per page
@@ -35,7 +38,7 @@ class ClientsController extends Controller
     // GET /admin/clients/search?q=... -> JSON for autocomplete
     public function search()
     {
-        $this->requireRole(['seller','organic','manager','admin']);
+        $this->requireRole(['seller','organic','trainee','manager','admin']);
         $q = trim($_GET['q'] ?? '');
         // Sellers can now search all clients (no owner filter)
         $rows = (new Client())->searchLite($q ?: null, 20, 0, null);
@@ -61,7 +64,7 @@ class ClientsController extends Controller
     // GET /admin/clients/options?q=... -> JSON simple [{id,text}] for selects/autocomplete
     public function options()
     {
-        $this->requireRole(['seller','organic','manager','admin']);
+        $this->requireRole(['seller','organic','trainee','manager','admin']);
         $q = trim($_GET['q'] ?? '');
         $rows = (new Client())->searchLite($q ?: null, 20, 0, null);
         $out = [];
@@ -90,20 +93,30 @@ class ClientsController extends Controller
         $this->csrfCheck();
         $data = $this->sanitize($_POST);
         $this->validate($data, true);
-        $model = new Client();
-        // Set owner when column exists
         $me = Auth::user();
+        $role = (string)($me['role'] ?? 'seller');
+        if ($role === 'trainee') {
+            $meFull = (new User())->findById((int)($me['id'] ?? 0));
+            $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
+            $apprId = (new Approval())->createPending('client', 'create', $data, (int)($me['id'] ?? 0), $supervisorId, null);
+            if ($supervisorId) {
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Cliente', 'Um novo cliente foi enviado por um trainee e aguarda sua aprovação. [approval-id:'.$apprId.']', 'approval', 'new', [$supervisorId]);
+            }
+            $this->flash('info', 'Cliente enviado para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
+            return $this->redirect('/admin/clients');
+        }
+        $model = new Client();
         $data['created_by'] = $me['id'] ?? null;
         $id = $model->create($data);
-        (new Log())->add(Auth::user()['id'] ?? null, 'cliente', 'create', $id, json_encode($data));
-        $this->redirect('/admin/clients');
+        (new Log())->add($me['id'] ?? null, 'cliente', 'create', $id, json_encode($data));
+        return $this->redirect('/admin/clients');
     }
 
     // POST /admin/clients/create-ajax
     public function createAjax()
     {
         $this->csrfCheck();
-        $this->requireRole(['seller','organic','manager','admin']);
+        $this->requireRole(['seller','organic','trainee','manager','admin']);
         $in = $_POST;
         if (empty($in) && ($_SERVER['CONTENT_TYPE'] ?? '') === 'application/json') {
             $raw = file_get_contents('php://input');
@@ -125,6 +138,18 @@ class ClientsController extends Controller
         }
         $this->validate($data, true);
         $me = Auth::user();
+        $role = (string)($me['role'] ?? 'seller');
+        if ($role === 'trainee') {
+            $meFull = (new User())->findById((int)($me['id'] ?? 0));
+            $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
+            $apprId = (new Approval())->createPending('client', 'create', $data, (int)($me['id'] ?? 0), $supervisorId, null);
+            if ($supervisorId) {
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Cliente', 'Um novo cliente foi enviado por um trainee e aguarda sua aprovação. [approval-id:'.$apprId.']', 'approval', 'new', [$supervisorId]);
+            }
+            header('Content-Type: application/json');
+            echo json_encode(['pending' => true, 'message' => 'Cliente enviado para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.']);
+            return exit;
+        }
         $data['created_by'] = $me['id'] ?? null;
         $model = new Client();
         $id = $model->create($data);
@@ -140,12 +165,12 @@ class ClientsController extends Controller
             'suite_red' => $data['suite_red'] ?? null,
             'suite_globe' => $data['suite_globe'] ?? null,
         ]);
-        exit;
+        return exit;
     }
 
     public function edit()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','organic','trainee','manager','admin']);
         $id = (int)($_GET['id'] ?? 0);
         $model = new Client();
         $client = $model->find($id);
@@ -160,16 +185,28 @@ class ClientsController extends Controller
     public function update()
     {
         $this->csrfCheck();
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $id = (int)($_GET['id'] ?? 0);
         $data = $this->sanitize($_POST);
         $this->validate($data, false);
+        $me = Auth::user();
+        $role = (string)($me['role'] ?? 'seller');
         $model = new Client();
         $client = $model->find($id);
         if (!$client) return $this->redirect('/admin/clients');
+        if ($role === 'trainee') {
+            $meFull = (new User())->findById((int)($me['id'] ?? 0));
+            $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
+            $apprId = (new Approval())->createPending('client', 'update', ['id'=>$id,'data'=>$data], (int)($me['id'] ?? 0), $supervisorId, $id);
+            if ($supervisorId) {
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Cliente (edição)', 'Uma edição de cliente foi enviada por um trainee e aguarda sua aprovação. [approval-id:'.$apprId.']', 'approval', 'new', [$supervisorId]);
+            }
+            $this->flash('info', 'Edição enviada para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
+            return $this->redirect('/admin/clients');
+        }
         $model->update($id, $data);
-        (new Log())->add(Auth::user()['id'] ?? null, 'cliente', 'update', $id, json_encode($data));
-        $this->redirect('/admin/clients');
+        (new Log())->add($me['id'] ?? null, 'cliente', 'update', $id, json_encode($data));
+        return $this->redirect('/admin/clients');
     }
 
     public function delete()

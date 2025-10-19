@@ -35,7 +35,12 @@ class Controller
         $u = Auth::user();
         if (!$u || !in_array(($u['role'] ?? 'seller'), $roles, true)) {
             http_response_code(403);
-            exit('Acesso negado');
+            $this->render('errors/403', [
+                'title' => 'Acesso negado',
+                'required_roles' => $roles,
+                'user' => $u,
+            ]);
+            exit;
         }
     }
 

@@ -107,9 +107,9 @@ class Commission extends Model
         $teamLiquido = 0.0;
         $activeCount = 0;
         foreach ($agg as $row) {
-            // Conta vendedores/gerentes ativos como elegíveis para rateio do bônus
+            // Conta vendedores/trainees/gerentes ativos como elegíveis para rateio do bônus
             $role = $row['user']['role'] ?? 'seller';
-            if ((int)($row['user']['ativo'] ?? 0) === 1 && in_array($role, ['seller','manager'], true)) {
+            if ((int)($row['user']['ativo'] ?? 0) === 1 && in_array($role, ['seller','trainee','manager'], true)) {
                 $activeCount++;
             }
             // Bruto da equipe inclui todos (inclusive 'organic') para efeito de meta e custo global
@@ -166,9 +166,9 @@ class Commission extends Model
                 $perc = 0.25;
             }
             $individual_brl = round($liquido_apurado_brl * $perc, 2);
-            // Elegibilidade à comissão: sellers e managers ativos
+            // Elegibilidade à comissão: sellers, trainees e managers ativos
             $role = $row['user']['role'] ?? '';
-            $isSellerActive = in_array($role, ['seller','manager'], true) && ((int)($row['user']['ativo'] ?? 0) === 1);
+            $isSellerActive = in_array($role, ['seller','trainee','manager'], true) && ((int)($row['user']['ativo'] ?? 0) === 1);
             // Team bonus on BRL liquid if team reached goal (somente sellers ativos)
             $bonus_brl = 0.0;
             if ($isSellerActive && $teamBrutoBRL >= $metaEquipeBRL) {

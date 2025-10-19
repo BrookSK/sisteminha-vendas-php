@@ -36,6 +36,18 @@
       </select>
     </div>
 
+    <?php $supList = $supervisors ?? []; $supSel = (int)($user['supervisor_user_id'] ?? 0); ?>
+    <div class="mb-3" id="supervisorRow" style="display: none;">
+      <label class="form-label">Supervisor</label>
+      <select name="supervisor_user_id" class="form-select">
+        <option value="">Selecione...</option>
+        <?php foreach ($supList as $s): ?>
+          <option value="<?= (int)$s['id'] ?>" <?= $supSel===(int)$s['id']?'selected':'' ?>><?= htmlspecialchars($s['name'].' <'.$s['email'].'>') ?></option>
+        <?php endforeach; ?>
+      </select>
+      <div class="form-text">Obrigatório para usuários com perfil Trainee.</div>
+    </div>
+
     <div class="form-check form-switch mb-3">
       <?php $isActive = (int)($user['ativo'] ?? 1) === 1; ?>
       <input class="form-check-input" type="checkbox" role="switch" id="ativoSwitch" name="ativo" value="1" <?= $isActive ? 'checked' : '' ?>>
@@ -51,12 +63,16 @@
   (function(){
     const btn = document.getElementById('toggleUserPwd');
     const input = document.getElementById('user_password');
+    const roleSel = document.querySelector('select[name="role"]');
+    const supRow = document.getElementById('supervisorRow');
     if(btn && input){
       btn.addEventListener('click', function(){
         const t = input.getAttribute('type') === 'password' ? 'text' : 'password';
         input.setAttribute('type', t);
       });
     }
+    function toggleSup(){ if(!roleSel||!supRow) return; var v = roleSel.value||''; supRow.style.display = (v==='trainee')? 'block':'none'; }
+    if(roleSel){ roleSel.addEventListener('change', toggleSup); toggleSup(); }
   })();
   </script>
 </div>

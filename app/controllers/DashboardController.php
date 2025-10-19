@@ -18,7 +18,7 @@ class DashboardController extends Controller
         [$from, $to] = $setting->currentPeriod();
         $me = Auth::user();
         $role = $me['role'] ?? 'seller';
-        $sellerId = (in_array($role, ['seller','manager'], true)) ? (int)($me['id'] ?? 0) : null;
+        $sellerId = (in_array($role, ['seller','trainee','manager'], true)) ? (int)($me['id'] ?? 0) : null;
 
         // Sumário do período (filtra por vendedor quando for seller)
         $report = new Report();
@@ -29,7 +29,7 @@ class DashboardController extends Controller
         $comm = new Commission();
         $calc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
         $commissionTotalUSD = 0.0;
-        if ($role === 'seller') {
+        if (in_array($role, ['seller','trainee'], true)) {
             foreach (($calc['items'] ?? []) as $it) {
                 if ((int)($it['vendedor_id'] ?? 0) === (int)$sellerId) {
                     $commissionTotalUSD = (float)($it['comissao_final'] ?? 0);
@@ -45,9 +45,9 @@ class DashboardController extends Controller
         // Últimas vendas do dia (filtra por vendedor quando for seller)
         $recentToday = $report->recentTodayAll(10, $sellerId);
 
-        // Notificações recentes para o usuário logado
+        // Notificações recentes (somente não lidas) para o usuário logado
         $notifModel = new Notification();
-        $notificationsRecent = $notifModel->listForUser((int)($me['id'] ?? 0), 5, 0);
+        $notificationsRecent = $notifModel->listUnreadForUser((int)($me['id'] ?? 0), 5, 0);
         $notificationsUnread = $notifModel->unreadCount((int)($me['id'] ?? 0));
 
         $this->render('dashboard/index', [

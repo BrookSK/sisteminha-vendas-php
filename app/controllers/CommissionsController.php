@@ -84,7 +84,7 @@ class CommissionsController extends Controller
     // Seller-only page: show own commissions and history
     public function me()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $u = Auth::user();
         $period = trim($_GET['period'] ?? date('Y-m'));
         $model = new Commission();

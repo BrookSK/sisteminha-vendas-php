@@ -72,12 +72,28 @@
           <tr>
             <td>
               <div class="fw-semibold"><?= htmlspecialchars((string)($n['title'] ?? '')) ?></div>
-              <div class="small text-muted" style="max-width: 700px; white-space: pre-wrap;"><?= nl2br(htmlspecialchars((string)($n['message'] ?? ''))) ?></div>
+              <?php 
+                $rawMsg = (string)($n['message'] ?? '');
+                $apprId = null; 
+                if (preg_match('/\[approval-id:(\d+)\]/', $rawMsg, $mm)) { $apprId = (int)($mm[1] ?? 0); }
+                $cleanMsg = preg_replace('/\[approval-id:\d+\]/', '', $rawMsg);
+                $appr = null; $etype = ''; $eid = 0; $eaction = '';$payload = [];
+                if ($apprId) {
+                  try {
+                    $appr = (new \Models\Approval())->find($apprId);
+                    $etype = (string)($appr['entity_type'] ?? '');
+                    $eid = (int)($appr['entity_id'] ?? 0);
+                    $eaction = (string)($appr['action'] ?? '');
+                    $payload = json_decode((string)($appr['payload'] ?? '[]'), true) ?: [];
+                  } catch (\Throwable $e) {}
+                }
+              ?>
+              <div class="small text-muted" style="max-width: 700px; white-space: pre-wrap;"><?= nl2br(htmlspecialchars($cleanMsg)) ?></div>
             </td>
             <td><?= htmlspecialchars((string)($n['type'] ?? '')) ?></td>
             <td><?= htmlspecialchars((string)($n['status'] ?? '')) ?><?= !empty($n['lida'])? ' · <span class="text-success">Lida</span>':'' ?><?= !empty($n['arquivada'])? ' · <span class="text-muted">Arquivada</span>':'' ?></td>
             <td><?= htmlspecialchars((string)($n['created_at'] ?? '')) ?></td>
-            <td style="min-width:260px">
+            <td style="min-width:520px">
               <?php if (!empty($n['lida'])): ?>
                 <form class="d-inline" method="post" action="/admin/notifications/mark-unread">
                   <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
@@ -89,6 +105,34 @@
                   <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
                   <input type="hidden" name="id" value="<?= (int)($n['id'] ?? 0) ?>">
                   <button class="btn btn-sm btn-outline-success" type="submit">Marcar como lida</button>
+                </form>
+              <?php endif; ?>
+              <?php if ($apprId): ?>
+                <?php if ($etype === 'client' && $eid > 0): ?>
+                  <a class="btn btn-sm btn-outline-primary" href="/admin/clients/edit?id=<?= (int)$eid ?>">Editar Cliente #<?= (int)$eid ?></a>
+                <?php elseif ($etype === 'intl_sale' && $eid > 0): ?>
+                  <a class="btn btn-sm btn-outline-primary" href="/admin/international-sales/edit?id=<?= (int)$eid ?>">Editar Venda (Int) #<?= (int)$eid ?></a>
+                <?php elseif ($etype === 'nat_sale' && $eid > 0): ?>
+                  <a class="btn btn-sm btn-outline-primary" href="/admin/national-sales/edit?id=<?= (int)$eid ?>">Editar Venda (Nac) #<?= (int)$eid ?></a>
+                <?php else: ?>
+                  <?php $collapseId = 'apprp_'.$apprId; ?>
+                  <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#<?= $collapseId ?>" aria-expanded="false">Ver detalhes</button>
+                  <div class="collapse mt-2" id="<?= $collapseId ?>">
+                    <pre class="small bg-light p-2 border rounded" style="max-height:240px; overflow:auto;"><?= htmlspecialchars(json_encode($payload, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)) ?></pre>
+                  </div>
+                <?php endif; ?>
+              <?php endif; ?>
+              <?php if ($apprId): ?>
+                <form class="d-inline" method="post" action="/admin/approvals/approve">
+                  <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
+                  <input type="hidden" name="id" value="<?= (int)$apprId ?>">
+                  <button class="btn btn-sm btn-primary" type="submit">Aprovar</button>
+                </form>
+                <form class="d-inline" method="post" action="/admin/approvals/reject" onsubmit="return confirm('Rejeitar esta solicitação?');">
+                  <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
+                  <input type="hidden" name="id" value="<?= (int)$apprId ?>">
+                  <input type="text" name="reason" class="form-control form-control-sm d-inline-block me-1 mb-1" style="width:260px" placeholder="Motivo da rejeição" required>
+                  <button class="btn btn-sm btn-outline-danger" type="submit">Rejeitar</button>
                 </form>
               <?php endif; ?>
               <form class="d-inline" method="post" action="/admin/notifications/archive">

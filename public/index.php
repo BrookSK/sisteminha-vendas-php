@@ -249,6 +249,11 @@ $router->group('/admin', function($r) {
     $r->post('/documentation-areas/update', 'Controllers\\DocumentationAreasController@update');
     $r->post('/documentation-areas/delete', 'Controllers\\DocumentationAreasController@delete');
 
+    // Approvals (supervisor flow)
+    $r->get('/approvals', 'Controllers\\ApprovalsController@index');
+    $r->post('/approvals/approve', 'Controllers\\ApprovalsController@approve');
+    $r->post('/approvals/reject', 'Controllers\\ApprovalsController@reject');
+
     // Time Off
     $r->post('/timeoff/create', 'Controllers\\TimeOffController@createToday');
 

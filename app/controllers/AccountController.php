@@ -9,7 +9,7 @@ class AccountController extends Controller
 {
     public function index()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','organic','manager','admin']);
         $user = Auth::user();
         $this->render('account/index', [
             'title' => 'Minha Conta',
@@ -20,7 +20,7 @@ class AccountController extends Controller
 
     public function updateProfile()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','organic','manager','admin']);
         $this->csrfCheck();
         $u = Auth::user();
         $name = trim($_POST['name'] ?? '');
@@ -36,7 +36,7 @@ class AccountController extends Controller
 
     public function updatePassword()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','organic','manager','admin']);
         $this->csrfCheck();
         $u = Auth::user();
         $current = $_POST['current_password'] ?? '';

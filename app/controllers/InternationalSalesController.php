@@ -8,17 +8,19 @@ use Models\Client;
 use Models\Setting;
 use Models\Purchase;
 use Models\User;
+use Models\Approval;
+use Models\Notification;
 
 class InternationalSalesController extends Controller
 {
     public function index()
     {
-        $this->requireRole(['seller','manager','admin','organic']);
+        $this->requireRole(['seller','trainee','manager','admin','organic']);
         $sellerId = isset($_GET['seller_id']) && $_GET['seller_id'] !== '' ? (int)$_GET['seller_id'] : null;
         $ym = $_GET['ym'] ?? null; // YYYY-MM
         // Sellers can only see their own unless manager/admin
         $me = Auth::user();
-        if (($me['role'] ?? 'seller') === 'seller') {
+        if (in_array(($me['role'] ?? 'seller'), ['seller','trainee'], true)) {
             $sellerId = (int)($me['id'] ?? 0) ?: null;
         }
         $items = (new InternationalSale())->list(200, 0, $sellerId, $ym);
@@ -34,7 +36,7 @@ class InternationalSalesController extends Controller
 
     public function new()
     {
-        $this->requireRole(['seller','manager','admin','organic']);
+        $this->requireRole(['seller','trainee','manager','admin','organic']);
         $clients = (new Client())->search(null, 1000, 0);
         $rate = (float)((new Setting())->get('usd_rate', '5.83'));
         $fromId = isset($_GET['from']) ? (int)$_GET['from'] : 0;
@@ -77,7 +79,7 @@ class InternationalSalesController extends Controller
 
     public function create()
     {
-        $this->requireRole(['seller','manager','admin','organic']);
+        $this->requireRole(['seller','trainee','manager','admin','organic']);
         $this->csrfCheck();
         $data = $this->collect($_POST);
         $me = Auth::user();
@@ -87,12 +89,21 @@ class InternationalSalesController extends Controller
         }
         // Ignore manual observation on create; system manages it automatically on date edits
         $data['observacao'] = null;
-        // Sellers cannot override USD rate; enforce Settings value
-        if (($me['role'] ?? 'seller') === 'seller') {
+        // Sellers/trainees cannot override USD rate; enforce Settings value
+        if (in_array(($me['role'] ?? 'seller'), ['seller','trainee'], true)) {
             $data['taxa_dolar'] = (float)((new Setting())->get('usd_rate', '5.83'));
         }
+        if (($me['role'] ?? 'seller') === 'trainee') {
+            $meFull = (new User())->findById((int)($me['id'] ?? 0));
+            $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
+            $apprId = (new Approval())->createPending('intl_sale', 'create', $data, (int)($me['id'] ?? 0), $supervisorId, null);
+            if ($supervisorId) {
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Internacional)', 'Uma nova venda internacional foi enviada por um trainee e aguarda sua aprovação. [approval-id:'.$apprId.']', 'approval', 'new', [$supervisorId]);
+            }
+            $this->flash('info', 'Venda enviada para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
+            return $this->redirect('/admin/international-sales');
+        }
         $id = (new InternationalSale())->create($data, (int)($me['id'] ?? 0), (string)($me['name'] ?? $me['email'] ?? ''));
-        // ensure purchase queue reflects this sale
         (new Purchase())->upsertFromIntl($id);
         return $this->redirect('/admin/international-sales');
     }
@@ -105,7 +116,7 @@ class InternationalSalesController extends Controller
         $row = $model->find($id);
         if (!$row) return $this->redirect('/admin/international-sales');
         $me = Auth::user();
-        if (($me['role'] ?? 'seller') === 'seller' && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
+        if (in_array(($me['role'] ?? 'seller'), ['seller','trainee'], true) && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
             return $this->redirect('/admin/international-sales');
         }
         // Não persiste, apenas redireciona para o formulário novo com prefill
@@ -119,9 +130,9 @@ class InternationalSalesController extends Controller
         $model = new InternationalSale();
         $row = $model->find($id);
         if (!$row) return $this->redirect('/admin/international-sales');
-        // Sellers can only edit own
+        // Sellers/Trainees can only edit own
         $me = Auth::user();
-        if (($me['role'] ?? 'seller') === 'seller' && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
+        if (in_array(($me['role'] ?? 'seller'), ['seller','trainee'], true) && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
             return $this->redirect('/admin/international-sales');
         }
         $clients = (new Client())->search(null, 1000, 0);
@@ -147,9 +158,19 @@ class InternationalSalesController extends Controller
         }
         // permitir alteração de data para seller/manager/admin
         $allowDateChange = true;
-        // Enforce USD rate for sellers on update as well
-        if (($me['role'] ?? 'seller') === 'seller') {
+        // Enforce USD rate for sellers/trainees on update as well
+        if (in_array(($me['role'] ?? 'seller'), ['seller','trainee'], true)) {
             $data['taxa_dolar'] = (float)((new Setting())->get('usd_rate', '5.83'));
+        }
+        if (($me['role'] ?? 'seller') === 'trainee') {
+            $meFull = (new User())->findById((int)($me['id'] ?? 0));
+            $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
+            $apprId = (new Approval())->createPending('intl_sale', 'update', ['id'=>$id,'data'=>$data], (int)($me['id'] ?? 0), $supervisorId, $id);
+            if ($supervisorId) {
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Internacional) - Edição', 'Uma edição de venda internacional foi enviada por um trainee e aguarda sua aprovação. [approval-id:'.$apprId.']', 'approval', 'new', [$supervisorId]);
+            }
+            $this->flash('info', 'Edição enviada para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
+            return $this->redirect('/admin/international-sales');
         }
         (new InternationalSale())->update($id, $data, (string)($me['name'] ?? $me['email'] ?? ''), $allowDateChange);
         (new Purchase())->upsertFromIntl($id);
