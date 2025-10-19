@@ -45,9 +45,9 @@ class DashboardController extends Controller
         // Últimas vendas do dia (filtra por vendedor quando for seller)
         $recentToday = $report->recentTodayAll(10, $sellerId);
 
-        // Notificações recentes para o usuário logado
+        // Notificações recentes (somente não lidas) para o usuário logado
         $notifModel = new Notification();
-        $notificationsRecent = $notifModel->listForUser((int)($me['id'] ?? 0), 5, 0);
+        $notificationsRecent = $notifModel->listUnreadForUser((int)($me['id'] ?? 0), 5, 0);
         $notificationsUnread = $notifModel->unreadCount((int)($me['id'] ?? 0));
 
         $this->render('dashboard/index', [
