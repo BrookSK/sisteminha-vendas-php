@@ -100,7 +100,7 @@ class ClientsController extends Controller
             $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
             $apprId = (new Approval())->createPending('client', 'create', $data, (int)($me['id'] ?? 0), $supervisorId, null);
             if ($supervisorId) {
-                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Cliente', 'Um novo cliente foi enviado por um trainee e aguarda sua aprovação.', 'approval', 'new', [$supervisorId]);
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Cliente', 'Um novo cliente foi enviado por um trainee e aguarda sua aprovação. [approval-id:'.$apprId.']', 'approval', 'new', [$supervisorId]);
             }
             $this->flash('info', 'Cliente enviado para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
             return $this->redirect('/admin/clients');
@@ -142,9 +142,9 @@ class ClientsController extends Controller
         if ($role === 'trainee') {
             $meFull = (new User())->findById((int)($me['id'] ?? 0));
             $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
-            (new Approval())->createPending('client', 'create', $data, (int)($me['id'] ?? 0), $supervisorId, null);
+            $apprId = (new Approval())->createPending('client', 'create', $data, (int)($me['id'] ?? 0), $supervisorId, null);
             if ($supervisorId) {
-                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Cliente', 'Um novo cliente foi enviado por um trainee e aguarda sua aprovação.', 'approval', 'new', [$supervisorId]);
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Cliente', 'Um novo cliente foi enviado por um trainee e aguarda sua aprovação. [approval-id:'.$apprId.']', 'approval', 'new', [$supervisorId]);
             }
             header('Content-Type: application/json');
             echo json_encode(['pending' => true, 'message' => 'Cliente enviado para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.']);
@@ -197,9 +197,9 @@ class ClientsController extends Controller
         if ($role === 'trainee') {
             $meFull = (new User())->findById((int)($me['id'] ?? 0));
             $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
-            (new Approval())->createPending('client', 'update', ['id'=>$id,'data'=>$data], (int)($me['id'] ?? 0), $supervisorId, $id);
+            $apprId = (new Approval())->createPending('client', 'update', ['id'=>$id,'data'=>$data], (int)($me['id'] ?? 0), $supervisorId, $id);
             if ($supervisorId) {
-                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Cliente (edição)', 'Uma edição de cliente foi enviada por um trainee e aguarda sua aprovação.', 'approval', 'new', [$supervisorId]);
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Cliente (edição)', 'Uma edição de cliente foi enviada por um trainee e aguarda sua aprovação. [approval-id:'.$apprId.']', 'approval', 'new', [$supervisorId]);
             }
             $this->flash('info', 'Edição enviada para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
             return $this->redirect('/admin/clients');
