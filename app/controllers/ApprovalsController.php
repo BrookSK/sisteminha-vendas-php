@@ -96,6 +96,10 @@ class ApprovalsController extends Controller
             $apprModel->approve($id, (int)($me['id'] ?? 0));
         }
         $this->flash('success', 'Aprovação realizada.');
+        // Sellers-reviewers may not have access to /admin/approvals
+        if (!in_array($role, ['admin','manager'], true)) {
+            return $this->redirect('/admin/notifications');
+        }
         return $this->redirect('/admin/approvals');
     }
 
@@ -121,6 +125,10 @@ class ApprovalsController extends Controller
             (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Solicitação rejeitada', 'Sua solicitação foi rejeitada pelo supervisor.', 'approval', 'rejected', [$createdBy]);
         }
         $this->flash('success','Solicitação rejeitada.');
+        // Sellers-reviewers may not have access to /admin/approvals
+        if (!in_array($role, ['admin','manager'], true)) {
+            return $this->redirect('/admin/notifications');
+        }
         return $this->redirect('/admin/approvals');
     }
 }
