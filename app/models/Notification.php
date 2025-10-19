@@ -59,9 +59,30 @@ class Notification extends Model
         return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    public function listUnreadForUser(int $userId, int $limit = 20, int $offset = 0): array
+    {
+        $sql = 'SELECT nr.id as rid, n.*,
+                       (nr.read_at IS NOT NULL) as lida,
+                       (nr.archived_at IS NOT NULL) as arquivada
+                FROM notification_recipients nr
+                JOIN notifications n ON n.id = nr.notification_id
+                WHERE nr.user_id = :u 
+                  AND nr.deleted_at IS NULL
+                  AND nr.archived_at IS NULL
+                  AND nr.read_at IS NULL
+                ORDER BY n.created_at DESC
+                LIMIT :lim OFFSET :off';
+        $st = $this->db->prepare($sql);
+        $st->bindValue(':u', $userId, PDO::PARAM_INT);
+        $st->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $st->bindValue(':off', $offset, PDO::PARAM_INT);
+        $st->execute();
+        return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     public function unreadCount(int $userId): int
     {
-        $st = $this->db->prepare('SELECT COUNT(*) c FROM notification_recipients WHERE user_id=:u AND read_at IS NULL AND deleted_at IS NULL');
+        $st = $this->db->prepare('SELECT COUNT(*) c FROM notification_recipients WHERE user_id=:u AND read_at IS NULL AND deleted_at IS NULL AND archived_at IS NULL');
         $st->execute([':u'=>$userId]);
         return (int)($st->fetchColumn() ?: 0);
     }
@@ -105,6 +126,25 @@ class Notification extends Model
     {
         $st = $this->db->prepare('UPDATE notification_recipients SET read_at = NULL WHERE user_id=:u AND notification_id=:n');
         $st->execute([':u'=>$userId, ':n'=>$notifId]);
+    }
+
+    /** Mark notifications as read for a user that reference a given approval-id token in the message */
+    public function markReadByApprovalIdForUser(int $userId, int $approvalId): void
+    {
+        if ($approvalId <= 0) return;
+        $sql = "SELECT n.id
+                FROM notifications n
+                JOIN notification_recipients nr ON nr.notification_id = n.id
+                WHERE nr.user_id = :u
+                  AND nr.deleted_at IS NULL
+                  AND nr.read_at IS NULL
+                  AND n.message LIKE :like";
+        $st = $this->db->prepare($sql);
+        $st->execute([':u'=>$userId, ':like'=>'%[approval-id:'.$approvalId.']%']);
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($rows as $r) {
+            $this->markReadFor($userId, (int)$r['id']);
+        }
     }
 
     public function archiveFor(int $userId, int $notifId): void
