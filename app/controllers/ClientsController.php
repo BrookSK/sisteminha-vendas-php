@@ -102,7 +102,7 @@ class ClientsController extends Controller
             if ($supervisorId) {
                 (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Cliente', 'Um novo cliente foi enviado por um trainee e aguarda sua aprovação.', 'approval', 'new', [$supervisorId]);
             }
-            $this->flash('info', 'Cliente enviado para aprovação do supervisor.');
+            $this->flash('info', 'Cliente enviado para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
             return $this->redirect('/admin/clients');
         }
         $model = new Client();
@@ -147,7 +147,7 @@ class ClientsController extends Controller
                 (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Cliente', 'Um novo cliente foi enviado por um trainee e aguarda sua aprovação.', 'approval', 'new', [$supervisorId]);
             }
             header('Content-Type: application/json');
-            echo json_encode(['pending' => true, 'message' => 'Cliente enviado para aprovação do supervisor.']);
+            echo json_encode(['pending' => true, 'message' => 'Cliente enviado para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.']);
             return exit;
         }
         $data['created_by'] = $me['id'] ?? null;
@@ -201,7 +201,7 @@ class ClientsController extends Controller
             if ($supervisorId) {
                 (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Cliente (edição)', 'Uma edição de cliente foi enviada por um trainee e aguarda sua aprovação.', 'approval', 'new', [$supervisorId]);
             }
-            $this->flash('info', 'Edição enviada para aprovação do supervisor.');
+            $this->flash('info', 'Edição enviada para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
             return $this->redirect('/admin/clients');
         }
         $model->update($id, $data);
