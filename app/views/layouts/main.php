@@ -22,7 +22,7 @@ use Core\Auth;
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav me-auto gap-2">
         <?php if (Auth::check()): ?>
-          <li class="nav-item"><a class="nav-link" href="/admin">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="/admin">Dashboard de Vendas</a></li>
           <?php $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
             $isDemands = str_starts_with($path, '/admin/demands') || str_starts_with($path, '/admin/projects');
             $isHostings = str_starts_with($path, '/admin/hostings') || str_starts_with($path, '/admin/hosting-assets') || str_starts_with($path, '/admin/site-clients') || str_starts_with($path, '/admin/settings/dns'); ?>
@@ -35,7 +35,9 @@ use Core\Auth;
             <li class="nav-item"><a class="nav-link" href="/admin/notifications">Avisos</a></li>
           <?php elseif ($isHostings): ?>
             <!-- Contexto: Hospedagens -->
-            <li class="nav-item"><a class="nav-link" href="/admin/hostings">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/hostings">Dashboard de Hospedagens</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/hosting-assets">Ativos</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/site-clients">Clientes</a></li>
           <?php else: ?>
             <!-- Contexto: Vendas/Admin (padrão) -->
             <!-- Cadastros -->
@@ -44,6 +46,7 @@ use Core\Auth;
               <ul class="dropdown-menu" aria-labelledby="menuCadastros">
                 <li><a class="dropdown-item" href="/admin/clients">Clientes</a></li>
                 <li><a class="dropdown-item" href="/admin/attendances">Atendimentos</a></li>
+                <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/costs">Custos</a></li>
                 <li><a class="dropdown-item" href="/admin/purchases">Compras</a></li>
                 <li><a class="dropdown-item" href="/admin/containers">Containers</a></li>
@@ -55,6 +58,8 @@ use Core\Auth;
               <a class="nav-link dropdown-toggle" href="#" id="menuVendas" role="button" data-bs-toggle="dropdown" aria-expanded="false">Vendas</a>
               <ul class="dropdown-menu" aria-labelledby="menuVendas">
                 <li><a class="dropdown-item" href="/admin/international-sales">Internacionais</a></li>
+                <li><a class="dropdown-item" href="/admin/national-sales">Nacionais</a></li>
+                <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/sales-simulator">Simulador de Cálculo</a></li>
               </ul>
             </li>
@@ -95,6 +100,8 @@ use Core\Auth;
                 <li><a class="dropdown-item" href="/admin/logs">Logs</a></li>
                 <li><a class="dropdown-item" href="/admin/donations">Doações</a></li>
                 <li><a class="dropdown-item" href="/admin/documentation-areas">Áreas Técnicas</a></li>
+                <li><a class="dropdown-item" href="/admin/settings/dns">Configurações DNS</a></li>
+                <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/settings">Configurações</a></li>
               </ul>
             </li>
