@@ -100,14 +100,16 @@ use Core\Auth;
               </ul>
             </li>
 
-            <!-- Webhooks -->
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="menuWebhooks" role="button" data-bs-toggle="dropdown" aria-expanded="false">Webhooks</a>
-              <ul class="dropdown-menu" aria-labelledby="menuWebhooks">
-                <li><a class="dropdown-item" href="/admin/webhooks/logs">Logs</a></li>
-                <li><a class="dropdown-item" href="/admin/webhooks/guide">Guia</a></li>
-              </ul>
-            </li>
+            <?php if ($role === 'admin'): ?>
+              <!-- Webhooks (admin only) -->
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="menuWebhooks" role="button" data-bs-toggle="dropdown" aria-expanded="false">Webhooks</a>
+                <ul class="dropdown-menu" aria-labelledby="menuWebhooks">
+                  <li><a class="dropdown-item" href="/admin/webhooks/logs">Logs</a></li>
+                  <li><a class="dropdown-item" href="/admin/webhooks/guide">Guia</a></li>
+                </ul>
+              </li>
+            <?php endif; ?>
 
             <!-- Comissões -->
             <li class="nav-item dropdown">
@@ -133,12 +135,14 @@ use Core\Auth;
               <ul class="dropdown-menu" aria-labelledby="menuAdmin">
                 <li><a class="dropdown-item" href="/admin/reports">Relatórios</a></li>
                 <li><a class="dropdown-item" href="/admin/users">Usuários</a></li>
-                <li><a class="dropdown-item" href="/admin/logs">Logs</a></li>
                 <li><a class="dropdown-item" href="/admin/donations">Doações</a></li>
                 <li><a class="dropdown-item" href="/admin/documentation-areas">Áreas Técnicas</a></li>
-                <li><a class="dropdown-item" href="/admin/settings/dns">Configurações DNS</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="/admin/settings">Configurações</a></li>
+                <?php if ($role === 'admin'): ?>
+                  <li><a class="dropdown-item" href="/admin/logs">Logs</a></li>
+                  <li><a class="dropdown-item" href="/admin/settings/dns">Configurações DNS</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/admin/settings">Configurações</a></li>
+                <?php endif; ?>
               </ul>
             </li>
           <?php endif; ?>

@@ -9,7 +9,7 @@
 <div class="mb-3 d-flex flex-wrap gap-2">
   <a class="btn btn-outline-primary" href="/admin/demands/dashboard">Demandas</a>
   <a class="btn btn-outline-secondary" href="/admin/documentations">Documentações</a>
-  <?php if ($role !== 'seller'): ?>
+  <?php if ($role === 'admin'): ?>
     <a class="btn btn-outline-secondary" href="/admin/hostings">Hospedagens</a>
     <a class="btn btn-outline-secondary" href="/admin/hosting-assets">Ativos</a>
     <a class="btn btn-outline-secondary" href="/admin/site-clients">Clientes (Sites)</a>
