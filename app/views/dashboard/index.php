@@ -5,15 +5,16 @@
     <span class="badge text-bg-secondary">Câmbio: 1 USD = R$ <?= number_format((float)($rate ?? 0), 2) ?></span>
   </div>
 </div>
-
+<?php $role = (string) ((\Core\Auth::user()['role'] ?? 'seller')); ?>
 <div class="mb-3 d-flex flex-wrap gap-2">
   <a class="btn btn-outline-primary" href="/admin/demands/dashboard">Demandas</a>
   <a class="btn btn-outline-secondary" href="/admin/documentations">Documentações</a>
-  <a class="btn btn-outline-secondary" href="/admin/hostings">Hospedagens</a>
-  <a class="btn btn-outline-secondary" href="/admin/hosting-assets">Ativos</a>
-  <a class="btn btn-outline-secondary" href="/admin/site-clients">Clientes (Sites)</a>
-  <a class="btn btn-outline-secondary" href="/admin/settings/dns">Configurações DNS</a>
-  
+  <?php if ($role !== 'seller'): ?>
+    <a class="btn btn-outline-secondary" href="/admin/hostings">Hospedagens</a>
+    <a class="btn btn-outline-secondary" href="/admin/hosting-assets">Ativos</a>
+    <a class="btn btn-outline-secondary" href="/admin/site-clients">Clientes (Sites)</a>
+    <a class="btn btn-outline-secondary" href="/admin/settings/dns">Configurações DNS</a>
+  <?php endif; ?>
 </div>
 
 <div class="card mt-4 mb-4">
