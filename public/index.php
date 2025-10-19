@@ -227,6 +227,13 @@ $router->group('/admin', function($r) {
     $r->get('/clients', 'Controllers\\ClientsController@index');
     $r->get('/admin/clients', 'Controllers\\ClientsController@index');
 
+    // Site Clients (for hostings/sites/emails)
+    $r->get('/site-clients', 'Controllers\\SiteClientsController@index');
+    $r->post('/site-clients/create', 'Controllers\\SiteClientsController@create');
+    $r->post('/site-clients/update', 'Controllers\\SiteClientsController@update');
+    $r->post('/site-clients/delete', 'Controllers\\SiteClientsController@delete');
+    $r->get('/site-clients/options', 'Controllers\\SiteClientsController@options');
+
     // Settings (DNS/Cloudflare inside)
     $r->get('/admin/settings', 'Controllers\\DnsSettingsController@index');
     $r->post('/admin/settings/save', 'Controllers\\DnsSettingsController@save');
