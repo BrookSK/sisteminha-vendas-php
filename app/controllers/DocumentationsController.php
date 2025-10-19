@@ -12,11 +12,12 @@ class DocumentationsController extends Controller
 {
     public function index()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $u = Auth::user();
         $role = $u['role'] ?? 'seller';
         $allowed = ['all'];
         if ($role === 'seller') { $allowed = ['all','seller']; }
+        if ($role === 'trainee') { $allowed = ['all','seller']; }
         if ($role === 'manager') { $allowed = ['all','seller','manager']; }
         if ($role === 'admin') { $allowed = ['all','seller','manager','admin']; }
         $filters = [
@@ -45,7 +46,7 @@ class DocumentationsController extends Controller
 
     public function new()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $areas = (new DocumentationArea())->listAll();
         $this->render('documentations/form', [
             'title' => 'Nova Documentação',
@@ -56,7 +57,7 @@ class DocumentationsController extends Controller
 
     public function create()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $this->csrfCheck();
         $u = Auth::user();
         $d = [
@@ -77,7 +78,7 @@ class DocumentationsController extends Controller
 
     public function view()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $u = Auth::user();
         $role = $u['role'] ?? 'seller';
         $id = (int)($_GET['id'] ?? 0);
@@ -87,7 +88,7 @@ class DocumentationsController extends Controller
         $vis = $doc['internal_visibility'] ?? 'all';
         if ($role !== 'admin') {
             if ($role === 'manager' && !in_array($vis, ['all','seller','manager'], true)) return $this->redirect('/admin/documentations');
-            if ($role === 'seller' && !in_array($vis, ['all','seller'], true)) return $this->redirect('/admin/documentations');
+            if (in_array($role, ['seller','trainee'], true) && !in_array($vis, ['all','seller'], true)) return $this->redirect('/admin/documentations');
         }
         $emails = (new DocumentationEmailPermission())->listByDoc((int)$doc['id']);
         $comments = (new DocumentationComment())->listByDoc((int)$doc['id']);
@@ -101,7 +102,7 @@ class DocumentationsController extends Controller
 
     public function edit()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $u = Auth::user();
         $role = $u['role'] ?? 'seller';
         $id = (int)($_GET['id'] ?? 0);
@@ -121,7 +122,7 @@ class DocumentationsController extends Controller
 
     public function update()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $this->csrfCheck();
         $u = Auth::user();
         $id = (int)($_POST['id'] ?? 0);
@@ -284,7 +285,7 @@ class DocumentationsController extends Controller
 
     public function commentAdd()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $this->csrfCheck();
         $u = Auth::user();
         $id = (int)($_POST['id'] ?? 0);

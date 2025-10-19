@@ -100,7 +100,7 @@ class InternationalSalesController extends Controller
             if ($supervisorId) {
                 (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Internacional)', 'Uma nova venda internacional foi enviada por um trainee e aguarda sua aprovação.', 'approval', 'new', [$supervisorId]);
             }
-            $this->flash('info', 'Venda enviada para aprovação do supervisor.');
+            $this->flash('info', 'Venda enviada para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
             return $this->redirect('/admin/international-sales');
         }
         $id = (new InternationalSale())->create($data, (int)($me['id'] ?? 0), (string)($me['name'] ?? $me['email'] ?? ''));
@@ -169,7 +169,7 @@ class InternationalSalesController extends Controller
             if ($supervisorId) {
                 (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Internacional) - Edição', 'Uma edição de venda internacional foi enviada por um trainee e aguarda sua aprovação.', 'approval', 'new', [$supervisorId]);
             }
-            $this->flash('info', 'Edição enviada para aprovação do supervisor.');
+            $this->flash('info', 'Edição enviada para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
             return $this->redirect('/admin/international-sales');
         }
         (new InternationalSale())->update($id, $data, (string)($me['name'] ?? $me['email'] ?? ''), $allowDateChange);

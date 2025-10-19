@@ -69,32 +69,6 @@ use Core\Auth;
                 <li><a class="dropdown-item" href="/admin/my/goals">Minhas Metas</a></li>
               </ul>
             </li>
-            <!-- Vendas (seller) -->
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="menuVendasSeller" role="button" data-bs-toggle="dropdown" aria-expanded="false">Vendas</a>
-              <ul class="dropdown-menu" aria-labelledby="menuVendasSeller">
-                <li><a class="dropdown-item" href="/admin/international-sales">Internacionais</a></li>
-                <li><a class="dropdown-item" href="/admin/national-sales">Nacionais</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="/admin/sales-simulator">Simulador de Cálculo</a></li>
-              </ul>
-            </li>
-            <!-- Comissões (seller) -->
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="menuComissoesSeller" role="button" data-bs-toggle="dropdown" aria-expanded="false">Comissões</a>
-              <ul class="dropdown-menu" aria-labelledby="menuComissoesSeller">
-                <li><a class="dropdown-item" href="/admin/commissions/me">Minhas Comissões</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="/admin/settings/calculations-simple">Entenda os Cálculos</a></li>
-              </ul>
-            </li>
-            <!-- Metas (seller) -->
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="menuMetasSeller" role="button" data-bs-toggle="dropdown" aria-expanded="false">Metas</a>
-              <ul class="dropdown-menu" aria-labelledby="menuMetasSeller">
-                <li><a class="dropdown-item" href="/admin/my/goals">Minhas Metas</a></li>
-              </ul>
-            </li>
           <?php elseif ($role === 'organic'): ?>
             <li class="nav-item"><a class="nav-link" href="/admin">Dashboard de Vendas</a></li>
             <!-- Cadastros (orgânico) -->

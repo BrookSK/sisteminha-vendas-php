@@ -105,7 +105,7 @@ class NationalSalesController extends Controller
             if ($supervisorId) {
                 (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Nacional)', 'Uma nova venda nacional foi enviada por um trainee e aguarda sua aprovação.', 'approval', 'new', [$supervisorId]);
             }
-            $this->flash('info', 'Venda enviada para aprovação do supervisor.');
+            $this->flash('info', 'Venda enviada para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
             return $this->redirect('/admin/national-sales');
         }
         $id = (new NationalSale())->create($data, (int)($me['id'] ?? 0));
@@ -158,7 +158,7 @@ class NationalSalesController extends Controller
             if ($supervisorId) {
                 (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Nacional) - Edição', 'Uma edição de venda nacional foi enviada por um trainee e aguarda sua aprovação.', 'approval', 'new', [$supervisorId]);
             }
-            $this->flash('info', 'Edição enviada para aprovação do supervisor.');
+            $this->flash('info', 'Edição enviada para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
             return $this->redirect('/admin/national-sales');
         }
         (new NationalSale())->update($id, $data, (string)($me['name'] ?? $me['email'] ?? ''), $allowDateChange);
