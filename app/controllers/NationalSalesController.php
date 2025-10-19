@@ -101,9 +101,9 @@ class NationalSalesController extends Controller
         if (($me['role'] ?? 'seller') === 'trainee') {
             $meFull = (new User())->findById((int)($me['id'] ?? 0));
             $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
-            (new Approval())->createPending('nat_sale', 'create', $data, (int)($me['id'] ?? 0), $supervisorId, null);
+            $apprId = (new Approval())->createPending('nat_sale', 'create', $data, (int)($me['id'] ?? 0), $supervisorId, null);
             if ($supervisorId) {
-                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Nacional)', 'Uma nova venda nacional foi enviada por um trainee e aguarda sua aprovação.', 'approval', 'new', [$supervisorId]);
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Nacional)', 'Uma nova venda nacional foi enviada por um trainee e aguarda sua aprovação. [approval-id:'.$apprId.']', 'approval', 'new', [$supervisorId]);
             }
             $this->flash('info', 'Venda enviada para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
             return $this->redirect('/admin/national-sales');
@@ -154,9 +154,9 @@ class NationalSalesController extends Controller
         if (($me['role'] ?? 'seller') === 'trainee') {
             $meFull = (new User())->findById((int)($me['id'] ?? 0));
             $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
-            (new Approval())->createPending('nat_sale', 'update', ['id'=>$id,'data'=>$data], (int)($me['id'] ?? 0), $supervisorId, $id);
+            $apprId = (new Approval())->createPending('nat_sale', 'update', ['id'=>$id,'data'=>$data], (int)($me['id'] ?? 0), $supervisorId, $id);
             if ($supervisorId) {
-                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Nacional) - Edição', 'Uma edição de venda nacional foi enviada por um trainee e aguarda sua aprovação.', 'approval', 'new', [$supervisorId]);
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Nacional) - Edição', 'Uma edição de venda nacional foi enviada por um trainee e aguarda sua aprovação. [approval-id:'.$apprId.']', 'approval', 'new', [$supervisorId]);
             }
             $this->flash('info', 'Edição enviada para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
             return $this->redirect('/admin/national-sales');
