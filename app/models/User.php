@@ -31,11 +31,11 @@ class User extends Model
         return (int)$this->db->lastInsertId();
     }
 
-    public function createWithRole(string $name, string $email, string $password, string $role, int $ativo = 1): int
+    public function createWithRole(string $name, string $email, string $password, string $role, int $ativo = 1, ?int $supervisorUserId = null): int
     {
         $hash = password_hash($password, PASSWORD_BCRYPT);
-        $stmt = $this->db->prepare('INSERT INTO usuarios (name, email, password_hash, role, ativo, created_at) VALUES (:name, :email, :hash, :role, :ativo, NOW())');
-        $stmt->execute([':name' => $name, ':email' => $email, ':hash' => $hash, ':role' => $role, ':ativo' => $ativo]);
+        $stmt = $this->db->prepare('INSERT INTO usuarios (name, email, password_hash, role, ativo, supervisor_user_id, created_at) VALUES (:name, :email, :hash, :role, :ativo, :supervisor_user_id, NOW())');
+        $stmt->execute([':name' => $name, ':email' => $email, ':hash' => $hash, ':role' => $role, ':ativo' => $ativo, ':supervisor_user_id' => $supervisorUserId]);
         return (int)$this->db->lastInsertId();
     }
 
@@ -86,16 +86,27 @@ class User extends Model
         return (int)($row['c'] ?? 0);
     }
 
-    public function updateUser(int $id, string $name, string $email, ?string $password, string $role, int $ativo): void
+    public function updateUser(int $id, string $name, string $email, ?string $password, string $role, int $ativo, ?int $supervisorUserId = null): void
     {
         if ($password !== null && $password !== '') {
             $hash = password_hash($password, PASSWORD_BCRYPT);
-            $stmt = $this->db->prepare('UPDATE usuarios SET name=:name, email=:email, password_hash=:hash, role=:role, ativo=:ativo WHERE id=:id');
-            $stmt->execute([':name'=>$name, ':email'=>$email, ':hash'=>$hash, ':role'=>$role, ':ativo'=>$ativo, ':id'=>$id]);
+            $stmt = $this->db->prepare('UPDATE usuarios SET name=:name, email=:email, password_hash=:hash, role=:role, ativo=:ativo, supervisor_user_id=:supervisor WHERE id=:id');
+            $stmt->execute([':name'=>$name, ':email'=>$email, ':hash'=>$hash, ':role'=>$role, ':ativo'=>$ativo, ':supervisor'=>$supervisorUserId, ':id'=>$id]);
         } else {
-            $stmt = $this->db->prepare('UPDATE usuarios SET name=:name, email=:email, role=:role, ativo=:ativo WHERE id=:id');
-            $stmt->execute([':name'=>$name, ':email'=>$email, ':role'=>$role, ':ativo'=>$ativo, ':id'=>$id]);
+            $stmt = $this->db->prepare('UPDATE usuarios SET name=:name, email=:email, role=:role, ativo=:ativo, supervisor_user_id=:supervisor WHERE id=:id');
+            $stmt->execute([':name'=>$name, ':email'=>$email, ':role'=>$role, ':ativo'=>$ativo, ':supervisor'=>$supervisorUserId, ':id'=>$id]);
         }
+    }
+
+    public function listByRoles(array $roles): array
+    {
+        if (!$roles) return [];
+        $in = implode(',', array_fill(0, count($roles), '?'));
+        $sql = 'SELECT id, name, email FROM usuarios WHERE role IN ('.$in.') AND ativo=1 ORDER BY name ASC';
+        $st = $this->db->prepare($sql);
+        foreach ($roles as $i=>$r) { $st->bindValue($i+1, $r); }
+        $st->execute();
+        return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     public function delete(int $id): void

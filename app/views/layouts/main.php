@@ -33,6 +33,42 @@ use Core\Auth;
                 <li><a class="dropdown-item" href="/admin/attendances">Atendimentos</a></li>
               </ul>
             </li>
+          <?php elseif ($role === 'trainee'): ?>
+            <li class="nav-item"><a class="nav-link" href="/admin">Dashboard de Vendas</a></li>
+            <!-- Cadastros (trainee) -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="menuCadastrosTrainee" role="button" data-bs-toggle="dropdown" aria-expanded="false">Cadastros</a>
+              <ul class="dropdown-menu" aria-labelledby="menuCadastrosTrainee">
+                <li><a class="dropdown-item" href="/admin/clients">Clientes</a></li>
+                <li><a class="dropdown-item" href="/admin/attendances">Atendimentos</a></li>
+              </ul>
+            </li>
+            <!-- Vendas (trainee) -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="menuVendasTrainee" role="button" data-bs-toggle="dropdown" aria-expanded="false">Vendas</a>
+              <ul class="dropdown-menu" aria-labelledby="menuVendasTrainee">
+                <li><a class="dropdown-item" href="/admin/international-sales">Internacionais</a></li>
+                <li><a class="dropdown-item" href="/admin/national-sales">Nacionais</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="/admin/sales-simulator">Simulador de Cálculo</a></li>
+              </ul>
+            </li>
+            <!-- Comissões (trainee) -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="menuComissoesTrainee" role="button" data-bs-toggle="dropdown" aria-expanded="false">Comissões</a>
+              <ul class="dropdown-menu" aria-labelledby="menuComissoesTrainee">
+                <li><a class="dropdown-item" href="/admin/commissions/me">Minhas Comissões</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="/admin/settings/calculations-simple">Entenda os Cálculos</a></li>
+              </ul>
+            </li>
+            <!-- Metas (trainee) -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="menuMetasTrainee" role="button" data-bs-toggle="dropdown" aria-expanded="false">Metas</a>
+              <ul class="dropdown-menu" aria-labelledby="menuMetasTrainee">
+                <li><a class="dropdown-item" href="/admin/my/goals">Minhas Metas</a></li>
+              </ul>
+            </li>
             <!-- Vendas (seller) -->
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="menuVendasSeller" role="button" data-bs-toggle="dropdown" aria-expanded="false">Vendas</a>
@@ -166,6 +202,7 @@ use Core\Auth;
               <ul class="dropdown-menu" aria-labelledby="menuAdmin">
                 <li><a class="dropdown-item" href="/admin/reports">Relatórios</a></li>
                 <li><a class="dropdown-item" href="/admin/users">Usuários</a></li>
+                <li><a class="dropdown-item" href="/admin/approvals">Aprovações</a></li>
                 <li><a class="dropdown-item" href="/admin/donations">Doações</a></li>
                 <li><a class="dropdown-item" href="/admin/documentation-areas">Áreas Técnicas</a></li>
                 <?php if ($role === 'admin'): ?>

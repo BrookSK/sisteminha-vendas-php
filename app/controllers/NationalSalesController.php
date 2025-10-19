@@ -8,18 +8,20 @@ use Models\Client;
 use Models\Setting;
 use Models\Purchase;
 use Models\User;
+use Models\Approval;
+use Models\Notification;
 
 class NationalSalesController extends Controller
 {
     public function index()
     {
-        $this->requireRole(['seller','manager','admin','organic']);
+        $this->requireRole(['seller','trainee','manager','admin','organic']);
         $sellerId = isset($_GET['seller_id']) && $_GET['seller_id'] !== '' ? (int)$_GET['seller_id'] : null;
         $ym = $_GET['ym'] ?? null;
         $page = max(1, (int)($_GET['page'] ?? 1));
         $per = max(1, min(100, (int)($_GET['per'] ?? 20)));
         $me = Auth::user();
-        if (in_array(($me['role'] ?? 'seller'), ['seller'], true)) {
+        if (in_array(($me['role'] ?? 'seller'), ['seller','trainee'], true)) {
             $sellerId = (int)($me['id'] ?? 0) ?: null;
         }
         $model = new NationalSale();
@@ -82,7 +84,7 @@ class NationalSalesController extends Controller
 
     public function create()
     {
-        $this->requireRole(['seller','manager','admin','organic']);
+        $this->requireRole(['seller','trainee','manager','admin','organic']);
         $this->csrfCheck();
         $data = $this->collect($_POST);
         $me = Auth::user();
@@ -92,9 +94,19 @@ class NationalSalesController extends Controller
         }
         // Ignore manual observation on create; system manages it automatically on date edits
         $data['observacao'] = null;
-        // Sellers cannot override USD rate; enforce Settings value
-        if (($me['role'] ?? 'seller') === 'seller') {
+        // Sellers/trainees cannot override USD rate; enforce Settings value
+        if (in_array(($me['role'] ?? 'seller'), ['seller','trainee'], true)) {
             $data['taxa_dolar'] = (float)((new Setting())->get('usd_rate', '5.83'));
+        }
+        if (($me['role'] ?? 'seller') === 'trainee') {
+            $meFull = (new User())->findById((int)($me['id'] ?? 0));
+            $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
+            (new Approval())->createPending('nat_sale', 'create', $data, (int)($me['id'] ?? 0), $supervisorId, null);
+            if ($supervisorId) {
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Nacional)', 'Uma nova venda nacional foi enviada por um trainee e aguarda sua aprovação.', 'approval', 'new', [$supervisorId]);
+            }
+            $this->flash('info', 'Venda enviada para aprovação do supervisor.');
+            return $this->redirect('/admin/national-sales');
         }
         $id = (new NationalSale())->create($data, (int)($me['id'] ?? 0));
         (new Purchase())->upsertFromNat($id);
@@ -109,7 +121,7 @@ class NationalSalesController extends Controller
         $row = $model->find($id);
         if (!$row) return $this->redirect('/admin/national-sales');
         $me = Auth::user();
-        if (($me['role'] ?? 'seller') === 'seller' && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
+        if (in_array(($me['role'] ?? 'seller'), ['seller','trainee'], true) && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
             return $this->redirect('/admin/national-sales');
         }
         $clients = (new Client())->search(null, 1000, 0);
@@ -135,9 +147,19 @@ class NationalSalesController extends Controller
         }
         // permitir alteração de data para seller/manager/admin
         $allowDateChange = true;
-        // Enforce USD rate for sellers on update as well
-        if (($me['role'] ?? 'seller') === 'seller') {
+        // Enforce USD rate for sellers/trainees on update as well
+        if (in_array(($me['role'] ?? 'seller'), ['seller','trainee'], true)) {
             $data['taxa_dolar'] = (float)((new Setting())->get('usd_rate', '5.83'));
+        }
+        if (($me['role'] ?? 'seller') === 'trainee') {
+            $meFull = (new User())->findById((int)($me['id'] ?? 0));
+            $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
+            (new Approval())->createPending('nat_sale', 'update', ['id'=>$id,'data'=>$data], (int)($me['id'] ?? 0), $supervisorId, $id);
+            if ($supervisorId) {
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Nacional) - Edição', 'Uma edição de venda nacional foi enviada por um trainee e aguarda sua aprovação.', 'approval', 'new', [$supervisorId]);
+            }
+            $this->flash('info', 'Edição enviada para aprovação do supervisor.');
+            return $this->redirect('/admin/national-sales');
         }
         (new NationalSale())->update($id, $data, (string)($me['name'] ?? $me['email'] ?? ''), $allowDateChange);
         (new Purchase())->upsertFromNat($id);
@@ -198,7 +220,7 @@ class NationalSalesController extends Controller
         $page = max(1, (int)($_GET['page'] ?? 1));
         $per = max(1, min(100, (int)($_GET['per'] ?? 20)));
         $me = Auth::user();
-        if (($me['role'] ?? 'seller') === 'seller') {
+        if (in_array(($me['role'] ?? 'seller'), ['seller','trainee'], true)) {
             $sellerId = (int)($me['id'] ?? 0) ?: null;
         }
         $model = new NationalSale();

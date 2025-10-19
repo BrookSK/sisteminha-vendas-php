@@ -33,11 +33,15 @@ class UsersController extends Controller
     public function new()
     {
         $this->requireRole(['manager','admin']);
+        // Supervisores (apenas vendedores e gerentes)
+        $u = new \Models\User();
+        $supervisors = $u->listByRoles(['seller','manager']);
         $this->render('users/form', [
             'title' => 'Novo Usuário',
             'action' => '/admin/users/create',
             'user' => ['ativo' => 1],
-            'roles' => ['seller' => 'Vendedor (registrar vendas)', 'organic' => 'Orgânico (lançar vendas sem comissão)', 'manager' => 'Gerente (vendas e relatórios)', 'admin' => 'Admin (tudo)'],
+            'roles' => ['seller' => 'Vendedor (registrar vendas)', 'organic' => 'Orgânico (lançar vendas sem comissão)', 'trainee' => 'Trainee (vendedor em treinamento)', 'manager' => 'Gerente (vendas e relatórios)', 'admin' => 'Admin (tudo)'],
+            'supervisors' => $supervisors,
             '_csrf' => Auth::csrf(),
         ]);
     }
@@ -51,27 +55,34 @@ class UsersController extends Controller
         $password = (string)($_POST['password'] ?? '');
         $role = trim($_POST['role'] ?? 'seller');
         $ativo = (int)($_POST['ativo'] ?? 0) === 1 ? 1 : 0;
-        if (!in_array($role, ['seller','organic','manager','admin'], true)) { $role = 'seller'; }
+        if (!in_array($role, ['seller','organic','trainee','manager','admin'], true)) { $role = 'seller'; }
         if ($name === '' || $email === '' || $password === '') {
             return $this->render('users/form', [
                 'title' => 'Novo Usuário',
                 'action' => '/admin/users/create',
                 'user' => ['name'=>$name,'email'=>$email,'role'=>$role,'ativo'=>$ativo],
-                'roles' => ['seller' => 'Vendedor (registrar vendas)', 'organic' => 'Orgânico (lançar vendas sem comissão)', 'manager' => 'Gerente (vendas e relatórios)', 'admin' => 'Admin (tudo)'],
+                'roles' => ['seller' => 'Vendedor (registrar vendas)', 'organic' => 'Orgânico (lançar vendas sem comissão)', 'trainee' => 'Trainee (vendedor em treinamento)', 'manager' => 'Gerente (vendas e relatórios)', 'admin' => 'Admin (tudo)'],
+                'supervisors' => (new \Models\User())->listByRoles(['seller','manager']),
                 'error' => 'Preencha nome, e-mail e senha.',
                 '_csrf' => Auth::csrf(),
             ]);
         }
         try {
             $u = new User();
-            $u->createWithRole($name, $email, $password, $role, $ativo);
+            $supervisorId = null;
+            if ($role === 'trainee') {
+                $sid = (int)($_POST['supervisor_user_id'] ?? 0);
+                if ($sid > 0) { $supervisorId = $sid; }
+            }
+            $u->createWithRole($name, $email, $password, $role, $ativo, $supervisorId);
             return $this->redirect('/admin/users');
         } catch (\Throwable $e) {
             return $this->render('users/form', [
                 'title' => 'Novo Usuário',
                 'action' => '/admin/users/create',
-                'user' => ['name'=>$name,'email'=>$email,'role'=>$role,'ativo'=>$ativo],
-                'roles' => ['seller' => 'Vendedor (registrar vendas)', 'organic' => 'Orgânico (lançar vendas sem comissão)', 'manager' => 'Gerente (vendas e relatórios)', 'admin' => 'Admin (tudo)'],
+                'user' => ['name'=>$name,'email'=>$email,'role'=>$role,'ativo'=>$ativo,'supervisor_user_id'=>(int)($_POST['supervisor_user_id'] ?? 0)],
+                'roles' => ['seller' => 'Vendedor (registrar vendas)', 'organic' => 'Orgânico (lançar vendas sem comissão)', 'trainee' => 'Trainee (vendedor em treinamento)', 'manager' => 'Gerente (vendas e relatórios)', 'admin' => 'Admin (tudo)'],
+                'supervisors' => (new \Models\User())->listByRoles(['seller','manager']),
                 'error' => 'Erro ao criar usuário: ' . $e->getMessage(),
                 '_csrf' => Auth::csrf(),
             ]);
@@ -85,11 +96,13 @@ class UsersController extends Controller
         if ($id <= 0) return $this->redirect('/admin/users');
         $u = (new User())->findById($id);
         if (!$u) return $this->redirect('/admin/users');
+        $uModel = new User();
         $this->render('users/form', [
             'title' => 'Editar Usuário',
             'action' => '/admin/users/update?id=' . $id,
             'user' => $u,
-            'roles' => ['seller' => 'Vendedor (registrar vendas)', 'organic' => 'Orgânico (lançar vendas sem comissão)', 'manager' => 'Gerente (vendas e relatórios)', 'admin' => 'Admin (tudo)'],
+            'roles' => ['seller' => 'Vendedor (registrar vendas)', 'organic' => 'Orgânico (lançar vendas sem comissão)', 'trainee' => 'Trainee (vendedor em treinamento)', 'manager' => 'Gerente (vendas e relatórios)', 'admin' => 'Admin (tudo)'],
+            'supervisors' => $uModel->listByRoles(['seller','manager']),
             '_csrf' => Auth::csrf(),
         ]);
     }
@@ -118,7 +131,12 @@ class UsersController extends Controller
         }
         try {
             $u = new User();
-            $u->updateUser($id, $name, $email, ($password === '' ? null : $password), $role, $ativo);
+            $supervisorId = null;
+            if ($role === 'trainee') {
+                $sid = (int)($_POST['supervisor_user_id'] ?? 0);
+                if ($sid > 0) { $supervisorId = $sid; }
+            }
+            $u->updateUser($id, $name, $email, ($password === '' ? null : $password), $role, $ativo, $supervisorId);
             return $this->redirect('/admin/users');
         } catch (\Throwable $e) {
             return $this->render('users/form', [
