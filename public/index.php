@@ -227,10 +227,12 @@ $router->group('/admin', function($r) {
     $r->get('/clients', 'Controllers\\ClientsController@index');
     $r->get('/admin/clients', 'Controllers\\ClientsController@index');
 
-    // DNS/Cloudflare settings
+    // Settings (DNS/Cloudflare inside)
+    $r->get('/admin/settings', 'Controllers\\DnsSettingsController@index');
+    $r->post('/admin/settings/save', 'Controllers\\DnsSettingsController@save');
+    // Backward-compatible routes
     $r->get('/admin/settings/dns', 'Controllers\\DnsSettingsController@index');
     $r->post('/admin/settings/dns/save', 'Controllers\\DnsSettingsController@save');
-    // Aliases without /admin for setups that mount /admin prefix automatically
     $r->get('/settings/dns', 'Controllers\\DnsSettingsController@index');
     $r->post('/settings/dns/save', 'Controllers\\DnsSettingsController@save');
 
