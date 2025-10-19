@@ -106,6 +106,7 @@
                 <form class="d-inline" method="post" action="/admin/approvals/reject" onsubmit="return confirm('Rejeitar esta solicitação?');">
                   <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
                   <input type="hidden" name="id" value="<?= (int)$apprId ?>">
+                  <input type="text" name="reason" class="form-control form-control-sm d-inline-block me-1 mb-1" style="width:260px" placeholder="Motivo da rejeição" required>
                   <button class="btn btn-sm btn-outline-danger" type="submit">Rejeitar</button>
                 </form>
               <?php endif; ?>
