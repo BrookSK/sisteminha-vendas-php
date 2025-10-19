@@ -223,10 +223,16 @@ $router->group('/admin', function($r) {
     // Clients options for autocomplete
     $r->get('/clients/options', 'Controllers\\ClientsController@options');
     $r->get('/admin/clients/options', 'Controllers\\ClientsController@options');
+    // Clients index aliases
+    $r->get('/clients', 'Controllers\\ClientsController@index');
+    $r->get('/admin/clients', 'Controllers\\ClientsController@index');
 
     // DNS/Cloudflare settings
     $r->get('/admin/settings/dns', 'Controllers\\DnsSettingsController@index');
     $r->post('/admin/settings/dns/save', 'Controllers\\DnsSettingsController@save');
+    // Aliases without /admin for setups that mount /admin prefix automatically
+    $r->get('/settings/dns', 'Controllers\\DnsSettingsController@index');
+    $r->post('/settings/dns/save', 'Controllers\\DnsSettingsController@save');
 
     // Áreas Técnicas (admin)
     $r->get('/documentation-areas', 'Controllers\\DocumentationAreasController@index');
