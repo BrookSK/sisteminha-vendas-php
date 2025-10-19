@@ -137,6 +137,7 @@ use Core\Auth;
                 <li><a class="dropdown-item" href="/admin/clients">Clientes</a></li>
                 <li><a class="dropdown-item" href="/admin/hostings">Hospedagens</a></li>
                 <li><a class="dropdown-item" href="/admin/hosting-assets">Ativos (Sites/Sistemas/E-mails)</a></li>
+                <li><a class="dropdown-item" href="/admin/site-clients">Clientes (Sites)</a></li>
                 <li><a class="dropdown-item" href="/admin/settings/dns">Configurações DNS</a></li>
                 <?php if ((Auth::user()['role'] ?? 'seller') === 'admin'): ?>
                   <li><a class="dropdown-item" href="/admin/logs">Logs</a></li>
