@@ -48,6 +48,8 @@ use Core\Auth;
               <a class="nav-link dropdown-toggle" href="#" id="menuComissoesSeller" role="button" data-bs-toggle="dropdown" aria-expanded="false">Comissões</a>
               <ul class="dropdown-menu" aria-labelledby="menuComissoesSeller">
                 <li><a class="dropdown-item" href="/admin/commissions/me">Minhas Comissões</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="/admin/settings/calculations-simple">Entenda os Cálculos</a></li>
               </ul>
             </li>
             <!-- Metas (seller) -->
@@ -117,6 +119,8 @@ use Core\Auth;
               <ul class="dropdown-menu" aria-labelledby="menuComissoes">
                 <li><a class="dropdown-item" href="/admin/commissions/me">Minhas Comissões</a></li>
                 <li><a class="dropdown-item" href="/admin/commissions">Comissões Empresa</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="/admin/settings/calculations-simple">Entenda os Cálculos</a></li>
               </ul>
             </li>
 
