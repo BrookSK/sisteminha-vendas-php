@@ -104,7 +104,7 @@ class SettingsController extends Controller
 
     public function calculationsSimple()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $set = new Setting();
         $rate = (float)$set->get('usd_rate', '5.83');
         $costRate = (float)$set->get('cost_rate', '0.15');
