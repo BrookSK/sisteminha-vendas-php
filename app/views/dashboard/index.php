@@ -6,6 +6,16 @@
   </div>
 </div>
 
+<div class="mb-3 d-flex flex-wrap gap-2">
+  <a class="btn btn-outline-primary" href="/admin/demands/dashboard">Demandas</a>
+  <a class="btn btn-outline-secondary" href="/admin/documentations">Documentações</a>
+  <a class="btn btn-outline-secondary" href="/admin/hostings">Hospedagens</a>
+  <a class="btn btn-outline-secondary" href="/admin/hosting-assets">Ativos</a>
+  <a class="btn btn-outline-secondary" href="/admin/site-clients">Clientes (Sites)</a>
+  <a class="btn btn-outline-secondary" href="/admin/settings/dns">Configurações DNS</a>
+  
+</div>
+
 <div class="card mt-4 mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span>Notificações Recentes</span>
