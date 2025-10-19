@@ -59,6 +59,33 @@ use Core\Auth;
                 <li><a class="dropdown-item" href="/admin/my/goals">Minhas Metas</a></li>
               </ul>
             </li>
+          <?php elseif ($role === 'organic'): ?>
+            <li class="nav-item"><a class="nav-link" href="/admin">Dashboard de Vendas</a></li>
+            <!-- Cadastros (orgânico) -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="menuCadastrosOrganic" role="button" data-bs-toggle="dropdown" aria-expanded="false">Cadastros</a>
+              <ul class="dropdown-menu" aria-labelledby="menuCadastrosOrganic">
+                <li><a class="dropdown-item" href="/admin/clients">Clientes</a></li>
+                <li><a class="dropdown-item" href="/admin/attendances">Atendimentos</a></li>
+              </ul>
+            </li>
+            <!-- Vendas (orgânico) -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="menuVendasOrganic" role="button" data-bs-toggle="dropdown" aria-expanded="false">Vendas</a>
+              <ul class="dropdown-menu" aria-labelledby="menuVendasOrganic">
+                <li><a class="dropdown-item" href="/admin/international-sales">Internacionais</a></li>
+                <li><a class="dropdown-item" href="/admin/national-sales">Nacionais</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="/admin/sales-simulator">Simulador de Cálculo</a></li>
+              </ul>
+            </li>
+            <!-- Metas (orgânico) -->
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="menuMetasOrganic" role="button" data-bs-toggle="dropdown" aria-expanded="false">Metas</a>
+              <ul class="dropdown-menu" aria-labelledby="menuMetasOrganic">
+                <li><a class="dropdown-item" href="/admin/my/goals">Minhas Metas</a></li>
+              </ul>
+            </li>
           <?php else: ?>
           <li class="nav-item"><a class="nav-link" href="/admin">Dashboard de Vendas</a></li>
           <?php $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
