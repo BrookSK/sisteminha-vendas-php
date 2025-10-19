@@ -121,10 +121,18 @@ class ApprovalsController extends Controller
             http_response_code(403);
             return $this->render('errors/403', [ 'title' => 'Acesso negado', 'required_roles' => ['admin','manager','assigned reviewer'], 'user' => $me ]);
         }
+        $reason = trim($_POST['reason'] ?? '');
+        if ($reason === '') {
+            $this->flash('danger','Informe um motivo para a rejeição.');
+            // Sellers-reviewers may not have access to /admin/approvals
+            if (!in_array($role, ['admin','manager'], true)) { return $this->redirect('/admin/notifications'); }
+            return $this->redirect('/admin/approvals');
+        }
         $apprModel->reject($id, (int)($me['id'] ?? 0));
         $createdBy = (int)($appr['created_by'] ?? 0);
         if ($createdBy) {
-            (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Solicitação rejeitada', 'Sua solicitação foi rejeitada pelo supervisor.', 'approval', 'rejected', [$createdBy]);
+            $msg = 'Sua solicitação foi rejeitada pelo supervisor.' . "\nMotivo: " . $reason;
+            (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Solicitação rejeitada', $msg, 'approval', 'rejected', [$createdBy]);
         }
         // Archive related notification for the approver (by [approval-id:<id>] token)
         try { (new Notification())->archiveByApprovalIdForUser((int)($me['id'] ?? 0), (int)$id); } catch (\Throwable $e) {}
