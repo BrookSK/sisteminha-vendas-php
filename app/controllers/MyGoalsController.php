@@ -10,7 +10,7 @@ class MyGoalsController extends Controller
 {
     public function index()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $me = Auth::user();
         $assign = new GoalAssignment();
         $items = $assign->listForUser((int)($me['id'] ?? 0), 200, 0);
