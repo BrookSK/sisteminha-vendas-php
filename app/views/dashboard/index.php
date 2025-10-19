@@ -7,13 +7,17 @@
 </div>
 <?php $role = (string) ((\Core\Auth::user()['role'] ?? 'seller')); ?>
 <div class="mb-3 d-flex flex-wrap gap-2">
-  <a class="btn btn-outline-primary" href="/admin/demands/dashboard">Demandas</a>
-  <a class="btn btn-outline-secondary" href="/admin/documentations">Documentações</a>
-  <?php if ($role === 'admin'): ?>
-    <a class="btn btn-outline-secondary" href="/admin/hostings">Hospedagens</a>
-    <a class="btn btn-outline-secondary" href="/admin/hosting-assets">Ativos</a>
-    <a class="btn btn-outline-secondary" href="/admin/site-clients">Clientes (Sites)</a>
-    <a class="btn btn-outline-secondary" href="/admin/settings/dns">Configurações DNS</a>
+  <?php if ($role === 'organic'): ?>
+    <a class="btn btn-outline-secondary" href="/admin/documentations">Documentações</a>
+  <?php else: ?>
+    <a class="btn btn-outline-primary" href="/admin/demands/dashboard">Demandas</a>
+    <a class="btn btn-outline-secondary" href="/admin/documentations">Documentações</a>
+    <?php if ($role === 'admin'): ?>
+      <a class="btn btn-outline-secondary" href="/admin/hostings">Hospedagens</a>
+      <a class="btn btn-outline-secondary" href="/admin/hosting-assets">Ativos</a>
+      <a class="btn btn-outline-secondary" href="/admin/site-clients">Clientes (Sites)</a>
+      <a class="btn btn-outline-secondary" href="/admin/settings/dns">Configurações DNS</a>
+    <?php endif; ?>
   <?php endif; ?>
 </div>
 
