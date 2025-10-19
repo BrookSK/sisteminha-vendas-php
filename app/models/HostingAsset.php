@@ -8,7 +8,7 @@ class HostingAsset extends Model
 {
     public function list(int $limit = 1000, int $offset = 0, ?int $hostingId = null): array
     {
-        $sql = 'SELECT a.*, h.server_name, h.server_ip, c.nome as client_name FROM hosting_assets a LEFT JOIN hostings h ON h.id = a.hosting_id LEFT JOIN clientes c ON c.id = a.client_id';
+        $sql = 'SELECT a.*, h.server_name, h.server_ip, c.name as client_name FROM hosting_assets a LEFT JOIN hostings h ON h.id = a.hosting_id LEFT JOIN clients c ON c.id = a.client_id';
         $params = [];
         if ($hostingId) { $sql .= ' WHERE a.hosting_id = :hid'; $params[':hid'] = $hostingId; }
         $sql .= ' ORDER BY a.type ASC, a.title ASC LIMIT :lim OFFSET :off';

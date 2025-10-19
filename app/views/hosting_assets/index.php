@@ -26,7 +26,8 @@ $assets = $assets ?? [];
         <input type="hidden" name="hosting_id" value="<?= htmlspecialchars($sel) ?>">
         <button class="btn btn-outline-primary btn-sm" type="submit">Verificar todos desta hospedagem</button>
       </form>
-      <a class="btn btn-outline-secondary btn-sm" href="/admin/settings/dns" target="_blank" rel="noopener">Configurações DNS</a>
+      <a class="btn btn-outline-secondary btn-sm" href="/admin/settings" target="_blank" rel="noopener">Configurações DNS</a>
+      <a class="btn btn-outline-secondary btn-sm" href="/admin/site-clients" target="_blank" rel="noopener">Clientes (Sites)</a>
     </div>
   </form>
 </div></div>
@@ -205,7 +206,7 @@ $assets = $assets ?? [];
       if(timer) clearTimeout(timer);
       if(q.length<2){ list.style.display='none'; list.innerHTML=''; return; }
       timer=setTimeout(function(){
-        fetch('/admin/clients/options?q='+encodeURIComponent(q))
+        fetch('/admin/site-clients/options?q='+encodeURIComponent(q))
           .then(r=>r.json()).then(arr=>{
             list.innerHTML='';
             arr.forEach(function(o){
