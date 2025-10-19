@@ -42,7 +42,9 @@
   <div class="tab-content p-3 border border-top-0">
     <div class="tab-pane fade show active" id="tab-eua" role="tabpanel">
       <div class="d-flex justify-content-end mb-2">
-        <a class="btn btn-sm btn-outline-secondary" href="/admin/international-sales/export<?= isset($seller_id) && $seller_id ? ('?seller_id='.(int)$seller_id.($ym?('&ym='.urlencode($ym)):'') ) : ($ym?('?ym='.urlencode($ym)):'') ?>">Exportar CSV (EUA)</a>
+        <?php $role = (Core\Auth::user()['role'] ?? 'seller'); if (in_array($role, ['admin','manager'], true)): ?>
+          <a class="btn btn-sm btn-outline-secondary" href="/admin/international-sales/export<?= isset($seller_id) && $seller_id ? ('?seller_id='.(int)$seller_id.($ym?('&ym='.urlencode($ym)):'') ) : ($ym?('?ym='.urlencode($ym)):'') ?>">Exportar CSV (EUA)</a>
+        <?php endif; ?>
       </div>
       <div class="d-flex align-items-center justify-content-between mb-2">
         <div class="small text-muted" id="info-eua"></div>
@@ -74,7 +76,9 @@
     </div>
     <div class="tab-pane fade" id="tab-br" role="tabpanel">
       <div class="d-flex justify-content-end mb-2">
-        <a class="btn btn-sm btn-outline-secondary" href="/admin/national-sales/export<?= isset($seller_id) && $seller_id ? ('?seller_id='.(int)$seller_id.($ym?('&ym='.urlencode($ym)):'') ) : ($ym?('?ym='.urlencode($ym)):'') ?>">Exportar CSV (Brasil)</a>
+        <?php if (in_array(($role ?? 'seller'), ['admin','manager'], true)): ?>
+          <a class="btn btn-sm btn-outline-secondary" href="/admin/national-sales/export<?= isset($seller_id) && $seller_id ? ('?seller_id='.(int)$seller_id.($ym?('&ym='.urlencode($ym)):'') ) : ($ym?('?ym='.urlencode($ym)):'') ?>">Exportar CSV (Brasil)</a>
+        <?php endif; ?>
       </div>
       <div class="d-flex align-items-center justify-content-between mb-2">
         <div class="small text-muted" id="info-br"></div>
@@ -115,6 +119,7 @@
     ym: '<?= htmlspecialchars((string)($ym ?? '')) ?>'
   });
   const CSRF = '<?= htmlspecialchars(Core\Auth::csrf()) ?>';
+  const ROLE = '<?= htmlspecialchars((string)(Core\Auth::user()['role'] ?? 'seller')) ?>';
   let pageEua = 1, pageBr = 1, per = 20;
   function renderRows(tbl, rows) {
     const tbody = tbl.querySelector('tbody');
@@ -134,12 +139,8 @@
         <td class="text-end">R$ ${(parseFloat(s.comissao_brl||0)).toFixed(2)}</td>
         <td>
           <a class="btn btn-sm btn-outline-primary me-1" href="/admin/international-sales/edit?id=${s.id}">Editar</a>
-          <a class="btn btn-sm btn-outline-secondary me-1" href="/admin/international-sales/duplicate?id=${s.id}">Duplicar</a>
-          <form method="post" action="/admin/international-sales/delete" class="d-inline" onsubmit="return confirm('Excluir esta venda?');">
-            <input type="hidden" name="_csrf" value="${CSRF}">
-            <input type="hidden" name="id" value="${s.id}">
-            <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
-          </form>
+          ${ROLE==='trainee' ? '' : `<a class="btn btn-sm btn-outline-secondary me-1" href="/admin/international-sales/duplicate?id=${s.id}">Duplicar</a>`}
+          ${ROLE==='trainee' ? '' : `<form method="post" action="/admin/international-sales/delete" class="d-inline" onsubmit="return confirm('Excluir esta venda?');"><input type="hidden" name="_csrf" value="${CSRF}"><input type="hidden" name="id" value="${s.id}"><button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button></form>`}
         </td>
       `;
       tbody.appendChild(tr);
@@ -186,12 +187,8 @@
             <td class="text-end">R$ ${(parseFloat(s.comissao_brl||0)).toFixed(2)}</td>
             <td>
               <a class="btn btn-sm btn-outline-primary me-1" href="${s._editUrl}">Editar</a>
-              <a class="btn btn-sm btn-outline-secondary me-1" href="/admin/national-sales/duplicate?id=${s.id}">Duplicar</a>
-              <form method="post" action="/admin/national-sales/delete" class="d-inline" onsubmit="return confirm('Excluir esta venda?');">
-                <input type="hidden" name="_csrf" value="${CSRF}">
-                <input type="hidden" name="id" value="${s.id}">
-                <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
-              </form>
+              ${ROLE==='trainee' ? '' : `<a class="btn btn-sm btn-outline-secondary me-1" href="/admin/national-sales/duplicate?id=${s.id}">Duplicar</a>`}
+              ${ROLE==='trainee' ? '' : `<form method=\"post\" action=\"/admin/national-sales/delete\" class=\"d-inline\" onsubmit=\"return confirm('Excluir esta venda?');\"><input type=\"hidden\" name=\"_csrf\" value=\"${CSRF}\"><input type=\"hidden\" name=\"id\" value=\"${s.id}\"><button class=\"btn btn-sm btn-outline-danger\" type=\"submit\">Excluir</button></form>`}
             </td>
           `;
           tbody.appendChild(tr);
