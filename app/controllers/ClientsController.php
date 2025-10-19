@@ -58,6 +58,24 @@ class ClientsController extends Controller
         exit;
     }
 
+    // GET /admin/clients/options?q=... -> JSON simple [{id,text}] for selects/autocomplete
+    public function options()
+    {
+        $this->requireRole(['seller','organic','manager','admin']);
+        $q = trim($_GET['q'] ?? '');
+        $rows = (new Client())->searchLite($q ?: null, 20, 0, null);
+        $out = [];
+        foreach ($rows as $c) {
+            $label = trim(($c['nome'] ?? ''));
+            if (!empty($c['email'])) { $label .= ' <'.$c['email'].'>'; }
+            if (!empty($c['suite'])) { $label .= ' ('.strtoupper($c['suite']).')'; }
+            $out[] = ['id'=>(int)$c['id'], 'text'=>$label];
+        }
+        header('Content-Type: application/json');
+        echo json_encode($out);
+        exit;
+    }
+
     public function new()
     {
         $this->render('clients/form', [
