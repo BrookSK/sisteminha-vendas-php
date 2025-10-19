@@ -29,6 +29,7 @@ use Core\Auth;
           <?php if ($isDemands): ?>
             <!-- Contexto: Demandas -->
             <li class="nav-item"><a class="nav-link" href="/admin">Vendas</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/documentations">Documentações</a></li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="menuDemandas" role="button" data-bs-toggle="dropdown" aria-expanded="false">Demandas</a>
               <ul class="dropdown-menu" aria-labelledby="menuDemandas">
@@ -56,6 +57,7 @@ use Core\Auth;
           <?php else: ?>
             <!-- Contexto: Vendas/Admin (padrão) -->
             <li class="nav-item"><a class="nav-link" href="/admin/demands/dashboard">Demandas</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/documentations">Documentações</a></li>
             <!-- Cadastros -->
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="menuCadastros" role="button" data-bs-toggle="dropdown" aria-expanded="false">Cadastros</a>
@@ -135,6 +137,7 @@ use Core\Auth;
                 <?php if ((Auth::user()['role'] ?? 'seller') === 'admin'): ?>
                   <li><a class="dropdown-item" href="/admin/logs">Logs</a></li>
                   <li><a class="dropdown-item" href="/admin/donations">Doações</a></li>
+                  <li><a class="dropdown-item" href="/admin/documentation-areas">Áreas Técnicas</a></li>
                   <li><hr class="dropdown-divider"></li>
                   <li><a class="dropdown-item" href="/admin/settings">Configurações</a></li>
                 <?php endif; ?>
@@ -168,6 +171,51 @@ use Core\Auth;
   </div>
 </nav>
 <main class="container my-4">
+  <?php if (!empty($_SESSION['flash'])): ?>
+    <?php foreach (($_SESSION['flash'] ?? []) as $f): ?>
+      <div class="alert alert-<?= htmlspecialchars($f['type'] ?? 'info') ?> alert-dismissible fade show" role="alert">
+        <?php $__msg = (string)($f['message'] ?? ''); echo htmlspecialchars($__msg); ?>
+        <?php
+          $copyUrl = null;
+          if (preg_match('/https?:\/\/[^\s"\']+/i', $__msg, $m)) { $copyUrl = $m[0]; }
+        ?>
+        <?php if ($copyUrl): ?>
+          <div class="mt-2 small d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary copy-link-btn" data-link="<?= htmlspecialchars($copyUrl) ?>">Copiar link</button>
+            <span class="text-muted text-truncate" style="max-width: 100%; overflow:hidden;"><?= htmlspecialchars($copyUrl) ?></span>
+          </div>
+        <?php endif; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <?php endforeach; unset($_SESSION['flash']); ?>
+    <script>
+      (function(){
+        document.querySelectorAll('.copy-link-btn').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            const link = this.getAttribute('data-link') || '';
+            if (!link) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(link).then(()=>{
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-success');
+                this.textContent = 'Copiado!';
+                setTimeout(()=>{
+                  this.classList.add('btn-outline-secondary');
+                  this.classList.remove('btn-success');
+                  this.textContent = 'Copiar link';
+                }, 2000);
+              });
+            } else {
+              const ta = document.createElement('textarea');
+              ta.value = link; document.body.appendChild(ta); ta.select();
+              try { document.execCommand('copy'); } catch(e) {}
+              document.body.removeChild(ta);
+            }
+          });
+        });
+      })();
+    </script>
+  <?php endif; ?>
   <?= $content ?>
 </main>
 <footer class="bg-light py-3 mt-4 border-top">

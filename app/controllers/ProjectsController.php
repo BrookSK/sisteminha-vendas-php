@@ -5,6 +5,7 @@ use Core\Controller;
 use Core\Auth;
 use Models\Project;
 use Models\Demand;
+use Models\Project as ProjectModel;
 
 class ProjectsController extends Controller
 {
@@ -26,6 +27,20 @@ class ProjectsController extends Controller
             'title' => 'Projetos',
             'items' => $items,
         ]);
+    }
+
+    public function options()
+    {
+        $this->requireRole(['seller','manager','admin']);
+        header('Content-Type: application/json');
+        $q = trim($_GET['q'] ?? '');
+        $limit = (int)($_GET['limit'] ?? 10);
+        if ($limit <= 0 || $limit > 50) { $limit = 10; }
+        $items = (new ProjectModel())->options($q, $limit);
+        echo json_encode(['items' => array_map(function($r){
+            return [ 'id' => (int)$r['id'], 'name' => (string)$r['name'] ];
+        }, $items)]);
+        exit;
     }
 
     public function create()

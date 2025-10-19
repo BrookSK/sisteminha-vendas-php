@@ -38,4 +38,11 @@ class Controller
             exit('Acesso negado');
         }
     }
+
+    protected function flash(string $type, string $message): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
+        $_SESSION['flash'] = $_SESSION['flash'] ?? [];
+        $_SESSION['flash'][] = ['type'=>$type, 'message'=>$message];
+    }
 }
