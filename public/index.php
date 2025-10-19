@@ -206,6 +206,36 @@ $router->group('/admin', function($r) {
     $r->post('/documentations/email-remove', 'Controllers\\DocumentationsController@emailRemove');
     $r->post('/documentations/comment-add', 'Controllers\\DocumentationsController@commentAdd');
 
+    // Hospedagens
+    $r->get('/hostings', 'Controllers\\HostingsController@index');
+    $r->post('/hostings/create', 'Controllers\\HostingsController@create');
+    $r->post('/hostings/update', 'Controllers\\HostingsController@update');
+    $r->post('/hostings/delete', 'Controllers\\HostingsController@delete');
+
+    // Ativos de Hospedagem (Sites/Sistemas/E-mails)
+    $r->get('/hosting-assets', 'Controllers\\HostingAssetsController@index');
+    $r->post('/hosting-assets/create', 'Controllers\\HostingAssetsController@create');
+    $r->post('/hosting-assets/update', 'Controllers\\HostingAssetsController@update');
+    $r->post('/hosting-assets/delete', 'Controllers\\HostingAssetsController@delete');
+    $r->post('/hosting-assets/refresh-dns', 'Controllers\\HostingAssetsController@refreshDns');
+    $r->post('/hosting-assets/refresh-dns-all', 'Controllers\\HostingAssetsController@refreshDnsAll');
+
+    // Clients options for autocomplete
+    $r->get('/clients/options', 'Controllers\\ClientsController@options');
+    $r->get('/admin/clients/options', 'Controllers\\ClientsController@options');
+    // Clients index aliases
+    $r->get('/clients', 'Controllers\\ClientsController@index');
+    $r->get('/admin/clients', 'Controllers\\ClientsController@index');
+
+    // Settings (DNS/Cloudflare inside)
+    $r->get('/admin/settings', 'Controllers\\DnsSettingsController@index');
+    $r->post('/admin/settings/save', 'Controllers\\DnsSettingsController@save');
+    // Backward-compatible routes
+    $r->get('/admin/settings/dns', 'Controllers\\DnsSettingsController@index');
+    $r->post('/admin/settings/dns/save', 'Controllers\\DnsSettingsController@save');
+    $r->get('/settings/dns', 'Controllers\\DnsSettingsController@index');
+    $r->post('/settings/dns/save', 'Controllers\\DnsSettingsController@save');
+
     // Áreas Técnicas (admin)
     $r->get('/documentation-areas', 'Controllers\\DocumentationAreasController@index');
     $r->post('/documentation-areas/create', 'Controllers\\DocumentationAreasController@create');
