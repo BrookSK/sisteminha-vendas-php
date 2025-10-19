@@ -1,0 +1,6 @@
+-- Application settings key/value
+CREATE TABLE IF NOT EXISTS app_settings (
+  `key` VARCHAR(120) PRIMARY KEY,
+  `value` TEXT NULL,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
