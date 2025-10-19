@@ -95,6 +95,8 @@ class ApprovalsController extends Controller
         } else {
             $apprModel->approve($id, (int)($me['id'] ?? 0));
         }
+        // Archive related notification for the approver (by [approval-id:<id>] token)
+        try { (new Notification())->archiveByApprovalIdForUser((int)($me['id'] ?? 0), (int)$id); } catch (\Throwable $e) {}
         $this->flash('success', 'Aprovação realizada.');
         // Sellers-reviewers may not have access to /admin/approvals
         if (!in_array($role, ['admin','manager'], true)) {
@@ -124,6 +126,8 @@ class ApprovalsController extends Controller
         if ($createdBy) {
             (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Solicitação rejeitada', 'Sua solicitação foi rejeitada pelo supervisor.', 'approval', 'rejected', [$createdBy]);
         }
+        // Archive related notification for the approver (by [approval-id:<id>] token)
+        try { (new Notification())->archiveByApprovalIdForUser((int)($me['id'] ?? 0), (int)$id); } catch (\Throwable $e) {}
         $this->flash('success','Solicitação rejeitada.');
         // Sellers-reviewers may not have access to /admin/approvals
         if (!in_array($role, ['admin','manager'], true)) {

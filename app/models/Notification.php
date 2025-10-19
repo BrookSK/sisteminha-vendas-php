@@ -113,6 +113,25 @@ class Notification extends Model
         $st->execute([':u'=>$userId, ':n'=>$notifId]);
     }
 
+    /** Archive notifications for a user that reference a given approval-id token in the message */
+    public function archiveByApprovalIdForUser(int $userId, int $approvalId): void
+    {
+        if ($approvalId <= 0) return;
+        $sql = "SELECT n.id
+                FROM notifications n
+                JOIN notification_recipients nr ON nr.notification_id = n.id
+                WHERE nr.user_id = :u
+                  AND nr.deleted_at IS NULL
+                  AND nr.archived_at IS NULL
+                  AND n.message LIKE :like";
+        $st = $this->db->prepare($sql);
+        $st->execute([':u'=>$userId, ':like'=>'%[approval-id:'.$approvalId.']%']);
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($rows as $r) {
+            $this->archiveFor($userId, (int)$r['id']);
+        }
+    }
+
     public function delete(int $notifId): void
     {
         $this->db->prepare('DELETE FROM notification_recipients WHERE notification_id=:n')->execute([':n'=>$notifId]);
