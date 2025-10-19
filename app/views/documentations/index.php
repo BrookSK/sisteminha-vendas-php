@@ -85,7 +85,7 @@ $pages = max(1, (int)ceil($total / max(1,$per)));
 $queryBase = $_GET; unset($queryBase['page']); unset($queryBase['per_page']);
 function qbuild_docs($arr){ return htmlspecialchars(http_build_query($arr)); }
 ?>
-<div class="d-flex justify-content-between align-items-center mt-3">
+<div class="d-flex justify-content-between align-items-center mt-3 card-body">
   <div class="small text-muted">Página <?= $page ?> de <?= $pages ?> • Total: <?= $total ?></div>
   <div class="btn-group">
     <?php $prev = max(1, $page-1); $next = min($pages, $page+1); ?>
