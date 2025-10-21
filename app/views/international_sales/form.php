@@ -193,11 +193,17 @@
     const valor_produto_usd = toNum(document.getElementById('valor_produto_usd'));
     const frete_ups_usd = toNum(document.getElementById('frete_ups_usd'));
     const valor_redirecionamento_usd = toNum(document.getElementById('valor_redirecionamento_usd'));
-    const servico_compra_usd = toNum(document.getElementById('servico_compra_usd'));
+    // Auto-calc service fee: 39 USD per kg (ceil)
+    const pesoEl = document.getElementById('peso_kg');
+    const pesoKg = toNum(pesoEl);
+    const autoServico = Math.ceil(Math.max(0, pesoKg)) * 39.0;
+    const servField = document.getElementById('servico_compra_usd');
+    if (servField) { servField.value = autoServico.toFixed(2); }
+    const servico_compra_usd = toNum(servField);
     const frete_etiqueta_usd = toNum(document.getElementById('frete_etiqueta_usd'));
     const produtos_compra_usd = toNum(document.getElementById('produtos_compra_usd'));
     const taxa_dolar = toNum(document.getElementById('taxa_dolar'));
-    const peso = toNum(document.getElementById('peso_kg'));
+    const peso = pesoKg;
 
     const bruto_usd = valor_produto_usd + frete_ups_usd + valor_redirecionamento_usd + servico_compra_usd;
     const bruto_brl = bruto_usd * taxa_dolar;

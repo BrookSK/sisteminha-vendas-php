@@ -190,7 +190,6 @@
   const pesoHelp = document.getElementById('pesoHelp');
 
   function freteCorreiosBRL(pesoKg){
-    if(pesoKg<=0) return 0;
     if(pesoKg>30) return 0;
     const map = {1:35.53,2:43.27,3:51.02,4:58.77,5:66.52,6:74.26,7:82.00,8:89.74,9:97.48,10:105.22,11:112.96,12:120.70,13:128.44,14:136.18,15:143.92,16:151.66,17:159.40,18:167.14,19:174.88,20:182.62,21:190.36,22:198.10,23:205.84,24:213.58,25:221.32,26:229.06,27:236.80,28:244.54,29:252.28,30:260.02};
     const k = Math.ceil(pesoKg);
@@ -199,9 +198,15 @@
   function toNum(id){const el=document.getElementById(id);return parseFloat(el.value||'0')||0;}
   function upd(){
     const peso_kg = toNum('peso_kg');
+
     if(peso_kg>30){ peso.classList.add('is-invalid'); pesoHelp.textContent='Peso máximo permitido: 30kg.'; } else { peso.classList.remove('is-invalid'); pesoHelp.textContent=''; }
     const valor_produto_usd = toNum('valor_produto_usd');
+    // Auto-calc service fee: 39 USD per kg (ceil)
+    const autoServico = Math.ceil(Math.max(0, peso_kg)) * 39.0;
+    const servField = document.getElementById('taxa_servico_usd');
+    if (servField) { servField.value = autoServico.toFixed(2); }
     const taxa_servico_usd = toNum('taxa_servico_usd');
+
     const servico_compra_usd = toNum('servico_compra_usd');
     const produtos_compra_usd = toNum('produtos_compra_usd');
     const taxa_dolar = toNum('taxa_dolar');

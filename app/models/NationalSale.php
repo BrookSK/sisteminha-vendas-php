@@ -22,12 +22,13 @@ class NationalSale extends Model
         return $map[$ceil] ?? 0.0;
     }
 
-    public function count(?int $sellerId = null, ?string $ym = null): int
+    public function count(?int $sellerId = null, ?string $ym = null, ?string $q = null): int
     {
         $where = [];$p = [];
-        if ($sellerId) { $where[] = 'vendedor_id = :sid'; $p[':sid'] = $sellerId; }
-        if ($ym) { $where[] = "DATE_FORMAT(data_lancamento, '%Y-%m') = :ym"; $p[':ym'] = $ym; }
-        $sql = 'SELECT COUNT(*) c FROM vendas_nacionais vn';
+        if ($sellerId) { $where[] = 'vn.vendedor_id = :sid'; $p[':sid'] = $sellerId; }
+        if ($ym) { $where[] = "DATE_FORMAT(vn.data_lancamento, '%Y-%m') = :ym"; $p[':ym'] = $ym; }
+        if ($q !== null && $q !== '') { $where[] = '(vn.numero_pedido LIKE :q OR c.nome LIKE :q OR vn.suite_cliente LIKE :q)'; $p[':q'] = '%' . $q . '%'; }
+        $sql = 'SELECT COUNT(*) c FROM vendas_nacionais vn LEFT JOIN clientes c ON c.id = vn.cliente_id';
         if ($where) $sql .= ' WHERE '.implode(' AND ',$where);
         $stmt = $this->db->prepare($sql);
         foreach ($p as $k=>$v) { $stmt->bindValue($k, $v); }
@@ -112,11 +113,12 @@ class NationalSale extends Model
         return compact('comissao_usd','comissao_brl');
     }
 
-    public function list(int $limit = 100, int $offset = 0, ?int $sellerId = null, ?string $ym = null): array
+    public function list(int $limit = 100, int $offset = 0, ?int $sellerId = null, ?string $ym = null, ?string $q = null): array
     {
         $where = [];$p = [];
-        if ($sellerId) { $where[] = 'vendedor_id = :sid'; $p[':sid'] = $sellerId; }
-        if ($ym) { $where[] = "DATE_FORMAT(data_lancamento, '%Y-%m') = :ym"; $p[':ym'] = $ym; }
+        if ($sellerId) { $where[] = 'vn.vendedor_id = :sid'; $p[':sid'] = $sellerId; }
+        if ($ym) { $where[] = "DATE_FORMAT(vn.data_lancamento, '%Y-%m') = :ym"; $p[':ym'] = $ym; }
+        if ($q !== null && $q !== '') { $where[] = '(vn.numero_pedido LIKE :q OR c.nome LIKE :q OR vn.suite_cliente LIKE :q)'; $p[':q'] = '%' . $q . '%'; }
         $sql = 'SELECT vn.*, u.name as vendedor_nome, c.nome as cliente_nome FROM vendas_nacionais vn
                 LEFT JOIN usuarios u ON u.id = vn.vendedor_id
                 LEFT JOIN clientes c ON c.id = vn.cliente_id';

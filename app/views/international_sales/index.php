@@ -26,6 +26,10 @@
       <label class="form-label">Mês</label>
       <input type="month" class="form-control" name="ym" value="<?= htmlspecialchars((string)($ym ?? '')) ?>">
     </div>
+    <div class="col-auto">
+      <label class="form-label">Buscar</label>
+      <input type="text" class="form-control" name="q" value="<?= htmlspecialchars((string)($q ?? '')) ?>" placeholder="Pedido, cliente ou suíte">
+    </div>
     <div class="col-auto align-self-end">
       <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
     </div>
@@ -116,7 +120,8 @@
   // Minimal DataTables-like loading via fetch (no dependency). If DataTables is available, replace with $('#tbl-eua').DataTable({ ajax: ... })
   const params = new URLSearchParams({
     seller_id: '<?= htmlspecialchars((string)($seller_id ?? '')) ?>',
-    ym: '<?= htmlspecialchars((string)($ym ?? '')) ?>'
+    ym: '<?= htmlspecialchars((string)($ym ?? '')) ?>',
+    q: '<?= htmlspecialchars((string)($q ?? '')) ?>'
   });
   const CSRF = '<?= htmlspecialchars(Core\Auth::csrf()) ?>';
   const ROLE = '<?= htmlspecialchars((string)(Core\Auth::user()['role'] ?? 'seller')) ?>';

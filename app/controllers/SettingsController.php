@@ -19,6 +19,7 @@ class SettingsController extends Controller
         $lbsPerKg = (float)$setting->get('lbs_per_kg', '2.2');
         $periodStart = (string)$setting->get('current_period_start', '');
         $periodEnd = (string)$setting->get('current_period_end', '');
+        $commDbgPwd = (string)$setting->get('commissions_debug_password', '');
 
         $this->render('settings/index', [
             'title' => 'Configurações',
@@ -29,6 +30,7 @@ class SettingsController extends Controller
             'period_start' => $periodStart,
             'period_end' => $periodEnd,
             'lbs_per_kg' => $lbsPerKg,
+            'commissions_debug_password' => $commDbgPwd,
             // webhooks
             'webhook_containers_url' => (string)$setting->get('webhook_containers_url', ''),
             'webhook_sales_url' => (string)$setting->get('webhook_sales_url', ''),
@@ -52,6 +54,7 @@ class SettingsController extends Controller
         $periodEnd = trim($_POST['current_period_end'] ?? '');
         $lbsPerKg = (float)($_POST['lbs_per_kg'] ?? 2.2);
         if ($lbsPerKg <= 0) $lbsPerKg = 2.2;
+        $commDbgPwd = (string)($_POST['commissions_debug_password'] ?? '');
         $setting = new Setting();
         $setting->set('usd_rate', (string)$rate);
         $setting->set('embalagem_usd_por_kg', (string)$embalagem);
@@ -62,6 +65,8 @@ class SettingsController extends Controller
             $setting->set('current_period_end', $periodEnd);
         }
         $setting->set('lbs_per_kg', (string)$lbsPerKg);
+        // commissions debug password
+        if ($commDbgPwd !== '') { $setting->set('commissions_debug_password', $commDbgPwd); }
         // webhooks
         $wc = trim($_POST['webhook_containers_url'] ?? '');
         $ws = trim($_POST['webhook_sales_url'] ?? '');

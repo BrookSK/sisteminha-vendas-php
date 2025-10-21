@@ -104,6 +104,39 @@ class CostsController extends Controller
         $this->redirect('/admin/costs');
     }
 
+    public function update()
+    {
+        $this->requireRole(['admin']);
+        $this->csrfCheck();
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) { return $this->redirect('/admin/costs'); }
+        $date = $_POST['data'] ?: date('Y-m-d');
+        $cat = trim($_POST['categoria'] ?? 'geral');
+        $desc = trim($_POST['descricao'] ?? '');
+        $valType = $_POST['valor_tipo'] ?? 'usd';
+        $norm = function($v){ if ($v===null) return null; if (is_string($v)) { $v = str_replace(['.',' ,',' '],['','.',''], $v); $v = str_replace(',','.', $v); } return (float)$v; };
+        $inputUsd = $norm($_POST['valor_usd'] ?? 0);
+        $inputBrl = $norm($_POST['valor_brl'] ?? 0);
+        $inputPct = isset($_POST['valor_percent']) ? $norm($_POST['valor_percent']) : null;
+        $rate = (float)((new Setting())->get('usd_rate', '5.83'));
+        if ($rate <= 0) $rate = 5.83;
+        $val = 0.0;
+        if ($valType === 'usd') { $val = $inputUsd; }
+        elseif ($valType === 'brl') { $val = $rate>0 ? ($inputBrl / $rate) : 0.0; }
+        elseif ($valType === 'percent') { $val = 0.0; }
+        (new Cost())->updateFull($id, [
+            'data' => $date,
+            'categoria' => $cat,
+            'descricao' => $desc,
+            'valor_usd' => $val,
+            'valor_tipo' => $valType,
+            'valor_brl' => ($valType==='brl'?$inputBrl:null),
+            'valor_percent' => ($valType==='percent'?$inputPct:null),
+        ]);
+        (new Log())->add(Auth::user()['id'] ?? null, 'custos', 'update', $id, json_encode(['data'=>$date,'categoria'=>$cat]));
+        $this->redirect('/admin/costs');
+    }
+
     public function exportCsv()
     {
         $from = $_GET['from'] ?? '';
