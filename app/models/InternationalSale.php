@@ -15,8 +15,10 @@ class InternationalSale extends Model
         if ($sellerId) { $where[] = 'vendedor_id = :sid'; $p[':sid'] = $sellerId; }
         if ($ym) { $where[] = "DATE_FORMAT(data_lancamento, '%Y-%m') = :ym"; $p[':ym'] = $ym; }
         if ($q !== null && $q !== '') {
-            $where[] = '(vi.numero_pedido LIKE :q OR c.nome LIKE :q OR vi.suite_cliente LIKE :q)';
-            $p[':q'] = '%' . $q . '%';
+            $where[] = '(vi.numero_pedido LIKE :q1 OR c.nome LIKE :q2 OR vi.suite_cliente LIKE :q3)';
+            $p[':q1'] = '%' . $q . '%';
+            $p[':q2'] = '%' . $q . '%';
+            $p[':q3'] = '%' . $q . '%';
         }
         $sql = 'SELECT vi.*, u.name as vendedor_nome, c.nome as cliente_nome FROM vendas_internacionais vi
                 LEFT JOIN usuarios u ON u.id = vi.vendedor_id
@@ -37,8 +39,10 @@ class InternationalSale extends Model
         if ($sellerId) { $where[] = 'vi.vendedor_id = :sid'; $p[':sid'] = $sellerId; }
         if ($ym) { $where[] = "DATE_FORMAT(vi.data_lancamento, '%Y-%m') = :ym"; $p[':ym'] = $ym; }
         if ($q !== null && $q !== '') {
-            $where[] = '(vi.numero_pedido LIKE :q OR c.nome LIKE :q OR vi.suite_cliente LIKE :q)';
-            $p[':q'] = '%' . $q . '%';
+            $where[] = '(vi.numero_pedido LIKE :q1 OR c.nome LIKE :q2 OR vi.suite_cliente LIKE :q3)';
+            $p[':q1'] = '%' . $q . '%';
+            $p[':q2'] = '%' . $q . '%';
+            $p[':q3'] = '%' . $q . '%';
         }
         $sql = 'SELECT COUNT(*) c FROM vendas_internacionais vi LEFT JOIN clientes c ON c.id = vi.cliente_id';
         if ($where) { $sql .= ' WHERE '.implode(' AND ',$where); }
