@@ -28,6 +28,10 @@
       <label class="form-label">Mês</label>
       <input type="month" class="form-control" name="ym" value="<?= htmlspecialchars((string)($ym ?? '')) ?>">
     </div>
+    <div class="col-auto">
+      <label class="form-label">Buscar</label>
+      <input type="text" class="form-control" name="q" value="<?= htmlspecialchars((string)($q ?? '')) ?>" placeholder="Pedido, cliente ou suíte">
+    </div>
     <div class="col-auto align-self-end">
       <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
     </div>
@@ -37,12 +41,14 @@
     $perPage = (int)($per ?? 20);
     $totalItems = (int)($total ?? 0);
     $pages = max(1, (int)ceil($totalItems / max(1,$perPage)));
-    $q = [];
-    if (!empty($seller_id)) { $q['seller_id'] = (int)$seller_id; }
-    if (!empty($ym)) { $q['ym'] = (string)$ym; }
-    $q['per'] = $perPage;
-    $qPrev = $q; $qPrev['page'] = max(1, $curPage - 1);
-    $qNext = $q; $qNext['page'] = min($pages, $curPage + 1);
+    $qp = [];
+    if (!empty($seller_id)) { $qp['seller_id'] = (int)$seller_id; }
+    if (!empty($ym)) { $qp['ym'] = (string)$ym; }
+    $qStr = (string)($q ?? '');
+    if ($qStr !== '') { $qp['q'] = $qStr; }
+    $qp['per'] = $perPage;
+    $qPrev = $qp; $qPrev['page'] = max(1, $curPage - 1);
+    $qNext = $qp; $qNext['page'] = min($pages, $curPage + 1);
   ?>
   <div class="d-flex align-items-center justify-content-between mb-2">
     <div class="small text-muted">Página <?= $curPage ?> de <?= $pages ?> (total <?= $totalItems ?>)</div>

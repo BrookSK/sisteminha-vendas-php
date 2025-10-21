@@ -72,6 +72,32 @@ class Cost extends Model
         $stmt->execute([':id' => $id]);
     }
 
+    /** Update a cost entry core data. */
+    public function updateFull(int $id, array $payload): void
+    {
+        $sql = 'UPDATE custos SET
+                    data = :data,
+                    categoria = :categoria,
+                    descricao = :descricao,
+                    valor_usd = :valor_usd,
+                    valor_tipo = :valor_tipo,
+                    valor_brl = :valor_brl,
+                    valor_percent = :valor_percent,
+                    updated_at = NOW()
+                WHERE id = :id';
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':id' => $id,
+            ':data' => $payload['data'],
+            ':categoria' => $payload['categoria'],
+            ':descricao' => $payload['descricao'] ?? null,
+            ':valor_usd' => $payload['valor_usd'],
+            ':valor_tipo' => $payload['valor_tipo'] ?? 'usd',
+            ':valor_brl' => $payload['valor_brl'] ?? null,
+            ':valor_percent' => $payload['valor_percent'] ?? null,
+        ]);
+    }
+
     /** Update master recurrence fields for a cost id. */
     public function updateRecurrence(int $id, array $fields): void
     {

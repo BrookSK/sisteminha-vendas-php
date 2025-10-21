@@ -144,6 +144,7 @@ $router->group('/admin', function($r) {
     // Custos
     $r->get('/costs', 'Controllers\\CostsController@index');
     $r->post('/costs/create', 'Controllers\\CostsController@create');
+    $r->post('/costs/update', 'Controllers\\CostsController@update');
     $r->post('/costs/delete', 'Controllers\\CostsController@delete');
     $r->post('/costs/recurrence/run', 'Controllers\\CostsController@runRecurrence');
 

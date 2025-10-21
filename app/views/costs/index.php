@@ -2,6 +2,108 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h5 class="mb-0">Custos</h5>
 </div>
+<?php if ((Core\Auth::user()['role'] ?? 'seller') === 'admin'): ?>
+<!-- Edit Modal -->
+<div class="modal" id="editCostModal" tabindex="-1" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4);">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar Custo</h5>
+        <button type="button" class="btn-close" id="editCostClose"></button>
+      </div>
+      <form method="post" action="/admin/costs/update" id="editCostForm">
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrf()) ?>">
+        <input type="hidden" name="id" id="ec_id" value="0">
+        <div class="modal-body">
+          <div class="row g-2">
+            <div class="col-md-4">
+              <label class="form-label">Data</label>
+              <input type="date" class="form-control" name="data" id="ec_data" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Categoria</label>
+              <input type="text" class="form-control" name="categoria" id="ec_categoria" required>
+            </div>
+            <div class="col-md-12">
+              <label class="form-label">Descrição</label>
+              <input type="text" class="form-control" name="descricao" id="ec_descricao">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Tipo de Valor</label>
+              <select class="form-select" name="valor_tipo" id="ec_tipo">
+                <option value="usd">USD</option>
+                <option value="brl">BRL</option>
+                <option value="percent">%</option>
+              </select>
+            </div>
+            <div class="col-md-4" id="ec_box_usd">
+              <label class="form-label">Valor (USD)</label>
+              <input type="number" step="0.01" min="0" class="form-control" name="valor_usd" id="ec_usd" value="0">
+            </div>
+            <div class="col-md-4 d-none" id="ec_box_brl">
+              <label class="form-label">Valor (BRL)</label>
+              <input type="number" step="0.01" min="0" class="form-control" name="valor_brl" id="ec_brl" value="0">
+            </div>
+            <div class="col-md-4 d-none" id="ec_box_percent">
+              <label class="form-label">Valor (%)</label>
+              <input type="number" step="0.01" min="0" max="100" class="form-control" name="valor_percent" id="ec_percent" value="0">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="editCostCancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    (function(){
+      const modal = document.getElementById('editCostModal');
+      const closeBtn = document.getElementById('editCostClose');
+      const cancelBtn = document.getElementById('editCostCancel');
+      function openM(){ modal.style.display='block'; }
+      function closeM(){ modal.style.display='none'; }
+      if (closeBtn) closeBtn.addEventListener('click', closeM);
+      if (cancelBtn) cancelBtn.addEventListener('click', closeM);
+      document.querySelectorAll('.btn-edit-cost').forEach(btn=>{
+        btn.addEventListener('click', function(){
+          const id = this.dataset.id;
+          const data = this.dataset.data;
+          const cat = this.dataset.categoria;
+          const desc = this.dataset.descricao;
+          const tipo = this.dataset.tipo || 'usd';
+          const usd = this.dataset.usd || '0';
+          const brl = this.dataset.brl || '0';
+          const pct = this.dataset.percent || '0';
+          document.getElementById('ec_id').value = id;
+          document.getElementById('ec_data').value = data;
+          document.getElementById('ec_categoria').value = cat;
+          document.getElementById('ec_descricao').value = desc;
+          const tipoSel = document.getElementById('ec_tipo');
+          tipoSel.value = tipo;
+          const boxUsd = document.getElementById('ec_box_usd');
+          const boxBrl = document.getElementById('ec_box_brl');
+          const boxPct = document.getElementById('ec_box_percent');
+          document.getElementById('ec_usd').value = usd;
+          document.getElementById('ec_brl').value = brl;
+          document.getElementById('ec_percent').value = pct;
+          function togg(){
+            const v = tipoSel.value;
+            boxUsd.classList.toggle('d-none', v !== 'usd');
+            boxBrl.classList.toggle('d-none', v !== 'brl');
+            boxPct.classList.toggle('d-none', v !== 'percent');
+          }
+          tipoSel.addEventListener('change', togg);
+          togg();
+          openM();
+        });
+      });
+      modal.addEventListener('click', function(e){ if (e.target===modal) closeM(); });
+    })();
+  </script>
+</div>
+<?php endif; ?>
 <div class="card mb-3">
   <div class="card-body">
     <form class="row g-2" method="post" action="/admin/costs/create">
@@ -143,6 +245,18 @@
             <?php endif; ?>
           </td>
           <td class="text-end">
+            <?php if ((Core\Auth::user()['role'] ?? 'seller') === 'admin'): ?>
+            <button type="button" class="btn btn-sm btn-outline-primary me-1 btn-edit-cost"
+              data-id="<?= (int)$c['id'] ?>"
+              data-data="<?= htmlspecialchars($c['data']) ?>"
+              data-categoria="<?= htmlspecialchars($c['categoria']) ?>"
+              data-descricao="<?= htmlspecialchars($c['descricao'] ?? '') ?>"
+              data-tipo="<?= htmlspecialchars($c['valor_tipo'] ?? 'usd') ?>"
+              data-usd="<?= htmlspecialchars((string)($c['valor_usd'] ?? '0')) ?>"
+              data-brl="<?= htmlspecialchars((string)($c['valor_brl'] ?? '0')) ?>"
+              data-percent="<?= htmlspecialchars((string)($c['valor_percent'] ?? '0')) ?>"
+            >Editar</button>
+            <?php endif; ?>
             <form method="post" action="/admin/costs/delete" class="d-inline" onsubmit="return confirm('Excluir este custo?');">
               <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrf()) ?>">
               <input type="hidden" name="id" value="<?= (int)$c['id'] ?>">

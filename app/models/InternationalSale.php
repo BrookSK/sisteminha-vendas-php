@@ -9,11 +9,15 @@ class InternationalSale extends Model
     private const EMBALAGEM_USD_POR_KG = 9.7; // fallback; overridden by settings if present
     private const TEAM_GOAL_USD = 50000.0;
 
-    public function list(int $limit = 50, int $offset = 0, ?int $sellerId = null, ?string $ym = null): array
+    public function list(int $limit = 50, int $offset = 0, ?int $sellerId = null, ?string $ym = null, ?string $q = null): array
     {
         $where = [];$p = [];
         if ($sellerId) { $where[] = 'vendedor_id = :sid'; $p[':sid'] = $sellerId; }
         if ($ym) { $where[] = "DATE_FORMAT(data_lancamento, '%Y-%m') = :ym"; $p[':ym'] = $ym; }
+        if ($q !== null && $q !== '') {
+            $where[] = '(vi.numero_pedido LIKE :q OR c.nome LIKE :q OR vi.suite_cliente LIKE :q)';
+            $p[':q'] = '%' . $q . '%';
+        }
         $sql = 'SELECT vi.*, u.name as vendedor_nome, c.nome as cliente_nome FROM vendas_internacionais vi
                 LEFT JOIN usuarios u ON u.id = vi.vendedor_id
                 LEFT JOIN clientes c ON c.id = vi.cliente_id';
@@ -27,15 +31,20 @@ class InternationalSale extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function count(?int $sellerId = null, ?string $ym = null): int
+    public function count(?int $sellerId = null, ?string $ym = null, ?string $q = null): int
     {
         $where = [];$p = [];
-        if ($sellerId) { $where[] = 'vendedor_id = :sid'; $p[':sid'] = $sellerId; }
-        if ($ym) { $where[] = "DATE_FORMAT(data_lancamento, '%Y-%m') = :ym"; $p[':ym'] = $ym; }
-        $sql = 'SELECT COUNT(*) c FROM vendas_internacionais';
+        if ($sellerId) { $where[] = 'vi.vendedor_id = :sid'; $p[':sid'] = $sellerId; }
+        if ($ym) { $where[] = "DATE_FORMAT(vi.data_lancamento, '%Y-%m') = :ym"; $p[':ym'] = $ym; }
+        if ($q !== null && $q !== '') {
+            $where[] = '(vi.numero_pedido LIKE :q OR c.nome LIKE :q OR vi.suite_cliente LIKE :q)';
+            $p[':q'] = '%' . $q . '%';
+        }
+        $sql = 'SELECT COUNT(*) c FROM vendas_internacionais vi LEFT JOIN clientes c ON c.id = vi.cliente_id';
         if ($where) { $sql .= ' WHERE '.implode(' AND ',$where); }
         $stmt = $this->db->prepare($sql);
-        $stmt->execute($p);
+        foreach ($p as $k=>$v) { $stmt->bindValue($k, $v); }
+        $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
         return (int)($row['c'] ?? 0);
     }

@@ -154,6 +154,26 @@ class CommissionsController extends Controller
     public function debug()
     {
         $this->requireRole(['seller','manager','admin']);
+        // Password protection via settings
+        try { $set = new \Models\Setting(); } catch (\Throwable $e) { $set = null; }
+        $pwd = $set ? (string)$set->get('commissions_debug_password', '') : '';
+        if ($pwd !== '') {
+            if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
+            $ok = isset($_SESSION['comm_dbg_ok']) && $_SESSION['comm_dbg_ok'] === true;
+            if (!$ok) {
+                $try = isset($_GET['pwd']) ? (string)$_GET['pwd'] : '';
+                if ($try !== '' && hash_equals($pwd, $try)) {
+                    $_SESSION['comm_dbg_ok'] = true;
+                    header('Location: /admin/commissions/debug');
+                    exit;
+                }
+                // Render password prompt
+                return $this->render('commissions/debug_password', [
+                    'title' => 'Debug de Comissões (Protegido)',
+                    'error' => ($try !== '' && $try !== $pwd) ? 'Senha incorreta' : null,
+                ]);
+            }
+        }
         $u = Auth::user();
         $period = trim($_GET['period'] ?? date('Y-m'));
         $model = new Commission();

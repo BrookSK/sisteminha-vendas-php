@@ -57,6 +57,12 @@
             <div class="form-text">Duração do login antes de expirar (mínimo 1800s = 30min).</div>
           </div>
 
+          <div class="mb-3">
+            <label class="form-label">Senha para Debug de Comissões</label>
+            <input type="password" class="form-control" name="commissions_debug_password" value="<?= htmlspecialchars((string)($commissions_debug_password ?? '')) ?>" placeholder="Defina uma senha para proteger o debug">
+            <div class="form-text">Se definido, o acesso a /admin/commissions/debug exigirá esta senha (por sessão).</div>
+          </div>
+
           <hr class="my-4">
           <h6 class="mb-3">Integrações • Webhooks</h6>
           <div class="mb-3">
