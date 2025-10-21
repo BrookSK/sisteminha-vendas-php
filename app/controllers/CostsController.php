@@ -12,6 +12,7 @@ class CostsController extends Controller
 {
     public function index()
     {
+        $this->requireRole(['admin']);
         $from = $_GET['from'] ?? '';
         $to = $_GET['to'] ?? '';
         $cost = new Cost();
@@ -26,6 +27,7 @@ class CostsController extends Controller
 
     public function create()
     {
+        $this->requireRole(['admin']);
         $this->csrfCheck();
         $date = $_POST['data'] ?: date('Y-m-d');
         $cat = trim($_POST['categoria'] ?? 'geral');
@@ -95,6 +97,7 @@ class CostsController extends Controller
 
     public function delete()
     {
+        $this->requireRole(['admin']);
         $this->csrfCheck();
         $id = (int)($_POST['id'] ?? 0);
         if ($id > 0) {
@@ -139,6 +142,7 @@ class CostsController extends Controller
 
     public function exportCsv()
     {
+        $this->requireRole(['admin']);
         $from = $_GET['from'] ?? '';
         $to = $_GET['to'] ?? '';
         $items = (new Cost())->list(10000, 0, $from ?: null, $to ?: null);
@@ -167,7 +171,7 @@ class CostsController extends Controller
     /** Admin/Manager: run due recurrences and generate pending costs. */
     public function runRecurrence()
     {
-        $this->requireRole(['manager','admin']);
+        $this->requireRole(['admin']);
         $this->csrfCheck();
         $runner = new CostsRecurrence();
         $count = $runner->runDue(date('Y-m-d'));

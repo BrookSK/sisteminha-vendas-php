@@ -62,44 +62,44 @@
       const modal = document.getElementById('editCostModal');
       const closeBtn = document.getElementById('editCostClose');
       const cancelBtn = document.getElementById('editCostCancel');
-      function openM(){ modal.style.display='block'; }
-      function closeM(){ modal.style.display='none'; }
+      function openM(){ if (modal) modal.style.display='block'; }
+      function closeM(){ if (modal) modal.style.display='none'; }
       if (closeBtn) closeBtn.addEventListener('click', closeM);
       if (cancelBtn) cancelBtn.addEventListener('click', closeM);
-      document.querySelectorAll('.btn-edit-cost').forEach(btn=>{
-        btn.addEventListener('click', function(){
-          const id = this.dataset.id;
-          const data = this.dataset.data;
-          const cat = this.dataset.categoria;
-          const desc = this.dataset.descricao;
-          const tipo = this.dataset.tipo || 'usd';
-          const usd = this.dataset.usd || '0';
-          const brl = this.dataset.brl || '0';
-          const pct = this.dataset.percent || '0';
-          document.getElementById('ec_id').value = id;
-          document.getElementById('ec_data').value = data;
-          document.getElementById('ec_categoria').value = cat;
-          document.getElementById('ec_descricao').value = desc;
-          const tipoSel = document.getElementById('ec_tipo');
-          tipoSel.value = tipo;
-          const boxUsd = document.getElementById('ec_box_usd');
-          const boxBrl = document.getElementById('ec_box_brl');
-          const boxPct = document.getElementById('ec_box_percent');
-          document.getElementById('ec_usd').value = usd;
-          document.getElementById('ec_brl').value = brl;
-          document.getElementById('ec_percent').value = pct;
-          function togg(){
-            const v = tipoSel.value;
-            boxUsd.classList.toggle('d-none', v !== 'usd');
-            boxBrl.classList.toggle('d-none', v !== 'brl');
-            boxPct.classList.toggle('d-none', v !== 'percent');
-          }
-          tipoSel.addEventListener('change', togg);
-          togg();
-          openM();
-        });
+      document.addEventListener('click', function(e){
+        const btn = e.target.closest('.btn-edit-cost');
+        if (!btn) return;
+        const id = btn.dataset.id;
+        const data = btn.dataset.data;
+        const cat = btn.dataset.categoria;
+        const desc = btn.dataset.descricao;
+        const tipo = btn.dataset.tipo || 'usd';
+        const usd = btn.dataset.usd || '0';
+        const brl = btn.dataset.brl || '0';
+        const pct = btn.dataset.percent || '0';
+        document.getElementById('ec_id').value = id;
+        document.getElementById('ec_data').value = data;
+        document.getElementById('ec_categoria').value = cat;
+        document.getElementById('ec_descricao').value = desc;
+        const tipoSel = document.getElementById('ec_tipo');
+        tipoSel.value = tipo;
+        const boxUsd = document.getElementById('ec_box_usd');
+        const boxBrl = document.getElementById('ec_box_brl');
+        const boxPct = document.getElementById('ec_box_percent');
+        document.getElementById('ec_usd').value = usd;
+        document.getElementById('ec_brl').value = brl;
+        document.getElementById('ec_percent').value = pct;
+        function togg(){
+          const v = tipoSel.value;
+          boxUsd.classList.toggle('d-none', v !== 'usd');
+          boxBrl.classList.toggle('d-none', v !== 'brl');
+          boxPct.classList.toggle('d-none', v !== 'percent');
+        }
+        tipoSel.onchange = togg;
+        togg();
+        openM();
       });
-      modal.addEventListener('click', function(e){ if (e.target===modal) closeM(); });
+      if (modal) modal.addEventListener('click', function(e){ if (e.target===modal) closeM(); });
     })();
   </script>
 </div>
