@@ -18,6 +18,7 @@ class NationalSalesController extends Controller
         $this->requireRole(['seller','trainee','manager','admin','organic']);
         $sellerId = isset($_GET['seller_id']) && $_GET['seller_id'] !== '' ? (int)$_GET['seller_id'] : null;
         $ym = $_GET['ym'] ?? null;
+        $q = isset($_GET['q']) ? (string)$_GET['q'] : null;
         $page = max(1, (int)($_GET['page'] ?? 1));
         $per = max(1, min(100, (int)($_GET['per'] ?? 20)));
         $me = Auth::user();
@@ -25,15 +26,16 @@ class NationalSalesController extends Controller
             $sellerId = (int)($me['id'] ?? 0) ?: null;
         }
         $model = new NationalSale();
-        $total = $model->count($sellerId, $ym);
+        $total = $model->count($sellerId, $ym, $q);
         $offset = ($page - 1) * $per;
-        $items = $model->list($per, $offset, $sellerId, $ym);
+        $items = $model->list($per, $offset, $sellerId, $ym, $q);
         $users = (new User())->allBasic();
         $this->render('national_sales/index', [
             'title' => 'Vendas Nacionais',
             'items' => $items,
             'seller_id' => $sellerId,
             'ym' => $ym,
+            'q' => $q,
             'users' => $users,
             'total' => $total,
             'page' => $page,
@@ -217,6 +219,7 @@ class NationalSalesController extends Controller
         $this->requireRole(['seller','manager','admin','organic']);
         $sellerId = isset($_GET['seller_id']) && $_GET['seller_id'] !== '' ? (int)$_GET['seller_id'] : null;
         $ym = $_GET['ym'] ?? null;
+        $q = isset($_GET['q']) ? (string)$_GET['q'] : null;
         $page = max(1, (int)($_GET['page'] ?? 1));
         $per = max(1, min(100, (int)($_GET['per'] ?? 20)));
         $me = Auth::user();
@@ -224,9 +227,9 @@ class NationalSalesController extends Controller
             $sellerId = (int)($me['id'] ?? 0) ?: null;
         }
         $model = new NationalSale();
-        $total = $model->count($sellerId, $ym);
+        $total = $model->count($sellerId, $ym, $q);
         $offset = ($page - 1) * $per;
-        $items = $model->list($per, $offset, $sellerId, $ym);
+        $items = $model->list($per, $offset, $sellerId, $ym, $q);
         header('Content-Type: application/json');
         echo json_encode(['data' => $items, 'page'=>$page, 'per'=>$per, 'total'=>$total]);
         exit;

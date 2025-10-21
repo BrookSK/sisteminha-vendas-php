@@ -148,9 +148,13 @@ use Core\Auth;
                 <li><a class="dropdown-item" href="/admin/clients">Clientes</a></li>
                 <li><a class="dropdown-item" href="/admin/attendances">Atendimentos</a></li>
                 <li><hr class="dropdown-divider"></li>
+                <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/costs">Custos</a></li>
+                <?php endif; ?>
                 <li><a class="dropdown-item" href="/admin/purchases">Compras</a></li>
+                <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/containers">Containers</a></li>
+                <?php endif; ?>
               </ul>
             </li>
 
@@ -203,7 +207,9 @@ use Core\Auth;
                 <li><a class="dropdown-item" href="/admin/reports">Relatórios</a></li>
                 <li><a class="dropdown-item" href="/admin/users">Usuários</a></li>
                 <li><a class="dropdown-item" href="/admin/approvals">Aprovações</a></li>
+                <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/donations">Doações</a></li>
+                <?php endif; ?>
                 <li><a class="dropdown-item" href="/admin/documentation-areas">Áreas Técnicas</a></li>
                 <?php if ($role === 'admin'): ?>
                   <li><a class="dropdown-item" href="/admin/logs">Logs</a></li>

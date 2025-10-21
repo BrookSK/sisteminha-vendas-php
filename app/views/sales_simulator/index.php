@@ -47,8 +47,8 @@
 
     <div class="col-md-4">
       <label class="form-label">Imposto local (USD)</label>
-      <input type="number" step="0.01" min="0" class="form-control" id="imposto_local_usd" value="0">
-      <div class="form-text">Informe o valor cobrado localmente (em USD). Não é calculado automaticamente.</div>
+      <input type="number" step="0.01" min="0" class="form-control" id="imposto_local_usd" value="0" readonly>
+      <div class="form-text">Calculado automaticamente como 7% do valor do produto (USD).</div>
     </div>
 
     <div class="col-md-4">
@@ -110,7 +110,10 @@
     const taxaCambio = parseFloat(document.getElementById('taxa_cambio').value||0);
     const isFrete = precisaFrete.checked;
     const freteUsd = isFrete ? parseFloat(document.getElementById('frete_usd').value||0) : 0;
-    const impLocal = parseFloat(document.getElementById('imposto_local_usd').value||0);
+    // Imposto local = 7% do valor do produto (auto)
+    const impLocal = Math.max(0, valorProduto * 0.07);
+    const impLocalEl = document.getElementById('imposto_local_usd');
+    if (impLocalEl) impLocalEl.value = impLocal.toFixed(2);
     const taxaServico = (peso > 0 ? (peso * 39.0) : 0);
     const subtotalUSD = valorProduto + taxaServico + freteUsd + impLocal;
     const subtotalBRL = subtotalUSD * taxaCambio;
@@ -136,20 +139,21 @@
       ...(isFrete ? [['Frete até a sede', freteUsd]] : []),
       ...(impLocal>0 ? [['Imposto local (USD)', impLocal]] : []),
       ['Total em dólar', subtotalUSD],
+      ['Conversão do total em dólar (BRL)', subtotalBRL],
     ];
     usdItems.forEach(([k,v])=>{
       const li = document.createElement('li'); li.className='list-group-item d-flex justify-content-between';
-      li.innerHTML = `<span>${k}</span><span><strong>${nfUSD(v)}</strong></span>`; usdList.appendChild(li);
+      const isBRLconv = k.includes('Conversão');
+      li.innerHTML = `<span>${k}</span><span><strong>${isBRLconv ? nfBRL(v) : nfUSD(v)}</strong></span>`; usdList.appendChild(li);
     });
 
     // BRL list
     const brlList = document.getElementById('brl-list');
     brlList.innerHTML = '';
     const brlItems = [
-      ['Conversão do total em dólar', subtotalBRL],
       ...(envioBrasil ? [['Imposto de Importação (60%) sobre produto', impostoImport]] : []),
       ...(envioBrasil ? [['ICMS (20%) sobre (produto+60%)', icms]] : []),
-      ['Total final estimado (BRL)', totalBRL],
+      ...(envioBrasil ? [['Total de impostos (BRL)', (impostoImport + icms)]] : []),
     ];
     brlItems.forEach(([k,v])=>{
       const li = document.createElement('li'); li.className='list-group-item d-flex justify-content-between';
@@ -164,7 +168,6 @@
     const s = window.__sim || {};
     const nome = document.getElementById('nome_produto').value.trim() || 'produto';
     const linhas = [];
-    linhas.push('💬 Simulação de compra internacional – Brasiliana');
     linhas.push(`O produto ${nome} tem o valor de ${nfUSD(s.valorProduto||0)}, e a taxa de serviço é de ${nfUSD(s.taxaServico||0)} (calculada a US$ 39 por kg).`);
     const compUSD = s.subtotalUSD||0;
     linhas.push(`O total, já com o frete até nossa sede e o imposto local (quando aplicável), fica aproximadamente em ${nfUSD(compUSD)}, o que convertido pela taxa de câmbio atual (${nfBRL(s.taxaCambio||0)}) fica em torno de ${nfBRL(s.subtotalBRL||0)}.`);
@@ -175,7 +178,7 @@
       linhas.push('⚠️ Lembrando que esses valores de impostos são apenas estimativas.');
       linhas.push('O pagamento dos impostos é feito diretamente à Receita Federal, quando o produto chega à alfândega.');
     }
-    linhas.push('Pela Brasiliana, o valor da compra é referente apenas aos produtos + taxa de serviço.');
+    linhas.push('Pela Braziliana, o valor da compra é referente apenas aos produtos + taxa de serviço.');
     document.getElementById('mensagem').value = linhas.join('\n');
   });
 
