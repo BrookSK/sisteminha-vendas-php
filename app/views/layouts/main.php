@@ -212,6 +212,7 @@ use Core\Auth;
                 <?php endif; ?>
                 <li><a class="dropdown-item" href="/admin/documentation-areas">Áreas Técnicas</a></li>
                 <?php if ($role === 'admin'): ?>
+                  <li><a class="dropdown-item" href="/admin/api-calc">API de Cálculo</a></li>
                   <li><a class="dropdown-item" href="/admin/logs">Logs</a></li>
                   <li><a class="dropdown-item" href="/admin/settings/dns">Configurações DNS</a></li>
                   <li><hr class="dropdown-divider"></li>
