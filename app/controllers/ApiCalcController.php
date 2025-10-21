@@ -17,7 +17,10 @@ class ApiCalcController extends Controller
         $incUsd = (int)$set->get('api_calc_include_usd', '1') === '0' ? 0 : 1;
         $incBrl = (int)$set->get('api_calc_include_brl', '1') === '0' ? 0 : 1;
         $incPct = (int)$set->get('api_calc_include_percent', '1') === '0' ? 0 : 1;
-        $globalPct = (float)$set->get('api_calc_global_percent', '0');
+        // Taxa de Custo Global (0..1) vinda de /admin/settings (key: cost_rate)
+        $costRate = (float)$set->get('cost_rate', '0');
+        // Exibir em pontos percentuais na tela (0..100)
+        $globalPct = $costRate * 100.0;
         $this->render('api_calc/settings', [
             'title' => 'API: Cálculo de Líquido',
             'token' => $token,
@@ -74,15 +77,16 @@ class ApiCalcController extends Controller
         $incUsd = ((int)$set->get('api_calc_include_usd', '1')) === 1;
         $incBrl = ((int)$set->get('api_calc_include_brl', '1')) === 1;
         $incPct = ((int)$set->get('api_calc_include_percent', '1')) === 1;
-        $globalPct = (float)$set->get('api_calc_global_percent', '0');
+        // Taxa de Custo Global (0..1) do sistema
+        $costRate = (float)$set->get('cost_rate', '0');
 
         $sums = (new Cost())->globalSums();
         $fixedUsd = $incUsd ? (float)($sums['fixed_usd'] ?? 0) : 0.0;
         $fixedBrl = $incBrl ? (float)($sums['fixed_brl'] ?? 0) : 0.0;
         $fixedUsdFromBrl = $incBrl ? ($rate > 0 ? ($fixedBrl / $rate) : 0.0) : 0.0;
         $percent = $incPct ? (float)($sums['percent'] ?? 0) : 0.0; // sum of percentage points
-        // add global percent tax
-        if ($globalPct > 0) { $percent += $globalPct; }
+        // adicionar taxa global (cost_rate 0..1) convertida para pontos percentuais
+        if ($costRate > 0) { $percent += ($costRate * 100.0); }
 
         $percentDeduction = ($percent > 0) ? ($gross * ($percent / 100.0)) : 0.0;
         $totalDeductions = $fixedUsd + $fixedUsdFromBrl + $percentDeduction;
@@ -93,7 +97,7 @@ class ApiCalcController extends Controller
             (new Log())->add(null, 'api_calc', 'compute', null, json_encode([
                 'gross_usd' => round($gross,2),
                 'net_usd' => round($net,2),
-                'inc' => ['usd'=>$incUsd,'brl'=>$incBrl,'percent'=>$incPct,'global_percent'=>$globalPct],
+                'inc' => ['usd'=>$incUsd,'brl'=>$incBrl,'percent'=>$incPct,'cost_rate'=>$costRate],
                 'rate' => $rate,
                 'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
                 'ua' => $_SERVER['HTTP_USER_AGENT'] ?? null,
