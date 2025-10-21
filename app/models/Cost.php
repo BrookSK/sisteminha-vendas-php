@@ -119,4 +119,13 @@ class Cost extends Model
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return (float)($row['s'] ?? 0);
     }
+
+    /** Return overall sums grouped by tipo for API calculator. */
+    public function globalSums(): array
+    {
+        $fixedUsd = (float)($this->db->query("SELECT COALESCE(SUM(valor_usd),0) s FROM custos WHERE valor_tipo='usd'")->fetch(PDO::FETCH_ASSOC)['s'] ?? 0);
+        $fixedBrl = (float)($this->db->query("SELECT COALESCE(SUM(valor_brl),0) s FROM custos WHERE valor_tipo='brl'")->fetch(PDO::FETCH_ASSOC)['s'] ?? 0);
+        $percent = (float)($this->db->query("SELECT COALESCE(SUM(valor_percent),0) s FROM custos WHERE valor_tipo='percent'")->fetch(PDO::FETCH_ASSOC)['s'] ?? 0);
+        return ['fixed_usd'=>$fixedUsd,'fixed_brl'=>$fixedBrl,'percent'=>$percent];
+    }
 }
