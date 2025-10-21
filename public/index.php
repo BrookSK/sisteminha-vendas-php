@@ -297,10 +297,19 @@ $router->group('/admin', function($r) {
     $r->post('/goals/delete', 'Controllers\\GoalsController@delete');
     $r->get('/my/goals', 'Controllers\\MyGoalsController@index'); // vendedor
     $r->get('/costs/export', 'Controllers\\CostsController@exportCsv');
-    $r->get('/costs/export-pdf', 'Controllers\\CostsController@exportPdf');
+    $r->get('/donations/export', 'Controllers\\DonationsController@exportCsv');
 
     // Webhooks logs (admin/manager)
     $r->get('/webhooks/logs', 'Controllers\\WebhooksController@index');
+
+    // API Calculator (admin settings)
+    $r->get('/api-calc', 'Controllers\\ApiCalcController@settings');
+    $r->post('/api-calc/save', 'Controllers\\ApiCalcController@save');
+    // Admin aliases
+    $r->get('/admin/api-calc', 'Controllers\\ApiCalcController@settings');
+    $r->post('/admin/api-calc/save', 'Controllers\\ApiCalcController@save');
+    $r->get('/admin/api-calc/logs', 'Controllers\\ApiCalcController@logs');
+
     // Webhooks guide (admin)
     $r->get('/webhooks/guide', 'Controllers\\WebhooksController@guide');
 }, function() {
@@ -311,6 +320,9 @@ $router->group('/admin', function($r) {
 $router->post('/webhooks/containers', 'Controllers\\WebhooksController@containers');
 $router->post('/webhooks/sales', 'Controllers\\WebhooksController@sales');
 $router->post('/webhooks/demands', 'Controllers\\WebhooksController@demands');
+
+// API Calculator public endpoint (token via Authorization: Bearer <token>)
+$router->post('/api/calc-net', 'Controllers\\ApiCalcController@compute');
 
 // Public documentation viewing (email-gated)
 $router->get('/docs', 'Controllers\\DocumentationsController@publicView');
