@@ -17,6 +17,7 @@ class ApiCalcController extends Controller
         $incUsd = (int)$set->get('api_calc_include_usd', '1') === '0' ? 0 : 1;
         $incBrl = (int)$set->get('api_calc_include_brl', '1') === '0' ? 0 : 1;
         $incPct = (int)$set->get('api_calc_include_percent', '1') === '0' ? 0 : 1;
+        $globalPct = (float)$set->get('api_calc_global_percent', '0');
         $this->render('api_calc/settings', [
             'title' => 'API: Cálculo de Líquido',
             'token' => $token,
@@ -24,6 +25,7 @@ class ApiCalcController extends Controller
             'include_brl' => $incBrl,
             'include_percent' => $incPct,
             'usd_rate' => (float)$set->get('usd_rate', '5.83'),
+            'global_percent' => $globalPct,
         ]);
     }
 
@@ -36,10 +38,12 @@ class ApiCalcController extends Controller
         $incUsd = isset($_POST['api_calc_include_usd']) ? 1 : 0;
         $incBrl = isset($_POST['api_calc_include_brl']) ? 1 : 0;
         $incPct = isset($_POST['api_calc_include_percent']) ? 1 : 0;
+        $globalPct = isset($_POST['api_calc_global_percent']) ? (float)$_POST['api_calc_global_percent'] : 0.0;
         if ($token !== '') { $set->set('api_calc_token', $token); }
         $set->set('api_calc_include_usd', (string)$incUsd);
         $set->set('api_calc_include_brl', (string)$incBrl);
         $set->set('api_calc_include_percent', (string)$incPct);
+        $set->set('api_calc_global_percent', (string)$globalPct);
         $this->redirect('/admin/api-calc');
     }
 
@@ -70,12 +74,15 @@ class ApiCalcController extends Controller
         $incUsd = ((int)$set->get('api_calc_include_usd', '1')) === 1;
         $incBrl = ((int)$set->get('api_calc_include_brl', '1')) === 1;
         $incPct = ((int)$set->get('api_calc_include_percent', '1')) === 1;
+        $globalPct = (float)$set->get('api_calc_global_percent', '0');
 
         $sums = (new Cost())->globalSums();
         $fixedUsd = $incUsd ? (float)($sums['fixed_usd'] ?? 0) : 0.0;
         $fixedBrl = $incBrl ? (float)($sums['fixed_brl'] ?? 0) : 0.0;
         $fixedUsdFromBrl = $incBrl ? ($rate > 0 ? ($fixedBrl / $rate) : 0.0) : 0.0;
         $percent = $incPct ? (float)($sums['percent'] ?? 0) : 0.0; // sum of percentage points
+        // add global percent tax
+        if ($globalPct > 0) { $percent += $globalPct; }
 
         $percentDeduction = ($percent > 0) ? ($gross * ($percent / 100.0)) : 0.0;
         $totalDeductions = $fixedUsd + $fixedUsdFromBrl + $percentDeduction;
@@ -86,7 +93,7 @@ class ApiCalcController extends Controller
             (new Log())->add(null, 'api_calc', 'compute', null, json_encode([
                 'gross_usd' => round($gross,2),
                 'net_usd' => round($net,2),
-                'inc' => ['usd'=>$incUsd,'brl'=>$incBrl,'percent'=>$incPct],
+                'inc' => ['usd'=>$incUsd,'brl'=>$incBrl,'percent'=>$incPct,'global_percent'=>$globalPct],
                 'rate' => $rate,
                 'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
                 'ua' => $_SERVER['HTTP_USER_AGENT'] ?? null,

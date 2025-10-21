@@ -31,6 +31,13 @@
               </div>
             </div>
           </div>
+          <div class="row g-3 mt-1">
+            <div class="col-md-4">
+              <label class="form-label">Taxa Global (%)</label>
+              <input type="number" step="0.01" min="0" class="form-control" name="api_calc_global_percent" value="<?= htmlspecialchars((string)($global_percent ?? 0)) ?>">
+              <div class="form-text">Aplicada sobre o bruto informado na chamada da API.</div>
+            </div>
+          </div>
           <div class="mt-3 d-flex gap-2">
             <button class="btn btn-primary" type="submit">Salvar</button>
             <a class="btn btn-outline-secondary" href="/admin">Voltar</a>
