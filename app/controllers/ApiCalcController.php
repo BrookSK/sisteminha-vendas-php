@@ -5,6 +5,7 @@ use Core\Controller;
 use Core\Auth;
 use Models\Setting;
 use Models\Cost;
+use Models\Log;
 
 class ApiCalcController extends Controller
 {
@@ -80,6 +81,18 @@ class ApiCalcController extends Controller
         $totalDeductions = $fixedUsd + $fixedUsdFromBrl + $percentDeduction;
         $net = $gross - $totalDeductions;
 
+        // Log request summary (no auth)
+        try {
+            (new Log())->add(null, 'api_calc', 'compute', null, json_encode([
+                'gross_usd' => round($gross,2),
+                'net_usd' => round($net,2),
+                'inc' => ['usd'=>$incUsd,'brl'=>$incBrl,'percent'=>$incPct],
+                'rate' => $rate,
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
+                'ua' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+            ]));
+        } catch (\Throwable $e) {}
+
         header('Content-Type: application/json');
         $out = [
             'gross_usd' => round($gross, 2),
@@ -95,5 +108,23 @@ class ApiCalcController extends Controller
             ];
         }
         echo json_encode($out);
+    }
+
+    public function logs()
+    {
+        $this->requireRole(['admin']);
+        $filters = ['entidade' => 'api_calc'];
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $per = 50; $off = ($page-1)*$per;
+        $m = new \Models\Log();
+        $items = $m->search($filters, $per, $off);
+        $total = $m->count($filters);
+        $this->render('api_calc/logs', [
+            'title' => 'Logs da API de Cálculo',
+            'items' => $items,
+            'page' => $page,
+            'per' => $per,
+            'total' => $total,
+        ]);
     }
 }
