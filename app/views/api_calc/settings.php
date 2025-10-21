@@ -42,15 +42,24 @@
   <div class="col-lg-5">
     <div class="card shadow-sm">
       <div class="card-body">
+        <?php
+          $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['SERVER_PORT'] ?? '') == 443);
+          $scheme = $isHttps ? 'https' : 'http';
+          $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+          $origin = $scheme . '://' . $host;
+        ?>
         <h6 class="card-title">Como usar</h6>
         <p class="text-muted small">A API calcula o valor líquido a partir de um valor bruto (USD) subtraindo custos fixos (USD), custos fixos em BRL (convertidos para USD pela taxa <?= number_format((float)($usd_rate ?? 0),2) ?>), e custos percentuais somados (sobre o bruto).</p>
-        <div class="mb-2"><strong>Endpoint</strong><br><code>POST /admin/api/calc-net</code></div>
-        <div class="mb-2"><strong>Autenticação</strong><br><code>Authorization: Bearer &lt;token&gt;</code></div>
+        <div class="mb-2"><strong>Endpoint (completo)</strong><br><code>POST <?= htmlspecialchars($origin) ?>/api/calc-net</code></div>
         <div class="mb-2"><strong>Exemplo de Payload</strong>
-          <pre class="bg-light p-2 border rounded small"><code>{
+          <pre class="bg-light p-2 border rounded small mb-2"><code>{
   "gross_usd": 10000,
   "detail": true
 }</code></pre>
+        <div class="mb-2"><strong>Exemplo cURL</strong>
+          <pre class="bg-light p-2 border rounded small"><code>curl -X POST "<?= htmlspecialchars($origin) ?>/api/calc-net" \
+  -H "Content-Type: application/json" \
+  -d '{"gross_usd":10000, "detail": true}'</code></pre>
         </div>
         <div class="mb-2"><strong>Resposta</strong>
           <pre class="bg-light p-2 border rounded small"><code>{

@@ -308,6 +308,7 @@ $router->group('/admin', function($r) {
     // Admin aliases
     $r->get('/admin/api-calc', 'Controllers\\ApiCalcController@settings');
     $r->post('/admin/api-calc/save', 'Controllers\\ApiCalcController@save');
+    $r->get('/admin/api-calc/logs', 'Controllers\\ApiCalcController@logs');
 
     // Webhooks guide (admin)
     $r->get('/webhooks/guide', 'Controllers\\WebhooksController@guide');
