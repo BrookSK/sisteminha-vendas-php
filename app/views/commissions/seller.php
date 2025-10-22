@@ -39,9 +39,9 @@
     <div class="col-md-4">
       <div class="p-3 bg-light border rounded">
         <div class="fw-bold">Comissão Final (USD)</div>
-        <div>US$ <?= number_format($mine['comissao_final'] ?? 0, 2) ?></div>
+        <div>US$ <?= number_format(max(0.0,(float)($mine['comissao_final'] ?? 0)), 2) ?></div>
         <?php if (isset($mine['comissao_final_brl'])): ?>
-          <div class="small text-muted">BRL R$ <?= number_format((float)$mine['comissao_final_brl'], 2) ?></div>
+          <div class="small text-muted">BRL R$ <?= number_format(max(0.0,(float)$mine['comissao_final_brl']), 2) ?></div>
         <?php endif; ?>
       </div>
     </div>
@@ -49,10 +49,10 @@
   <div class="row mb-4">
     <div class="col-md-6">
       <div class="p-3 border rounded">
-        <div><strong>Comissão Individual:</strong> US$ <?= number_format($mine['comissao_individual'] ?? 0, 2) ?></div>
-        <div><strong>Bônus de Equipe:</strong> US$ <?= number_format($mine['bonus'] ?? 0, 2) ?></div>
+        <div><strong>Comissão Individual:</strong> US$ <?= number_format(max(0.0,(float)($mine['comissao_individual'] ?? 0)), 2) ?></div>
+        <div><strong>Bônus de Equipe:</strong> US$ <?= number_format(max(0.0,(float)($mine['bonus'] ?? 0)), 2) ?></div>
         <?php if (isset($mine['comissao_individual_brl'])): ?>
-          <div class="mt-2 text-muted small">BRL: Comissão Individual R$ <?= number_format((float)$mine['comissao_individual_brl'], 2) ?>, Bônus R$ <?= number_format((float)($mine['bonus_brl'] ?? 0), 2) ?></div>
+          <div class="mt-2 text-muted small">BRL: Comissão Individual R$ <?= number_format(max(0.0,(float)$mine['comissao_individual_brl']), 2) ?>, Bônus R$ <?= number_format(max(0.0,(float)($mine['bonus_brl'] ?? 0)), 2) ?></div>
         <?php endif; ?>
         <?php if (isset($mine['allocated_cost_brl'])): ?>
           <div class="mt-2 text-muted small">Custo rateado: US$ <?= number_format((float)($mine['allocated_cost'] ?? 0), 2) ?> (R$ <?= number_format((float)$mine['allocated_cost_brl'], 2) ?>)</div>

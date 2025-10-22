@@ -182,8 +182,8 @@ class Commission extends Model
                 $perc = 0.25;
             }
             $liqApBRL = $liquido_apurado_brl; // alias for clarity
-            // comissão não deve ser negativa: base zero se líquido apurado < 0
-            $baseComBRL = max(0.0, $liqApBRL);
+            // comissão pode ser negativa internamente se líquido apurado < 0 (exibir zerada nas views)
+            $baseComBRL = $liqApBRL;
             $indBRL = $baseComBRL * $perc; // comissão individual em BRL
             $applyBonus = ($teamBrutoBRL >= $metaEquipeBRL);
             $bonusBRL = $applyBonus ? ($baseComBRL * $bonusRate) : 0.0;
