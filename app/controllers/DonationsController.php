@@ -4,6 +4,7 @@ namespace Controllers;
 use Core\Controller;
 use Core\Auth;
 use Models\Donation;
+use Models\Commission;
 use Models\Report;
 use Models\Setting;
 
@@ -33,7 +34,14 @@ class DonationsController extends Controller
         $rate = 0.0;
         try { $set = new Setting(); $rate = (float)$set->get('usd_rate', '5.83'); } catch (\Throwable $e) { $rate = 5.83; }
         if ($rate <= 0) $rate = 5.83;
-        $lucro_final_brl = ((float)($summary['lucro_liquido_usd'] ?? 0)) * $rate;
+        // Novo critério: usar caixa da empresa no período (liquidos apurados - comissões)
+        try {
+            $comm = new Commission();
+            $calc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
+            $lucro_final_brl = (float)($calc['team']['company_cash_brl'] ?? (((float)($summary['lucro_liquido_usd'] ?? 0)) * $rate));
+        } catch (\Throwable $e) {
+            $lucro_final_brl = ((float)($summary['lucro_liquido_usd'] ?? 0)) * $rate;
+        }
         $doadoPeriodo = $don->totalsPeriod($from, $to);
         $doado_brl = (float)($doadoPeriodo['total_doado_periodo_brl'] ?? 0);
         $orcamento_disponivel_brl = max(0, $lucro_final_brl - $doado_brl);
