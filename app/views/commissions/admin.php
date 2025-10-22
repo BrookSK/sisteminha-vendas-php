@@ -103,13 +103,13 @@
             <td class="text-end"><?= number_format((float)($it['allocated_cost'] ?? 0), 2) ?></td>
             <?php if (isset($it['allocated_cost_brl'])): ?><td class="text-end"><?= number_format((float)$it['allocated_cost_brl'], 2) ?></td><?php endif; ?>
           <?php endif; ?>
-          <td class="text-end"><?= number_format(max(0.0,(float)($it['comissao_individual'] ?? 0)), 2) ?></td>
-          <td class="text-end"><?= number_format(max(0.0,(float)($it['bonus'] ?? 0)), 2) ?></td>
-          <td class="text-end fw-bold"><?= number_format(max(0.0,(float)($it['comissao_final'] ?? 0)), 2) ?></td>
+          <td class="text-end"><?= number_format((float)($it['comissao_individual'] ?? 0), 2) ?></td>
+          <td class="text-end"><?= number_format((float)($it['bonus'] ?? 0), 2) ?></td>
+          <td class="text-end fw-bold"><?= number_format((float)($it['comissao_final'] ?? 0), 2) ?></td>
           <?php if (isset($it['comissao_individual_brl'])): ?>
-            <td class="text-end"><?= number_format(max(0.0,(float)$it['comissao_individual_brl']), 2) ?></td>
-            <td class="text-end"><?= number_format(max(0.0,(float)$it['bonus_brl']), 2) ?></td>
-            <td class="text-end fw-bold"><?= number_format(max(0.0,(float)$it['comissao_final_brl']), 2) ?></td>
+            <td class="text-end"><?= number_format((float)$it['comissao_individual_brl'], 2) ?></td>
+            <td class="text-end"><?= number_format((float)$it['bonus_brl'], 2) ?></td>
+            <td class="text-end fw-bold"><?= number_format((float)$it['comissao_final_brl'], 2) ?></td>
           <?php endif; ?>
         </tr>
       <?php endforeach; ?>
