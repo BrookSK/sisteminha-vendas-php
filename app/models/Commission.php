@@ -182,15 +182,22 @@ class Commission extends Model
                 $perc = 0.25;
             }
             $liqApBRL = $liquido_apurado_brl; // alias for clarity
-            // comissão pode ser negativa internamente se líquido apurado < 0 (exibir zerada nas views)
-            $baseComBRL = $liqApBRL;
+            // comissão não deve ser negativa: base zero se líquido apurado < 0
+            $baseComBRL = max(0.0, $liqApBRL);
             $indBRL = $baseComBRL * $perc; // comissão individual em BRL
             $applyBonus = ($teamBrutoBRL >= $metaEquipeBRL);
             $bonusBRL = $applyBonus ? ($baseComBRL * $bonusRate) : 0.0;
             $finalBRL = $indBRL + $bonusBRL;
+            // Safety clamps (não permitir comissão negativa)
+            if ($indBRL < 0) $indBRL = 0.0;
+            if ($bonusBRL < 0) $bonusBRL = 0.0;
+            if ($finalBRL < 0) $finalBRL = 0.0;
             $indUSD = ($usdRate>0) ? ($indBRL/$usdRate) : 0.0;
             $bonusUSD = ($usdRate>0) ? ($bonusBRL/$usdRate) : 0.0;
             $finalUSD = ($usdRate>0) ? ($finalBRL/$usdRate) : 0.0;
+            if ($indUSD < 0) $indUSD = 0.0;
+            if ($bonusUSD < 0) $bonusUSD = 0.0;
+            if ($finalUSD < 0) $finalUSD = 0.0;
 
             // Acumular totais para caixa da empresa
             $sumRateadoUsd += $liquidoAfterCost;
