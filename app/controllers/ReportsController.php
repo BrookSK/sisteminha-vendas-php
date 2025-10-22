@@ -5,6 +5,7 @@ use Core\Controller;
 use Models\Report;
 use Models\Setting;
 use Models\User;
+use Models\Commission;
 
 class ReportsController extends Controller
 {
@@ -22,8 +23,10 @@ class ReportsController extends Controller
 
         if ($from && $to) {
             $week = $report->summary($from, $to, $sellerId);
-            $month = $week; // when filtered, show the same summary in both cards
+            $month = $week; // quando filtrado, usar mesmo sumário
             $sellers = $report->bySeller($from, $to);
+            // Dados de comissões/empresa para o período filtrado
+            $commCalc = (new Commission())->computeRange($from.' 00:00:00', $to.' 23:59:59');
         } else {
             $week = $report->weekSummary();
             // default month = current month
@@ -31,6 +34,8 @@ class ReportsController extends Controller
             $monthTo = date('Y-m-t');
             $month = $report->summary($monthFrom, $monthTo, null);
             $sellers = $report->bySeller($monthFrom, $monthTo);
+            // Dados de comissões/empresa para o mês atual
+            $commCalc = (new Commission())->computeRange($monthFrom.' 00:00:00', $monthTo.' 23:59:59');
         }
         $months = $report->lastMonthsComparison(3);
 
@@ -46,6 +51,9 @@ class ReportsController extends Controller
             'to' => $to,
             'seller_id' => $sellerId,
             'users' => (new User())->allBasic(),
+            // Commission/company overview
+            'commTeam' => $commCalc['team'] ?? null,
+            'commItems' => $commCalc['items'] ?? [],
         ]);
     }
 
