@@ -272,7 +272,7 @@ class Report extends Model
         }
         // Aggregates vendas + vendas_internacionais per seller
         $sql = "WITH s AS (
-            SELECT u.id, u.name, u.email FROM usuarios u
+            SELECT u.id, u.name, u.email, u.role FROM usuarios u WHERE u.role <> 'admin'
         ), a AS (
             SELECT usuario_id as uid, COUNT(*) as atend_v, COALESCE(SUM(bruto_usd),0) as bruto_v, COALESCE(SUM(liquido_usd),0) as liquido_v
             FROM vendas WHERE created_at BETWEEN :fromTs AND :toTs GROUP BY usuario_id
@@ -280,7 +280,7 @@ class Report extends Model
             SELECT vendedor_id as uid, COUNT(*) as atend_vi, COALESCE(SUM(total_bruto_usd),0) as bruto_vi, COALESCE(SUM(total_liquido_usd),0) as liquido_vi
             FROM vendas_internacionais WHERE data_lancamento BETWEEN :fromD AND :toD GROUP BY vendedor_id
         )
-        SELECT s.id as usuario_id, s.name, s.email,
+        SELECT s.id as usuario_id, s.name, s.email, s.role,
                COALESCE(a.atend_v,0) + COALESCE(b.atend_vi,0) as atendimentos,
                COALESCE(a.bruto_v,0) + COALESCE(b.bruto_vi,0) as total_bruto_usd,
                COALESCE(a.liquido_v,0) + COALESCE(b.liquido_vi,0) as total_liquido_usd
