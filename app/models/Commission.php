@@ -158,6 +158,7 @@ class Commission extends Model
 
         $sumRateadoUsd = 0.0; // soma dos líquidos rateados
         $sumCommissionsUsd = 0.0; // soma das comissões (final) PROPOSTAS
+        $coveredCostUsd = 0.0; // quanto dos custos foi efetivamente coberto pelos vendedores (min(liquido, allocated))
 
         foreach ($agg as $uid => $row) {
             $liquido = (float)$row['liquido_total'];
@@ -166,6 +167,10 @@ class Commission extends Model
             $role = $row['user']['role'] ?? '';
             $isCostEligibleActive = in_array($role, ['seller','trainee','manager'], true) && ((int)($row['user']['ativo'] ?? 0) === 1);
             $allocatedCost = $isCostEligibleActive ? $equalCostShare : 0.0;
+            // custo coberto por este vendedor é até o seu líquido disponível
+            if ($isCostEligibleActive) {
+                $coveredCostUsd += min($liquido, $allocatedCost);
+            }
             $liquidoAfterCost = max(0.0, $liquido - $allocatedCost);
             // Convert to BRL for rule thresholds and amounts
             $bruto_brl = $bruto * $usdRate;
@@ -244,8 +249,10 @@ class Commission extends Model
             $sumCommissionsUsd = 0.0;
             foreach ($items as $it) { $sumCommissionsUsd += (float)($it['comissao_final'] ?? 0); }
         }
-        // Caixa da empresa (após comissões) = (teamLiquido - teamCost) - comissões pagas
-        $companyCashUsd = $companyCashBeforeUsd - $sumCommissionsUsd;
+        // Recalcula custos restantes para cobrir (parte dos custos que não foi coberta pelos vendedores)
+        $remainingCostToCover = max(0.0, $teamCost - $coveredCostUsd);
+        // Caixa da empresa (após comissões) = soma(liquidos rateados) − soma(comissões pagas) − custos_restantes
+        $companyCashUsd = $sumRateadoUsd - $sumCommissionsUsd - $remainingCostToCover;
 
         return [
             'items' => $items,
@@ -260,7 +267,8 @@ class Commission extends Model
                 'team_cost_fixed_usd' => round($fixedUsd, 2),
                 'team_cost_percent_rate' => $percentSum / 100.0,
                 'team_cost_percent_total' => round($teamCostPercent, 2),
-                'team_remaining_cost_to_cover' => round(max(0.0, $teamCost - $teamLiquido), 2),
+                'covered_cost_usd' => round($coveredCostUsd, 2),
+                'team_remaining_cost_to_cover' => round($remainingCostToCover, 2),
                 'apply_bonus' => ($teamBrutoBRL >= $metaEquipeBRL),
                 'active_count' => $activeCount,
                 'active_cost_split_count' => $activeCostSplit,

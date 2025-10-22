@@ -61,6 +61,9 @@
             <?php if (isset($team['sum_commissions_usd'])): ?>
             <li class="list-group-item"><strong>Soma das Comissões Pagas (USD):</strong> <?= number_format((float)$team['sum_commissions_usd'], 2) ?></li>
             <?php endif; ?>
+            <?php if (isset($team['covered_cost_usd'])): ?>
+            <li class="list-group-item"><strong>Custos Cobertos pelos Vendedores (USD):</strong> <?= number_format((float)$team['covered_cost_usd'], 2) ?></li>
+            <?php endif; ?>
             <li class="list-group-item"><strong>Elegíveis p/ Bônus:</strong> <?= (int)($team['active_count'] ?? 0) ?></li>
             <li class="list-group-item"><strong>Taxa Bônus (se meta):</strong> <?= number_format(((float)($team['bonus_rate'] ?? 0))*100, 2) ?>%</li>
             <li class="list-group-item"><strong>Falta cobrir custos da empresa:</strong> US$ <?= number_format((float)($team['team_remaining_cost_to_cover'] ?? 0), 2) ?></li>
@@ -175,6 +178,24 @@
         <li><strong>Bônus de Equipe:</strong> se meta atingida, bonus_brl = líquido_apurado_brl × (5% / elegíveis) = R$ <?= number_format($liqApBRL,2) ?> × <?= number_format($bonusRate*100,2) ?>% = R$ <?= number_format($bonusBRL,2) ?> (≈ US$ <?= number_format($bonusUSD,2) ?>)</li>
         <li><strong>Comissão Final:</strong> final_brl = ind_brl + bonus_brl = R$ <?= number_format($indBRL,2) ?> + R$ <?= number_format($bonusBRL,2) ?> = R$ <?= number_format($finalBRL,2) ?> (≈ US$ <?= number_format($finalUSD,2) ?>)</li>
       </ol>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header">Como é calculado o Caixa da Empresa (Fórmulas com valores)</div>
+    <div class="card-body">
+      <?php
+        $coveredCost = (float)($team['covered_cost_usd'] ?? 0);
+        $remaining = (float)($team['team_remaining_cost_to_cover'] ?? max(0.0, $teamTotalCost - $coveredCost));
+        $companyCashFinal = (float)($team['company_cash_usd'] ?? ($sumRateado - $sumComms - $remaining));
+      ?>
+      <ol class="mb-3">
+        <li><strong>Soma dos Líquidos Rateados:</strong> <code>Σ(liquido_after_cost_i)</code> = <strong>US$ <?= number_format($sumRateado,2) ?></strong></li>
+        <li><strong>Soma das Comissões Pagas:</strong> <code>Σ(comissao_final_i)</code> = <strong>US$ <?= number_format($sumComms,2) ?></strong> (após escalonamento quando aplicável)</li>
+        <li><strong>Custos Restantes a Cobrir:</strong> <code>remaining = custo_total − custos_cobertos</code> = US$ <?= number_format($teamTotalCost,2) ?> − US$ <?= number_format($coveredCost,2) ?> = <strong>US$ <?= number_format($remaining,2) ?></strong></li>
+        <li><strong>Caixa Final da Empresa:</strong> <code>company_cash = Σ(liquidos_rateados) − Σ(comissões) − remaining</code> = US$ <?= number_format($sumRateado,2) ?> − US$ <?= number_format($sumComms,2) ?> − US$ <?= number_format($remaining,2) ?> = <strong>US$ <?= number_format($companyCashFinal,2) ?></strong></li>
+      </ol>
+      <div class="small text-muted">Observação: o escalonamento de comissões garante que as comissões só são pagas a partir do excedente após custos. Se não houver excedente, fator = 0%.</div>
     </div>
   </div>
 </div>
