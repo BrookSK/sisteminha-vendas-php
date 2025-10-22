@@ -67,10 +67,11 @@ team_cost_percent       = bruto_time * (percent_sum / 100)
 team_cost_total         = team_cost_settings + fixed_usd + team_cost_percent
 team_cost_rate          = (bruto_time > 0 ? team_cost_total / bruto_time : 0)
 
-// Alocação por vendedor i
+// Alocação por vendedor i (rateio igualitário entre ativos seller+trainee)
 bruto_i                 = bruto total (USD) do vendedor i no período
 liquido_i               = líquido total (USD) do vendedor i no período
-allocated_cost_i        = (bruto_time > 0 ? team_cost_total * (bruto_i / bruto_time) : 0)
+ativos_seller_trainee   = quantidade de usuários ativos com role em {'seller','trainee'}
+allocated_cost_i        = (ativos_seller_trainee > 0 ? team_cost_total / ativos_seller_trainee : 0)
 liquido_apurado_i       = max(0, liquido_i - allocated_cost_i)
 bruto_i_brl             = bruto_i * usd_rate
 liquido_apurado_i_brl   = liquido_apurado_i * usd_rate

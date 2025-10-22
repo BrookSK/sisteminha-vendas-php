@@ -30,14 +30,17 @@
                 if (!run) return;
                 run.addEventListener('click', function(e) {
                     e.preventDefault();
-                var bruto = num('s_bruto'); // USD
-                var liquido = num('s_liquido'); // USD
+                var teamBruto = num('s_team_bruto'); // USD (equipe)
+                var bruto = num('s_bruto'); // USD (vendedor)
+                var liquido = num('s_liquido'); // USD (vendedor)
                 var ativos = Math.max(0, Math.floor(num('s_ativos')));
                 var meta = document.getElementById('s_meta')?.checked || false;
 
-                // custo da equipe simplificado: proporcional ao próprio bruto
-                var teamCost = Math.max(0, bruto * COST_RATE);
-                var liquidoAp = Math.max(0, liquido - teamCost);
+                // custo do time (simplificado): aplica apenas taxa global
+                var teamCost = Math.max(0, teamBruto * COST_RATE);
+                // cota igualitária por ativo (seller+trainee)
+                var equalShare = (ativos > 0) ? (teamCost / ativos) : 0;
+                var liquidoAp = Math.max(0, liquido - equalShare);
                 var perc = faixaPerc(bruto);
                 var comUsd = liquidoAp * perc;
                 var comBrl = comUsd * (USD_RATE > 0 ? USD_RATE : 0);
@@ -47,7 +50,7 @@
                 var finalUsd = comUsd + bonusUsd;
                 var finalBrl = comBrl + bonusBrl;
 
-                document.getElementById('s_out_team_cost_usd').textContent = teamCost.toFixed(2);
+                var outEq = document.getElementById('s_out_equal_share_usd'); if (outEq) outEq.textContent = equalShare.toFixed(2);
                 document.getElementById('s_out_liquido_apurado_usd').textContent = liquidoAp.toFixed(2);
                 document.getElementById('s_out_comissao_usd').textContent = comUsd.toFixed(2);
                 document.getElementById('s_out_comissao_brl').textContent = comBrl.toFixed(2);
@@ -118,7 +121,7 @@
                         <li><strong>Custos Fixos:</strong> valores em USD cadastrados em "Custos" para o período.</li>
                         <li><strong>Custos Percentuais:</strong> percentuais cadastrados em "Custos" que aplicam sobre o BRUTO da equipe.</li>
                     </ul>
-                    <p class="mb-0">Somamos essas três coisas e dividimos entre os vendedores de forma proporcional ao BRUTO de cada um.</p>
+                    <p class="mb-0">Somamos essas três coisas e <strong>dividimos igualmente</strong> entre os vendedores <strong>ativos (seller + trainee)</strong>.</p>
                 </div>
             </div>
         </div>
@@ -160,8 +163,9 @@
                     <h5 class="card-title">7) Comissão Estimada da Venda</h5>
                     <p class="mb-2">A comissão estimada usa os mesmos componentes explicados acima, de forma simplificada:</p>
                     <ol class="mb-2">
-                        <li><strong>Calcular o custo do time</strong> do mês (simplificado): <code>teamCost = BRUTO × <?= number_format($cost_rate*100, 2) ?>%</code>.</li>
-                        <li><strong>Líquido apurado</strong> para comissão: <code>liquido_apurado = LÍQUIDO − teamCost</code>.</li>
+                        <li><strong>Calcular o custo do time</strong> do mês (simplificado): <code>teamCost = BRUTO_EQUIPE × <?= number_format($cost_rate*100, 2) ?>%</code>.</li>
+                        <li><strong>Cota igualitária</strong> por vendedor ativo (seller+trainee): <code>equalShare = (ativos &gt; 0 ? teamCost ÷ ativos : 0)</code>.</li>
+                        <li><strong>Líquido apurado</strong> para comissão: <code>liquido_apurado = LÍQUIDO − equalShare</code>.</li>
                         <li><strong>Definir a faixa de comissão</strong> pelo BRUTO do vendedor no mês:
                             <ul>
                                 <li>Até 30.000 USD: 15%</li>
@@ -173,7 +177,7 @@
                         <li><strong>Comissão (BRL)</strong>: <code>comissao_brl = comissao_usd × taxa_dolar</code> (taxa atual = <?= number_format($rate, 2) ?>).</li>
                         <li><strong>Se a meta da equipe for atingida</strong>, soma-se o <em>bônus</em> proporcional: <code>bonus_brl = (liquido_apurado × taxa_dolar) × (5% ÷ vendedores_ativos)</code>.</li>
                     </ol>
-                    <p class="mb-0"><strong>Resumo:</strong> <code>Comissão Estimada (BRL) = [(Líquido − BRUTO×<?= number_format($cost_rate*100, 2) ?>%) × percentual] × taxa_dólar [+ bônus se houver]</code>.</p>
+                    <p class="mb-0"><strong>Resumo:</strong> <code>Comissão Estimada (BRL) = [(Líquido − (BRUTO_EQUIPE×<?= number_format($cost_rate*100, 2) ?>% ÷ ativos)) × percentual] × taxa_dólar [+ bônus se houver]</code>.</p>
                 </div>
             </div>
         </div>
@@ -197,6 +201,10 @@
                     <h5 class="card-title">Simulador (pré-visualização)</h5>
                     <div class="text-muted small mb-2">Taxa do dólar atual: <strong><?= number_format($rate, 2) ?></strong> • Taxa Global aplicada: <strong><?= number_format($cost_rate*100, 2) ?>%</strong></div>
                     <div class="row g-2">
+                        <div class="col-sm-4">
+                            <label class="form-label">Bruto da equipe (USD)</label>
+                            <input type="number" step="0.01" class="form-control" id="s_team_bruto" value="50000">
+                        </div>
                         <div class="col-sm-4">
                             <label class="form-label">Bruto do vendedor (USD)</label>
                             <input type="number" step="0.01" class="form-control" id="s_bruto" value="10000">
@@ -224,8 +232,8 @@
                     <hr>
                     <div class="row g-2">
                         <div class="col-sm-3">
-                            <div class="form-text">Custo % do Time (USD)</div>
-                            <div id="s_out_team_cost_usd" class="fw-semibold">-</div>
+                            <div class="form-text">Cota Igualitária (USD)</div>
+                            <div id="s_out_equal_share_usd" class="fw-semibold">-</div>
                         </div>
                         <div class="col-sm-3">
                             <div class="form-text">Líquido Apurado (USD)</div>

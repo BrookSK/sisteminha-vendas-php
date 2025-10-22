@@ -48,6 +48,12 @@
           <?php if (isset($team['team_cost_rate'])): ?>
             <span class="badge text-bg-warning ms-2">Custo Global: <?= number_format((float)$team['team_cost_rate']*100, 2) ?>%</span>
           <?php endif; ?>
+          <?php if (isset($team['equal_cost_share_per_active_seller'])): ?>
+            <span class="badge text-bg-info ms-2">Cota igualitária (por vendedor ativo): US$ <?= number_format((float)$team['equal_cost_share_per_active_seller'], 2) ?></span>
+          <?php endif; ?>
+          <?php if (isset($team['company_cash_usd'])): ?>
+            <span class="badge text-bg-success ms-2">Caixa Empresa: US$ <?= number_format((float)$team['company_cash_usd'], 2) ?></span>
+          <?php endif; ?>
         </div>
       </div>
     </div>

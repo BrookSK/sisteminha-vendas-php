@@ -21,7 +21,6 @@
             <li class="list-group-item"><strong>Bruto USD:</strong> <?= number_format((float)($mine['bruto_total'] ?? 0), 2) ?></li>
             <li class="list-group-item"><strong>Bruto BRL:</strong> <?= number_format((float)($mine['bruto_total_brl'] ?? 0), 2) ?></li>
             <li class="list-group-item"><strong>Líquido USD:</strong> <?= number_format((float)($mine['liquido_total'] ?? 0), 2) ?></li>
-            <li class="list-group-item"><strong>Rateio Custo USD:</strong> <?= number_format((float)($mine['allocated_cost'] ?? 0), 2) ?></li>
             <li class="list-group-item"><strong>Líquido Apurado USD:</strong> <?= number_format((float)($mine['liquido_apurado'] ?? 0), 2) ?></li>
             <li class="list-group-item"><strong>Líquido Apurado BRL:</strong> <?= number_format((float)($mine['liquido_apurado_brl'] ?? 0), 2) ?></li>
             <li class="list-group-item"><strong>Comissão Individual USD:</strong> <?= number_format((float)($mine['comissao_individual'] ?? 0), 2) ?></li>
@@ -50,9 +49,15 @@
             <li class="list-group-item"><strong>Custos Percentuais (%):</strong> <?= number_format(((float)($team['team_cost_percent_rate'] ?? 0))*100, 2) ?>%</li>
             <li class="list-group-item"><strong>Custos Percentuais USD:</strong> <?= number_format((float)($team['team_cost_percent_total'] ?? 0), 2) ?></li>
             <li class="list-group-item"><strong>Custo Total Equipe USD:</strong> <?= number_format((float)($team['team_cost_total'] ?? 0), 2) ?></li>
+            <?php if (isset($team['equal_cost_share_per_active_seller'])): ?>
+            <li class="list-group-item"><strong>Cota igualitária por vendedor ativo:</strong> US$ <?= number_format((float)$team['equal_cost_share_per_active_seller'], 2) ?></li>
+            <?php endif; ?>
             <li class="list-group-item"><strong>Elegíveis p/ Bônus:</strong> <?= (int)($team['active_count'] ?? 0) ?></li>
             <li class="list-group-item"><strong>Taxa Bônus (se meta):</strong> <?= number_format(((float)($team['bonus_rate'] ?? 0))*100, 2) ?>%</li>
             <li class="list-group-item"><strong>Falta cobrir custos da empresa:</strong> US$ <?= number_format((float)($team['team_remaining_cost_to_cover'] ?? 0), 2) ?></li>
+            <?php if (isset($team['company_cash_usd'])): ?>
+            <li class="list-group-item"><strong>Caixa da Empresa (USD):</strong> <?= number_format((float)$team['company_cash_usd'], 2) ?></li>
+            <?php endif; ?>
           </ul>
         </div>
       </div>
@@ -116,8 +121,8 @@
         $teamTotalCost = (float)($team['team_cost_total'] ?? 0);
         $sellerBruto = (float)($mine['bruto_total'] ?? 0);
         $sellerLiquido = (float)($mine['liquido_total'] ?? 0);
-        $share = ($teamBruto > 0 ? ($sellerBruto / $teamBruto) : 0);
-        $allocated = (float)($mine['allocated_cost'] ?? 0);
+        $equalShare = (float)($team['equal_cost_share_per_active_seller'] ?? 0);
+        $allocated = (float)($mine['allocated_cost'] ?? 0); // valor aplicado pelo cálculo (igualitário se seller/trainee ativo)
         $liquidoApurado = (float)($mine['liquido_apurado'] ?? ($sellerLiquido - $allocated));
         $usdRate = 0.0; try { $r = new \Models\Setting(); $usdRate = (float)$r->get('usd_rate','5.83'); } catch (\Throwable $e) {}
         $brutoBRL = $sellerBruto * ($usdRate>0?$usdRate:1);
@@ -141,7 +146,7 @@
         <li><strong>Custos explícitos fixos:</strong> <strong>US$ <?= number_format($fixos,2) ?></strong></li>
         <li><strong>Custos explícitos percentuais:</strong> percent_total = <?= number_format($percRate*100,2) ?>% × US$ <?= number_format($teamBruto,2) ?> = <strong>US$ <?= number_format($percTotal,2) ?></strong></li>
         <li><strong>Custo Total da Equipe:</strong> total = global + fixos + percentuais = US$ <?= number_format($globalCost,2) ?> + US$ <?= number_format($fixos,2) ?> + US$ <?= number_format($percTotal,2) ?> = <strong>US$ <?= number_format($teamTotalCost,2) ?></strong></li>
-        <li><strong>Rateio pro vendedor:</strong> parcela = total × (bruto_vendedor / bruto_equipe) = US$ <?= number_format($teamTotalCost,2) ?> × (US$ <?= number_format($sellerBruto,2) ?> / US$ <?= number_format($teamBruto,2) ?>) = <strong>US$ <?= number_format($allocated,2) ?></strong> (<?php if($teamBruto>0): ?><?= number_format($share*100,2) ?>%<?php else: ?>0%<?php endif; ?> do total)</li>
+        <li><strong>Rateio pro vendedor (igualitário):</strong> parcela = custo_total / vendedores_ativos(seller+trainee) = US$ <?= number_format($teamTotalCost,2) ?> / <?= (int)($team['active_cost_split_count'] ?? 0) ?> = <strong>US$ <?= number_format($equalShare,2) ?></strong></li>
         <li><strong>Líquido Apurado do vendedor:</strong> líquido_apurado = líquido_total − parcela = US$ <?= number_format($sellerLiquido,2) ?> − US$ <?= number_format($allocated,2) ?> = <strong>US$ <?= number_format($liquidoApurado,2) ?></strong></li>
         <li><strong>Base da Comissão (BRL):</strong> líquido_apurado_brl = US$ <?= number_format($liquidoApurado,2) ?> × <?= number_format($usdRate,2) ?> = <strong>R$ <?= number_format($liqApBRL,2) ?></strong>; bruto_brl = US$ <?= number_format($sellerBruto,2) ?> × <?= number_format($usdRate,2) ?> = R$ <?= number_format($brutoBRL,2) ?></li>
         <li><strong>Percentual de Comissão:</strong> se bruto_brl ≤ R$ <?= number_format($t30,2) ?> → 15%; se ≤ R$ <?= number_format($t45,2) ?> → 25%; senão 25%. Aplicado: <strong><?= number_format($perc*100,2) ?>%</strong></li>

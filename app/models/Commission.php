@@ -105,12 +105,17 @@ class Commission extends Model
         $agg = $this->aggregateByUser($from, $to);
         $teamBruto = 0.0;
         $teamLiquido = 0.0;
-        $activeCount = 0;
+        $activeCount = 0; // ativos para bônus (mantido)
+        $activeCostSplit = 0; // ativos para rateio igualitário de custos (seller/trainee)
         foreach ($agg as $row) {
             // Conta vendedores/trainees/gerentes ativos como elegíveis para rateio do bônus
             $role = $row['user']['role'] ?? 'seller';
             if ((int)($row['user']['ativo'] ?? 0) === 1 && in_array($role, ['seller','trainee','manager'], true)) {
                 $activeCount++;
+            }
+            // Conta apenas vendedores e trainees ativos para o rateio igualitário de custos
+            if ((int)($row['user']['ativo'] ?? 0) === 1 && in_array($role, ['seller','trainee'], true)) {
+                $activeCostSplit++;
             }
             // Bruto da equipe inclui todos (inclusive 'organic') para efeito de meta e custo global
             $teamBruto += (float)$row['bruto_total'];
@@ -148,11 +153,19 @@ class Commission extends Model
         $teamBrutoBRL = $teamBruto * $usdRate;
         $metaEquipeBRL = 50000.0 * $usdRate; // 50k USD em BRL
 
+        // Cota igualitária de custo por vendedor ativo (seller/trainee)
+        $equalCostShare = ($activeCostSplit > 0) ? ($teamCost / $activeCostSplit) : 0.0;
+
+        $sumRateadoUsd = 0.0; // soma dos líquidos rateados
+        $sumCommissionsUsd = 0.0; // soma das comissões (final)
+
         foreach ($agg as $uid => $row) {
             $liquido = (float)$row['liquido_total'];
             $bruto = (float)$row['bruto_total'];
-            // Allocate share of total team cost proportionally to gross
-            $allocatedCost = ($teamBruto > 0) ? ($teamCost * ($bruto / $teamBruto)) : 0.0;
+            // Rateio igualitário de custos somente para seller/trainee ativos; demais não recebem alocação
+            $role = $row['user']['role'] ?? '';
+            $isSellerOrTraineeActive = in_array($role, ['seller','trainee'], true) && ((int)($row['user']['ativo'] ?? 0) === 1);
+            $allocatedCost = $isSellerOrTraineeActive ? $equalCostShare : 0.0;
             $liquidoAfterCost = max(0.0, $liquido - $allocatedCost);
             // Convert to BRL for rule thresholds and amounts
             $bruto_brl = $bruto * $usdRate;
@@ -166,8 +179,7 @@ class Commission extends Model
                 $perc = 0.25;
             }
             $individual_brl = round($liquido_apurado_brl * $perc, 2);
-            // Elegibilidade à comissão: sellers, trainees e managers ativos
-            $role = $row['user']['role'] ?? '';
+            // Elegibilidade à comissão: sellers, trainees e managers ativos (mantém regra existente)
             $isSellerActive = in_array($role, ['seller','trainee','manager'], true) && ((int)($row['user']['ativo'] ?? 0) === 1);
             // Team bonus on BRL liquid if team reached goal (somente sellers ativos)
             $bonus_brl = 0.0;
@@ -179,6 +191,10 @@ class Commission extends Model
             $individual = $isSellerActive ? round($usdRate > 0 ? ($individual_brl / $usdRate) : 0, 2) : 0.0;
             $bonus = $isSellerActive ? round($usdRate > 0 ? ($bonus_brl / $usdRate) : 0, 2) : 0.0;
             $final = $isSellerActive ? round($usdRate > 0 ? ($final_brl / $usdRate) : 0, 2) : 0.0;
+
+            // Acumular totais para caixa da empresa
+            $sumRateadoUsd += $liquidoAfterCost;
+            $sumCommissionsUsd += $final;
             $items[] = [
                 'vendedor_id' => (int)$uid,
                 'user' => $row['user'],
@@ -202,6 +218,9 @@ class Commission extends Model
         // Sort by final commission desc for nicer admin view
         usort($items, function($a,$b){ return $b['comissao_final'] <=> $a['comissao_final']; });
 
+        // Caixa da empresa = soma dos líquidos rateados - soma das comissões
+        $companyCashUsd = $sumRateadoUsd - $sumCommissionsUsd;
+
         return [
             'items' => $items,
             'team' => [
@@ -210,6 +229,7 @@ class Commission extends Model
                 // Effective total cost rate including settings, fixed and percent custos
                 'team_cost_rate' => ($teamBruto > 0 ? ($teamCost / $teamBruto) : 0.0),
                 'team_cost_total' => round($teamCost, 2),
+                'equal_cost_share_per_active_seller' => round($equalCostShare, 2),
                 'team_cost_settings_rate' => $costRate,
                 'team_cost_fixed_usd' => round($fixedUsd, 2),
                 'team_cost_percent_rate' => $percentSum / 100.0,
@@ -217,9 +237,13 @@ class Commission extends Model
                 'team_remaining_cost_to_cover' => round(max(0.0, $teamCost - $teamLiquido), 2),
                 'apply_bonus' => ($teamBrutoBRL >= $metaEquipeBRL),
                 'active_count' => $activeCount,
+                'active_cost_split_count' => $activeCostSplit,
                 'bonus_rate' => $bonusRate,
                 'team_bruto_total_brl' => round($teamBrutoBRL, 2),
                 'meta_equipe_brl' => round($metaEquipeBRL, 2),
+                'company_cash_usd' => round($companyCashUsd, 2),
+                'sum_rateado_usd' => round($sumRateadoUsd, 2),
+                'sum_commissions_usd' => round($sumCommissionsUsd, 2),
             ]
         ];
     }
