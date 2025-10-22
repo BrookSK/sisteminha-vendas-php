@@ -22,18 +22,23 @@ class DonationsController extends Controller
         $items = $don->list($limit, $offset, $from ?: null, $to ?: null, $q ?: null);
         $tot = $don->totals();
 
-        // Lucro final da empresa no período e orçamento disponível para doações
+        // Lucro/caixa final da empresa no período e orçamento disponível para doações
         $report = new Report();
         // Se não houver período definido, considerar mês atual por padrão
         if (!$from || !$to) {
             $from = $from ?: date('Y-m-01');
             $to = $to ?: date('Y-m-t');
         }
-        $summary = $report->summary($from, $to, null);
+        // Caixa após comissões (novo modelo): usa Commission::computeRange no período
+        $fromTs = $from . ' 00:00:00';
+        $toTs = $to . ' 23:59:59';
+        try { $comm = (new \Models\Commission())->computeRange($fromTs, $toTs); }
+        catch (\Throwable $e) { $comm = ['team'=>[],'items'=>[]]; }
         $rate = 0.0;
         try { $set = new Setting(); $rate = (float)$set->get('usd_rate', '5.83'); } catch (\Throwable $e) { $rate = 5.83; }
         if ($rate <= 0) $rate = 5.83;
-        $lucro_final_brl = ((float)($summary['lucro_liquido_usd'] ?? 0)) * $rate;
+        $companyCashUsd = (float)($comm['team']['company_cash_usd'] ?? 0);
+        $lucro_final_brl = $companyCashUsd * $rate;
         $doadoPeriodo = $don->totalsPeriod($from, $to);
         $doado_brl = (float)($doadoPeriodo['total_doado_periodo_brl'] ?? 0);
         $orcamento_disponivel_brl = max(0, $lucro_final_brl - $doado_brl);

@@ -52,11 +52,17 @@
             <?php if (isset($team['equal_cost_share_per_active_seller'])): ?>
             <li class="list-group-item"><strong>Cota igualitária por vendedor ativo:</strong> US$ <?= number_format((float)$team['equal_cost_share_per_active_seller'], 2) ?></li>
             <?php endif; ?>
+            <?php if (isset($team['company_cash_before_commissions_usd'])): ?>
+            <li class="list-group-item"><strong>Caixa (após vendas, antes comissões):</strong> US$ <?= number_format((float)$team['company_cash_before_commissions_usd'], 2) ?></li>
+            <?php endif; ?>
             <li class="list-group-item"><strong>Elegíveis p/ Bônus:</strong> <?= (int)($team['active_count'] ?? 0) ?></li>
             <li class="list-group-item"><strong>Taxa Bônus (se meta):</strong> <?= number_format(((float)($team['bonus_rate'] ?? 0))*100, 2) ?>%</li>
             <li class="list-group-item"><strong>Falta cobrir custos da empresa:</strong> US$ <?= number_format((float)($team['team_remaining_cost_to_cover'] ?? 0), 2) ?></li>
             <?php if (isset($team['company_cash_usd'])): ?>
             <li class="list-group-item"><strong>Caixa da Empresa (USD):</strong> <?= number_format((float)$team['company_cash_usd'], 2) ?></li>
+            <?php endif; ?>
+            <?php if (isset($team['commission_scaling_factor'])): ?>
+            <li class="list-group-item"><strong>Fator de Escalonamento de Comissões:</strong> <?= number_format((float)$team['commission_scaling_factor'] * 100, 2) ?>%</li>
             <?php endif; ?>
           </ul>
         </div>
