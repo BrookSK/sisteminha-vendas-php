@@ -6,7 +6,7 @@
       <a class="btn btn-sm btn-outline-secondary" href="/admin/donations/export<?= ($from?('?from='.urlencode($from)):'') . ($to?($from?'&':'?').'to='.urlencode($to):'') . ($q?(($from||$to)?'&':'?').'q='.urlencode($q):'') ?>">Exportar CSV</a>
       <span class="badge text-bg-success">Total Doações: R$ <?= number_format((float)($tot['total_doacoes_brl'] ?? 0), 2, ',', '.') ?></span>
       <?php if (isset($lucro_final_brl)): ?>
-        <span class="badge text-bg-primary">Lucro Final (período): R$ <?= number_format((float)$lucro_final_brl, 2, ',', '.') ?></span>
+        <span class="badge text-bg-primary">Caixa da Empresa (período): R$ <?= number_format((float)$lucro_final_brl, 2, ',', '.') ?></span>
       <?php endif; ?>
       <?php if (isset($doado_brl)): ?>
         <span class="badge text-bg-warning text-dark">Doado no período: R$ <?= number_format((float)$doado_brl, 2, ',', '.') ?></span>

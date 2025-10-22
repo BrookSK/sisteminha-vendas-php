@@ -194,6 +194,7 @@ class CommissionsController extends Controller
             'team' => $team,
             'costs' => $costs,
             'sources' => $sources,
+            'items' => $calc['items'] ?? [],
         ]);
     }
 }

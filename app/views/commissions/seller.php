@@ -26,9 +26,13 @@
     <div class="col-md-4">
       <div class="p-3 bg-light border rounded">
         <div class="fw-bold">Líquido (após custos)</div>
-        <div>US$ <?= number_format($mine['liquido_apurado'] ?? ($mine['liquido_total'] ?? 0), 2) ?></div>
+        <?php $liqAp = (float)($mine['liquido_apurado'] ?? ($mine['liquido_total'] ?? 0)); $neg = ($liqAp < 0); ?>
+        <div class="<?= $neg ? 'text-danger' : '' ?>">US$ <?= number_format($liqAp, 2) ?></div>
         <?php if (isset($mine['liquido_apurado_brl'])): ?>
-          <div class="small text-muted">BRL R$ <?= number_format((float)$mine['liquido_apurado_brl'], 2) ?></div>
+          <div class="small <?= $neg ? 'text-danger' : 'text-muted' ?>">BRL R$ <?= number_format((float)$mine['liquido_apurado_brl'], 2) ?></div>
+        <?php endif; ?>
+        <?php if ($neg): ?>
+          <div class="small text-danger mt-1">Você iniciou o mês no negativo após o rateio dos custos.</div>
         <?php endif; ?>
       </div>
     </div>
