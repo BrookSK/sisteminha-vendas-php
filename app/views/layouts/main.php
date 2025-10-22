@@ -185,7 +185,9 @@ use Core\Auth;
               <a class="nav-link dropdown-toggle" href="#" id="menuComissoes" role="button" data-bs-toggle="dropdown" aria-expanded="false">Comissões</a>
               <ul class="dropdown-menu" aria-labelledby="menuComissoes">
                 <li><a class="dropdown-item" href="/admin/commissions/me">Minhas Comissões</a></li>
+                <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/commissions">Comissões Empresa</a></li>
+                <?php endif; ?>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/settings/calculations-simple">Entenda os Cálculos</a></li>
               </ul>
@@ -204,7 +206,9 @@ use Core\Auth;
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="menuAdmin" role="button" data-bs-toggle="dropdown" aria-expanded="false">Administração</a>
               <ul class="dropdown-menu" aria-labelledby="menuAdmin">
+                <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/reports">Relatórios</a></li>
+                <?php endif; ?>
                 <li><a class="dropdown-item" href="/admin/users">Usuários</a></li>
                 <li><a class="dropdown-item" href="/admin/approvals">Aprovações</a></li>
                 <?php if ($role !== 'manager'): ?>
