@@ -35,7 +35,7 @@ class UsersController extends Controller
         $this->requireRole(['manager','admin']);
         // Supervisores (apenas vendedores e gerentes)
         $u = new \Models\User();
-        $supervisors = $u->listByRoles(['seller','manager']);
+        $supervisors = $u->listByRoles(['seller','manager','admin']);
         $this->render('users/form', [
             'title' => 'Novo Usuário',
             'action' => '/admin/users/create',
@@ -62,7 +62,7 @@ class UsersController extends Controller
                 'action' => '/admin/users/create',
                 'user' => ['name'=>$name,'email'=>$email,'role'=>$role,'ativo'=>$ativo],
                 'roles' => ['seller' => 'Vendedor (registrar vendas)', 'organic' => 'Orgânico (lançar vendas sem comissão)', 'trainee' => 'Trainee (vendedor em treinamento)', 'manager' => 'Gerente (vendas e relatórios)', 'admin' => 'Admin (tudo)'],
-                'supervisors' => (new \Models\User())->listByRoles(['seller','manager']),
+                'supervisors' => (new \Models\User())->listByRoles(['seller','manager','admin']),
                 'error' => 'Preencha nome, e-mail e senha.',
                 '_csrf' => Auth::csrf(),
             ]);
@@ -102,7 +102,7 @@ class UsersController extends Controller
             'action' => '/admin/users/update?id=' . $id,
             'user' => $u,
             'roles' => ['seller' => 'Vendedor (registrar vendas)', 'organic' => 'Orgânico (lançar vendas sem comissão)', 'trainee' => 'Trainee (vendedor em treinamento)', 'manager' => 'Gerente (vendas e relatórios)', 'admin' => 'Admin (tudo)'],
-            'supervisors' => $uModel->listByRoles(['seller','manager']),
+            'supervisors' => $uModel->listByRoles(['seller','manager','admin']),
             '_csrf' => Auth::csrf(),
         ]);
     }
