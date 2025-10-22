@@ -55,6 +55,12 @@
             <?php if (isset($team['company_cash_before_commissions_usd'])): ?>
             <li class="list-group-item"><strong>Caixa (após vendas, antes comissões):</strong> US$ <?= number_format((float)$team['company_cash_before_commissions_usd'], 2) ?></li>
             <?php endif; ?>
+            <?php if (isset($team['sum_rateado_usd'])): ?>
+            <li class="list-group-item"><strong>Soma dos Líquidos Rateados (USD):</strong> <?= number_format((float)$team['sum_rateado_usd'], 2) ?></li>
+            <?php endif; ?>
+            <?php if (isset($team['sum_commissions_usd'])): ?>
+            <li class="list-group-item"><strong>Soma das Comissões Pagas (USD):</strong> <?= number_format((float)$team['sum_commissions_usd'], 2) ?></li>
+            <?php endif; ?>
             <li class="list-group-item"><strong>Elegíveis p/ Bônus:</strong> <?= (int)($team['active_count'] ?? 0) ?></li>
             <li class="list-group-item"><strong>Taxa Bônus (se meta):</strong> <?= number_format(((float)($team['bonus_rate'] ?? 0))*100, 2) ?>%</li>
             <li class="list-group-item"><strong>Falta cobrir custos da empresa:</strong> US$ <?= number_format((float)($team['team_remaining_cost_to_cover'] ?? 0), 2) ?></li>
@@ -130,6 +136,10 @@
         $equalShare = (float)($team['equal_cost_share_per_active_seller'] ?? 0);
         $allocated = (float)($mine['allocated_cost'] ?? 0); // valor aplicado pelo cálculo (igualitário se seller/trainee ativo)
         $liquidoApurado = (float)($mine['liquido_apurado'] ?? ($sellerLiquido - $allocated));
+        $companyCashBefore = (float)($team['company_cash_before_commissions_usd'] ?? (($team['team_liquido_total'] ?? 0) - $teamTotalCost));
+        $sumRateado = (float)($team['sum_rateado_usd'] ?? 0);
+        $sumComms = (float)($team['sum_commissions_usd'] ?? 0);
+        $scaling = (float)($team['commission_scaling_factor'] ?? 1);
         $usdRate = 0.0; try { $r = new \Models\Setting(); $usdRate = (float)$r->get('usd_rate','5.83'); } catch (\Throwable $e) {}
         $brutoBRL = $sellerBruto * ($usdRate>0?$usdRate:1);
         $liqApBRL = $liquidoApurado * ($usdRate>0?$usdRate:1);
@@ -154,7 +164,12 @@
         <li><strong>Custo Total da Equipe:</strong> total = global + fixos + percentuais = US$ <?= number_format($globalCost,2) ?> + US$ <?= number_format($fixos,2) ?> + US$ <?= number_format($percTotal,2) ?> = <strong>US$ <?= number_format($teamTotalCost,2) ?></strong></li>
         <li><strong>Rateio pro vendedor (igualitário):</strong> parcela = custo_total / vendedores_ativos(seller+trainee) = US$ <?= number_format($teamTotalCost,2) ?> / <?= (int)($team['active_cost_split_count'] ?? 0) ?> = <strong>US$ <?= number_format($equalShare,2) ?></strong></li>
         <li><strong>Líquido Apurado do vendedor:</strong> líquido_apurado = líquido_total − parcela = US$ <?= number_format($sellerLiquido,2) ?> − US$ <?= number_format($allocated,2) ?> = <strong>US$ <?= number_format($liquidoApurado,2) ?></strong></li>
-        <li><strong>Base da Comissão (BRL):</strong> líquido_apurado_brl = US$ <?= number_format($liquidoApurado,2) ?> × <?= number_format($usdRate,2) ?> = <strong>R$ <?= number_format($liqApBRL,2) ?></strong>; bruto_brl = US$ <?= number_format($sellerBruto,2) ?> × <?= number_format($usdRate,2) ?> = R$ <?= number_format($brutoBRL,2) ?></li>
+        <li class="mt-2"><strong>Caixa da empresa (antes comissões):</strong> company_cash_before = líquido_equipe − custo_total = US$ <?= number_format((float)($team['team_liquido_total'] ?? 0),2) ?> − US$ <?= number_format($teamTotalCost,2) ?> = <strong>US$ <?= number_format($companyCashBefore,2) ?></strong></li>
+        <li><strong>Soma das comissões propostas (USD):</strong> <strong>US$ <?= number_format($sumComms,2) ?></strong> (após faixas + bônus)</li>
+        <li><strong>Fator de escalonamento:</strong> se company_cash_before ≤ 0 → 0%; se company_cash_before < soma_comissões → company_cash_before ÷ soma_comissões; senão 100%. Aplicado: <strong><?= number_format($scaling*100,2) ?>%</strong></li>
+        <li><strong>Caixa da empresa (após comissões):</strong> company_cash = company_cash_before − (soma_comissões × fator) = US$ <?= number_format($companyCashBefore,2) ?> − US$ <?= number_format($sumComms*$scaling,2) ?> = <strong>US$ <?= number_format((float)($team['company_cash_usd'] ?? ($companyCashBefore - $sumComms*$scaling)),2) ?></strong></li>
+      </ol>
+      <li><strong>Base da Comissão (BRL):</strong> líquido_apurado_brl = US$ <?= number_format($liquidoApurado,2) ?> × <?= number_format($usdRate,2) ?> = <strong>R$ <?= number_format($liqApBRL,2) ?></strong>; bruto_brl = US$ <?= number_format($sellerBruto,2) ?> × <?= number_format($usdRate,2) ?> = R$ <?= number_format($brutoBRL,2) ?></li>
         <li><strong>Percentual de Comissão:</strong> se bruto_brl ≤ R$ <?= number_format($t30,2) ?> → 15%; se ≤ R$ <?= number_format($t45,2) ?> → 25%; senão 25%. Aplicado: <strong><?= number_format($perc*100,2) ?>%</strong></li>
         <li><strong>Comissão Individual:</strong> ind_brl = líquido_apurado_brl × perc = R$ <?= number_format($liqApBRL,2) ?> × <?= number_format($perc*100,2) ?>% = R$ <?= number_format($indBRL,2) ?> (≈ US$ <?= number_format($indUSD,2) ?>)</li>
         <li><strong>Bônus de Equipe:</strong> se meta atingida, bonus_brl = líquido_apurado_brl × (5% / elegíveis) = R$ <?= number_format($liqApBRL,2) ?> × <?= number_format($bonusRate*100,2) ?>% = R$ <?= number_format($bonusBRL,2) ?> (≈ US$ <?= number_format($bonusUSD,2) ?>)</li>
