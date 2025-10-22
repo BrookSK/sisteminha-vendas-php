@@ -4,6 +4,7 @@ namespace Controllers;
 use Core\Controller;
 use Core\Auth;
 use Models\Donation;
+use Models\Commission;
 use Models\Report;
 use Models\Setting;
 
@@ -22,23 +23,25 @@ class DonationsController extends Controller
         $items = $don->list($limit, $offset, $from ?: null, $to ?: null, $q ?: null);
         $tot = $don->totals();
 
-        // Lucro/caixa final da empresa no período e orçamento disponível para doações
+        // Lucro final da empresa no período e orçamento disponível para doações
         $report = new Report();
         // Se não houver período definido, considerar mês atual por padrão
         if (!$from || !$to) {
             $from = $from ?: date('Y-m-01');
             $to = $to ?: date('Y-m-t');
         }
-        // Caixa após comissões (novo modelo): usa Commission::computeRange no período
-        $fromTs = $from . ' 00:00:00';
-        $toTs = $to . ' 23:59:59';
-        try { $comm = (new \Models\Commission())->computeRange($fromTs, $toTs); }
-        catch (\Throwable $e) { $comm = ['team'=>[],'items'=>[]]; }
+        $summary = $report->summary($from, $to, null);
         $rate = 0.0;
         try { $set = new Setting(); $rate = (float)$set->get('usd_rate', '5.83'); } catch (\Throwable $e) { $rate = 5.83; }
         if ($rate <= 0) $rate = 5.83;
-        $companyCashUsd = (float)($comm['team']['company_cash_usd'] ?? 0);
-        $lucro_final_brl = $companyCashUsd * $rate;
+        // Novo critério: usar caixa da empresa no período (liquidos apurados - comissões)
+        try {
+            $comm = new Commission();
+            $calc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
+            $lucro_final_brl = (float)($calc['team']['company_cash_brl'] ?? (((float)($summary['lucro_liquido_usd'] ?? 0)) * $rate));
+        } catch (\Throwable $e) {
+            $lucro_final_brl = ((float)($summary['lucro_liquido_usd'] ?? 0)) * $rate;
+        }
         $doadoPeriodo = $don->totalsPeriod($from, $to);
         $doado_brl = (float)($doadoPeriodo['total_doado_periodo_brl'] ?? 0);
         $orcamento_disponivel_brl = max(0, $lucro_final_brl - $doado_brl);

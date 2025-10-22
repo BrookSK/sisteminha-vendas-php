@@ -156,8 +156,10 @@ class Commission extends Model
         // Cota igualitária de custo por vendedor/gerente ativo (seller/trainee/manager)
         $equalCostShare = ($activeCostSplit > 0) ? ($teamCost / $activeCostSplit) : 0.0;
 
-        $sumRateadoUsd = 0.0; // soma dos líquidos rateados
-        $sumCommissionsUsd = 0.0; // soma das comissões (final) PROPOSTAS
+        $sumRateadoUsd = 0.0; // soma dos líquidos rateados (USD)
+        $sumCommissionsUsd = 0.0; // soma das comissões (final) em USD
+        $sumRateadoBrl = 0.0; // soma dos líquidos rateados (BRL)
+        $sumCommissionsBrl = 0.0; // soma das comissões (final) em BRL
 
         foreach ($agg as $uid => $row) {
             $liquido = (float)$row['liquido_total'];
@@ -166,7 +168,8 @@ class Commission extends Model
             $role = $row['user']['role'] ?? '';
             $isCostEligibleActive = in_array($role, ['seller','trainee','manager'], true) && ((int)($row['user']['ativo'] ?? 0) === 1);
             $allocatedCost = $isCostEligibleActive ? $equalCostShare : 0.0;
-            $liquidoAfterCost = max(0.0, $liquido - $allocatedCost);
+            // permitir líquido negativo após rateio para refletir início do mês negativo
+            $liquidoAfterCost = ($liquido - $allocatedCost);
             // Convert to BRL for rule thresholds and amounts
             $bruto_brl = $bruto * $usdRate;
             $liquido_apurado_brl = $liquidoAfterCost * $usdRate;
@@ -178,23 +181,22 @@ class Commission extends Model
             } else {
                 $perc = 0.25;
             }
-            $individual_brl = round($liquido_apurado_brl * $perc, 2);
-            // Elegibilidade à comissão: sellers, trainees e managers ativos (mantém regra existente)
-            $isSellerActive = in_array($role, ['seller','trainee','manager'], true) && ((int)($row['user']['ativo'] ?? 0) === 1);
-            // Team bonus on BRL liquid if team reached goal (somente sellers ativos)
-            $bonus_brl = 0.0;
-            if ($isSellerActive && $teamBrutoBRL >= $metaEquipeBRL) {
-                $bonus_brl = round($liquido_apurado_brl * $bonusRate, 2);
-            }
-            $final_brl = round($individual_brl + $bonus_brl, 2);
-            // Map BRL back to USD legacy fields
-            $individual = $isSellerActive ? round($usdRate > 0 ? ($individual_brl / $usdRate) : 0, 2) : 0.0;
-            $bonus = $isSellerActive ? round($usdRate > 0 ? ($bonus_brl / $usdRate) : 0, 2) : 0.0;
-            $final = $isSellerActive ? round($usdRate > 0 ? ($final_brl / $usdRate) : 0, 2) : 0.0;
+            $liqApBRL = $liquido_apurado_brl; // alias for clarity
+            // comissão não deve ser negativa: base zero se líquido apurado < 0
+            $baseComBRL = max(0.0, $liqApBRL);
+            $indBRL = $baseComBRL * $perc; // comissão individual em BRL
+            $applyBonus = ($teamBrutoBRL >= $metaEquipeBRL);
+            $bonusBRL = $applyBonus ? ($baseComBRL * $bonusRate) : 0.0;
+            $finalBRL = $indBRL + $bonusBRL;
+            $indUSD = ($usdRate>0) ? ($indBRL/$usdRate) : 0.0;
+            $bonusUSD = ($usdRate>0) ? ($bonusBRL/$usdRate) : 0.0;
+            $finalUSD = ($usdRate>0) ? ($finalBRL/$usdRate) : 0.0;
 
             // Acumular totais para caixa da empresa
             $sumRateadoUsd += $liquidoAfterCost;
-            $sumCommissionsUsd += $final;
+            $sumCommissionsUsd += $finalUSD;
+            $sumRateadoBrl += $liquido_apurado_brl;
+            $sumCommissionsBrl += $finalBRL;
             $items[] = [
                 'vendedor_id' => (int)$uid,
                 'user' => $row['user'],
@@ -202,51 +204,25 @@ class Commission extends Model
                 'liquido_total' => round($liquido, 2),
                 'allocated_cost' => round($allocatedCost, 2),
                 'liquido_apurado' => round($liquidoAfterCost, 2),
-                'comissao_individual' => $individual,
-                'bonus' => $bonus,
-                'comissao_final' => $final,
+                'comissao_individual' => round($indUSD, 2),
+                'bonus' => round($bonusUSD, 2),
+                'comissao_final' => round($finalUSD, 2),
                 // BRL fields for UI/reporting
                 'bruto_total_brl' => round($bruto_brl, 2),
                 'liquido_total_brl' => round($liquido * $usdRate, 2),
                 'allocated_cost_brl' => round($allocatedCost * $usdRate, 2),
                 'liquido_apurado_brl' => round($liquido_apurado_brl, 2),
-                'comissao_individual_brl' => $individual_brl,
-                'bonus_brl' => $bonus_brl,
-                'comissao_final_brl' => $final_brl,
+                'comissao_individual_brl' => round($indBRL, 2),
+                'bonus_brl' => round($bonusBRL, 2),
+                'comissao_final_brl' => round($finalBRL, 2),
             ];
         }
         // Sort by final commission desc for nicer admin view
         usort($items, function($a,$b){ return $b['comissao_final'] <=> $a['comissao_final']; });
 
-        // Caixa da empresa (antes das comissões): vendas líquidas cobrem custos primeiro
-        // company_cash_before_commissions = teamLiquido - teamCost
-        $companyCashBeforeUsd = $teamLiquido - $teamCost;
-        // Ajuste: comissões só podem ser pagas a partir do excedente após custos.
-        // Se o excedente for menor que a soma de comissões propostas, escalona proporcionalmente.
-        $commissionScaling = 1.0;
-        if ($companyCashBeforeUsd <= 0.0) {
-            $commissionScaling = 0.0;
-        } elseif ($sumCommissionsUsd > $companyCashBeforeUsd && $sumCommissionsUsd > 0.0) {
-            $commissionScaling = $companyCashBeforeUsd / $sumCommissionsUsd;
-        }
-        if ($commissionScaling !== 1.0) {
-            // Reescala campos de comissão por item (USD e BRL)
-            foreach ($items as &$it) {
-                $it['comissao_individual'] = round($it['comissao_individual'] * $commissionScaling, 2);
-                $it['bonus'] = round($it['bonus'] * $commissionScaling, 2);
-                $it['comissao_final'] = round($it['comissao_final'] * $commissionScaling, 2);
-                $it['comissao_individual_brl'] = round($it['comissao_individual_brl'] * $commissionScaling, 2);
-                $it['bonus_brl'] = round($it['bonus_brl'] * $commissionScaling, 2);
-                $it['comissao_final_brl'] = round($it['comissao_final_brl'] * $commissionScaling, 2);
-            }
-            unset($it);
-            // Recalcula a soma efetiva de comissões pagas
-            $sumCommissionsUsd = 0.0;
-            foreach ($items as $it) { $sumCommissionsUsd += (float)($it['comissao_final'] ?? 0); }
-        }
-        // Caixa da empresa (após comissões) = soma(liquidos_apurados) - soma(comissoes) - falta_cobrir_custos
-        $remainingToCoverUsd = max(0.0, $teamCost - $teamLiquido);
-        $companyCashUsd = $sumRateadoUsd - $sumCommissionsUsd - $remainingToCoverUsd;
+        // Caixa da empresa = soma dos líquidos rateados - soma das comissões
+        $companyCashUsd = $sumRateadoUsd - $sumCommissionsUsd;
+        $companyCashBrl = $sumRateadoBrl - $sumCommissionsBrl;
 
         return [
             'items' => $items,
@@ -268,12 +244,12 @@ class Commission extends Model
                 'bonus_rate' => $bonusRate,
                 'team_bruto_total_brl' => round($teamBrutoBRL, 2),
                 'meta_equipe_brl' => round($metaEquipeBRL, 2),
-                'company_cash_before_commissions_usd' => round($companyCashBeforeUsd, 2),
                 'company_cash_usd' => round($companyCashUsd, 2),
-                'company_cash_brl' => round($companyCashUsd * $usdRate, 2),
-                'commission_scaling_factor' => $commissionScaling,
                 'sum_rateado_usd' => round($sumRateadoUsd, 2),
                 'sum_commissions_usd' => round($sumCommissionsUsd, 2),
+                'company_cash_brl' => round($companyCashBrl, 2),
+                'sum_rateado_brl' => round($sumRateadoBrl, 2),
+                'sum_commissions_brl' => round($sumCommissionsBrl, 2),
             ]
         ];
     }

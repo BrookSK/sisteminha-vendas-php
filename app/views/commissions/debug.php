@@ -6,6 +6,54 @@
       <label class="form-label">Período</label>
       <input type="month" name="period" value="<?= htmlspecialchars($period) ?>" class="form-control">
     </div>
+
+  <div class="card mt-3">
+    <div class="card-header">Caixa da Empresa (Detalhamento)</div>
+    <div class="card-body">
+      <div class="mb-2 small text-muted">Caixa = Σ(líquido apurado dos vendedores) − Σ(comissões finais). Valores abaixo consideram o rateio igualitário já aplicado.</div>
+      <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle">
+          <thead>
+            <tr>
+              <th>Vendedor</th>
+              <th class="text-end">Líquido Apurado (USD)</th>
+              <th class="text-end">Líquido Apurado (BRL)</th>
+              <th class="text-end">Comissão Final (USD)</th>
+              <th class="text-end">Comissão Final (BRL)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php $sumLiqUsd=0.0; $sumLiqBrl=0.0; $sumComUsd=0.0; $sumComBrl=0.0; foreach (($items ?? []) as $it): ?>
+            <?php $sumLiqUsd += (float)($it['liquido_apurado'] ?? 0); $sumLiqBrl += (float)($it['liquido_apurado_brl'] ?? 0); $sumComUsd += (float)($it['comissao_final'] ?? 0); $sumComBrl += (float)($it['comissao_final_brl'] ?? 0); ?>
+            <tr>
+              <td><?= htmlspecialchars($it['name'] ?? ($it['user']['name'] ?? '')) ?></td>
+              <td class="text-end <?= ((float)($it['liquido_apurado'] ?? 0))<0?'text-danger':'' ?>"><?= number_format((float)($it['liquido_apurado'] ?? 0), 2) ?></td>
+              <td class="text-end <?= ((float)($it['liquido_apurado_brl'] ?? 0))<0?'text-danger':'' ?>"><?= number_format((float)($it['liquido_apurado_brl'] ?? 0), 2) ?></td>
+              <td class="text-end"><?= number_format((float)($it['comissao_final'] ?? 0), 2) ?></td>
+              <td class="text-end"><?= number_format((float)($it['comissao_final_brl'] ?? 0), 2) ?></td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+          <tfoot>
+            <tr class="table-secondary">
+              <th>Total</th>
+              <th class="text-end <?= $sumLiqUsd<0?'text-danger':'' ?>"><?= number_format($sumLiqUsd, 2) ?></th>
+              <th class="text-end <?= $sumLiqBrl<0?'text-danger':'' ?>"><?= number_format($sumLiqBrl, 2) ?></th>
+              <th class="text-end"><?= number_format($sumComUsd, 2) ?></th>
+              <th class="text-end"><?= number_format($sumComBrl, 2) ?></th>
+            </tr>
+            <tr class="table-secondary">
+              <th>Caixa da Empresa</th>
+              <th class="text-end <?= ($sumLiqUsd-$sumComUsd)<0?'text-danger':'' ?>">USD <?= number_format($sumLiqUsd - $sumComUsd, 2) ?></th>
+              <th class="text-end <?= ($sumLiqBrl-$sumComBrl)<0?'text-danger':'' ?>">BRL R$ <?= number_format($sumLiqBrl - $sumComBrl, 2) ?></th>
+              <th></th>
+              <th></th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
     <div class="col-auto align-self-end">
       <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
     </div>
@@ -52,17 +100,11 @@
             <?php if (isset($team['equal_cost_share_per_active_seller'])): ?>
             <li class="list-group-item"><strong>Cota igualitária por vendedor ativo:</strong> US$ <?= number_format((float)$team['equal_cost_share_per_active_seller'], 2) ?></li>
             <?php endif; ?>
-            <?php if (isset($team['company_cash_before_commissions_usd'])): ?>
-            <li class="list-group-item"><strong>Caixa (após vendas, antes comissões):</strong> US$ <?= number_format((float)$team['company_cash_before_commissions_usd'], 2) ?></li>
-            <?php endif; ?>
             <li class="list-group-item"><strong>Elegíveis p/ Bônus:</strong> <?= (int)($team['active_count'] ?? 0) ?></li>
             <li class="list-group-item"><strong>Taxa Bônus (se meta):</strong> <?= number_format(((float)($team['bonus_rate'] ?? 0))*100, 2) ?>%</li>
             <li class="list-group-item"><strong>Falta cobrir custos da empresa:</strong> US$ <?= number_format((float)($team['team_remaining_cost_to_cover'] ?? 0), 2) ?></li>
             <?php if (isset($team['company_cash_usd'])): ?>
             <li class="list-group-item"><strong>Caixa da Empresa (USD):</strong> <?= number_format((float)$team['company_cash_usd'], 2) ?></li>
-            <?php endif; ?>
-            <?php if (isset($team['commission_scaling_factor'])): ?>
-            <li class="list-group-item"><strong>Fator de Escalonamento de Comissões:</strong> <?= number_format((float)$team['commission_scaling_factor'] * 100, 2) ?>%</li>
             <?php endif; ?>
           </ul>
         </div>

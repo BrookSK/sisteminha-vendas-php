@@ -51,9 +51,6 @@
           <?php if (isset($team['equal_cost_share_per_active_seller'])): ?>
             <span class="badge text-bg-info ms-2">Cota igualitária (por vendedor ativo): US$ <?= number_format((float)$team['equal_cost_share_per_active_seller'], 2) ?></span>
           <?php endif; ?>
-          <?php if (isset($team['company_cash_before_commissions_usd'])): ?>
-            <span class="badge text-bg-secondary ms-2">Caixa (após vendas, antes comissões): US$ <?= number_format((float)$team['company_cash_before_commissions_usd'], 2) ?></span>
-          <?php endif; ?>
           <?php if (isset($team['company_cash_usd'])): ?>
             <span class="badge text-bg-success ms-2">Caixa Empresa: US$ <?= number_format((float)$team['company_cash_usd'], 2) ?></span>
           <?php endif; ?>
