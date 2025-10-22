@@ -128,6 +128,14 @@ $router->group('/admin', function($r) {
     $r->post('/users/update', 'Controllers\\UsersController@update');
     $r->post('/users/delete', 'Controllers\\UsersController@delete');
     $r->get('/users/options', 'Controllers\\UsersController@options');
+    // Admin aliases
+    $r->get('/admin/users', 'Controllers\\UsersController@index');
+    $r->get('/admin/users/new', 'Controllers\\UsersController@new');
+    $r->post('/admin/users/create', 'Controllers\\UsersController@create');
+    $r->get('/admin/users/edit', 'Controllers\\UsersController@edit');
+    $r->post('/admin/users/update', 'Controllers\\UsersController@update');
+    $r->post('/admin/users/delete', 'Controllers\\UsersController@delete');
+    $r->get('/admin/users/options', 'Controllers\\UsersController@options');
 
     // Comissões
     $r->get('/commissions', 'Controllers\\CommissionsController@index'); // admin

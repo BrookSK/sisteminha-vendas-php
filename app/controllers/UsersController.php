@@ -118,13 +118,13 @@ class UsersController extends Controller
         $password = (string)($_POST['password'] ?? '');
         $role = trim($_POST['role'] ?? 'seller');
         $ativo = (int)($_POST['ativo'] ?? 0) === 1 ? 1 : 0;
-        if (!in_array($role, ['seller','organic','manager','admin'], true)) { $role = 'seller'; }
+        if (!in_array($role, ['seller','organic','trainee','manager','admin'], true)) { $role = 'seller'; }
         if ($name === '' || $email === '') {
             return $this->render('users/form', [
                 'title' => 'Editar Usuário',
                 'action' => '/admin/users/update?id=' . $id,
                 'user' => ['id'=>$id,'name'=>$name,'email'=>$email,'role'=>$role,'ativo'=>$ativo],
-                'roles' => ['seller' => 'Vendedor (registrar vendas)', 'organic' => 'Orgânico (lançar vendas sem comissão)', 'manager' => 'Gerente (vendas e relatórios)', 'admin' => 'Admin (tudo)'],
+                'roles' => ['seller' => 'Vendedor (registrar vendas)', 'organic' => 'Orgânico (lançar vendas sem comissão)', 'trainee' => 'Trainee (vendedor em treinamento)', 'manager' => 'Gerente (vendas e relatórios)', 'admin' => 'Admin (tudo)'],
                 'error' => 'Preencha nome e e-mail.',
                 '_csrf' => Auth::csrf(),
             ]);
@@ -143,7 +143,7 @@ class UsersController extends Controller
                 'title' => 'Editar Usuário',
                 'action' => '/admin/users/update?id=' . $id,
                 'user' => ['id'=>$id,'name'=>$name,'email'=>$email,'role'=>$role,'ativo'=>$ativo],
-                'roles' => ['seller' => 'Vendedor (registrar vendas)', 'organic' => 'Orgânico (lançar vendas sem comissão)', 'manager' => 'Gerente (vendas e relatórios)', 'admin' => 'Admin (tudo)'],
+                'roles' => ['seller' => 'Vendedor (registrar vendas)', 'organic' => 'Orgânico (lançar vendas sem comissão)', 'trainee' => 'Trainee (vendedor em treinamento)', 'manager' => 'Gerente (vendas e relatórios)', 'admin' => 'Admin (tudo)'],
                 'error' => 'Erro ao atualizar usuário: ' . $e->getMessage(),
                 '_csrf' => Auth::csrf(),
             ]);
