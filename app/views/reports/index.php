@@ -9,6 +9,40 @@
   <a class="btn btn-sm btn-outline-secondary" href="/admin/commissions">Comissões (Admin)</a>
 </div>
 
+<?php if (!empty($commTeam)): ?>
+<div class="row g-3 mb-2">
+  <div class="col-md-3">
+    <div class="p-2 border rounded h-100">
+      <div class="text-muted small">Caixa da Empresa</div>
+      <div class="fw-bold <?= (($commTeam['company_cash_usd'] ?? 0) < 0)?'text-danger':'' ?>">USD <?= number_format((float)($commTeam['company_cash_usd'] ?? 0), 2) ?></div>
+      <div class="small <?= (($commTeam['company_cash_brl'] ?? 0) < 0)?'text-danger':'text-muted' ?>">BRL R$ <?= number_format((float)($commTeam['company_cash_brl'] ?? 0), 2) ?></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="p-2 border rounded h-100">
+      <div class="text-muted small">Custos Totais (USD)</div>
+      <div class="fw-bold">$ <?= number_format((float)($commTeam['team_cost_total'] ?? 0), 2) ?></div>
+      <div class="small text-muted">Settings: <?= number_format((float)($commTeam['team_cost_settings_rate'] ?? 0)*100,2) ?>% | Percent: <?= number_format((float)($commTeam['team_cost_percent_rate'] ?? 0)*100,2) ?>% | Fixos: $ <?= number_format((float)($commTeam['team_cost_fixed_usd'] ?? 0), 2) ?></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="p-2 border rounded h-100">
+      <div class="text-muted small">Cota Igualitária (USD)</div>
+      <div class="fw-bold">$ <?= number_format((float)($commTeam['equal_cost_share_per_active_seller'] ?? 0), 2) ?></div>
+      <div class="small text-muted">Ativos p/ rateio: <?= (int)($commTeam['active_cost_split_count'] ?? 0) ?></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="p-2 border rounded h-100">
+      <div class="text-muted small">Equipe</div>
+      <div class="small">Bruto: $ <?= number_format((float)($commTeam['team_bruto_total'] ?? 0), 2) ?></div>
+      <div class="small">Meta (BRL): R$ <?= number_format((float)($commTeam['meta_equipe_brl'] ?? 0), 2) ?></div>
+      <div class="small">Ativos (bônus): <?= (int)($commTeam['active_count'] ?? 0) ?> | Bônus rate: <?= number_format((float)($commTeam['bonus_rate'] ?? 0)*100, 2) ?>%</div>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
 <form class="row g-2 mb-3" method="get" action="/admin/reports">
   <div class="col-auto">
     <label class="form-label">De</label>
@@ -112,6 +146,41 @@
     </div>
   </div>
 </div>
+
+<?php if (!empty($commItems)): ?>
+<div class="card mt-3">
+  <div class="card-header">Desempenho dos Vendedores (Período)</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>Vendedor</th>
+            <th class="text-end">Bruto (USD)</th>
+            <th class="text-end">Líquido (USD)</th>
+            <th class="text-end">Custo Alocado (USD)</th>
+            <th class="text-end">Líquido Apurado (USD)</th>
+            <th class="text-end">Comissão Final (USD)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($commItems as $it): ?>
+          <tr>
+            <td><?= htmlspecialchars($it['name'] ?? ($it['user']['name'] ?? '')) ?></td>
+            <td class="text-end">$ <?= number_format((float)($it['bruto_total'] ?? 0), 2) ?></td>
+            <td class="text-end">$ <?= number_format((float)($it['liquido_total'] ?? 0), 2) ?></td>
+            <td class="text-end">$ <?= number_format((float)($it['allocated_cost'] ?? 0), 2) ?></td>
+            <?php $la = (float)($it['liquido_apurado'] ?? 0); ?>
+            <td class="text-end <?= $la<0?'text-danger':'' ?>">$ <?= number_format($la, 2) ?></td>
+            <td class="text-end">$ <?= number_format((float)($it['comissao_final'] ?? 0), 2) ?></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
 
 <div class="card mt-3">
   <div class="card-header">Últimos 3 meses x Atual</div>
