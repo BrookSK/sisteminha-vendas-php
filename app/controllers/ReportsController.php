@@ -21,6 +21,36 @@ class ReportsController extends Controller
         $to = $_GET['to'] ?? null;
         $sellerId = isset($_GET['seller_id']) && $_GET['seller_id'] !== '' ? (int)$_GET['seller_id'] : null;
 
+        // Helper to compute rolling period: day 10 of a month to day 9 of next month
+        $computeRollingPeriod = function(): array {
+            $today = new \DateTime('today');
+            $day = (int)$today->format('d');
+            if ($day >= 10) {
+                $fromD = new \DateTime($today->format('Y-m-10'));
+                $toD = (clone $fromD)->modify('+1 month');
+                $toD->setDate((int)$toD->format('Y'), (int)$toD->format('m'), 9);
+            } else {
+                $toD = new \DateTime($today->format('Y-m-09'));
+                $fromD = (clone $toD)->modify('-1 month');
+                $fromD->setDate((int)$fromD->format('Y'), (int)$fromD->format('m'), 10);
+            }
+            return [$fromD->format('Y-m-d'), $toD->format('Y-m-d')];
+        };
+
+        // If no GET period, try settings; if settings empty, use rolling 10->9
+        if (!$from || !$to) {
+            $periodStart = (string)$setting->get('current_period_start', '');
+            $periodEnd = (string)$setting->get('current_period_end', '');
+            if ($periodStart !== '' && $periodEnd !== '') {
+                $from = $from ?: $periodStart;
+                $to = $to ?: $periodEnd;
+            } else {
+                [$rf,$rt] = $computeRollingPeriod();
+                $from = $from ?: $rf;
+                $to = $to ?: $rt;
+            }
+        }
+
         if ($from && $to) {
             $week = $report->summary($from, $to, $sellerId);
             $month = $week; // quando filtrado, usar mesmo sumário
@@ -28,16 +58,21 @@ class ReportsController extends Controller
             // Dados de comissões/empresa para o período filtrado
             $commCalc = (new Commission())->computeRange($from.' 00:00:00', $to.' 23:59:59');
         } else {
+            // Fallback (não deve ocorrer): usar semana atual e mês corrente
             $week = $report->weekSummary();
-            // default month = current month
             $monthFrom = date('Y-m-01');
             $monthTo = date('Y-m-t');
             $month = $report->summary($monthFrom, $monthTo, null);
             $sellers = $report->bySeller($monthFrom, $monthTo);
-            // Dados de comissões/empresa para o mês atual
             $commCalc = (new Commission())->computeRange($monthFrom.' 00:00:00', $monthTo.' 23:59:59');
         }
         $months = $report->lastMonthsComparison(3);
+
+        // Excluir admins do desempenho (commItems)
+        $commItems = array_values(array_filter(($commCalc['items'] ?? []), function($it){
+            $role = $it['user']['role'] ?? '';
+            return in_array($role, ['seller','trainee','manager'], true);
+        }));
 
         $this->render('reports/index', [
             'title' => 'Relatórios',
@@ -46,14 +81,13 @@ class ReportsController extends Controller
             'week' => $week,
             'month' => $month,
             'months' => $months,
-            'sellers' => $sellers,
             'from' => $from,
             'to' => $to,
             'seller_id' => $sellerId,
             'users' => (new User())->allBasic(),
             // Commission/company overview
             'commTeam' => $commCalc['team'] ?? null,
-            'commItems' => $commCalc['items'] ?? [],
+            'commItems' => $commItems,
         ]);
     }
 
