@@ -214,7 +214,9 @@ use Core\Auth;
                 <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/donations">Doações</a></li>
                 <?php endif; ?>
+                <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/documentation-areas">Áreas Técnicas</a></li>
+                <?php endif; ?>
                 <?php if ($role === 'admin'): ?>
                   <li><a class="dropdown-item" href="/admin/api-calc">API de Cálculo</a></li>
                   <li><a class="dropdown-item" href="/admin/api-calc/logs">Logs da API de Cálculo</a></li>
