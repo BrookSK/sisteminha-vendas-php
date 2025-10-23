@@ -12,10 +12,35 @@ class GoalsController extends Controller
     public function index()
     {
         $this->requireRole(['manager','admin']);
-        $goals = (new Goal())->list(200,0);
+        $goalModel = new Goal();
+        $assign = new GoalAssignment();
+        $goals = $goalModel->list(200,0);
+        // Atualiza progresso atual de cada vendedor por meta e agrega totais do período
+        $dashMeta = 0.0; $dashReal = 0.0; $dashPrev = 0.0; $dashDiasTot = 0; $dashDiasPass = 0;
+        foreach ($goals as $g) {
+            $from = (string)($g['data_inicio'] ?? date('Y-m-01'));
+            $to = (string)($g['data_fim'] ?? date('Y-m-t'));
+            $diasTotais = max(1, (strtotime($to) - strtotime($from)) / 86400 + 1);
+            $diasPassados = max(1, (min(time(), strtotime($to)) - strtotime($from)) / 86400 + 1);
+            $rows = $assign->listByGoal((int)$g['id']);
+            foreach ($rows as $r) {
+                $real = $goalModel->salesTotalUsd($from, $to, (int)$r['id_vendedor']);
+                $assign->updateProgress((int)$g['id'], (int)$r['id_vendedor'], (float)$real);
+                $dashMeta += (float)($r['valor_meta'] ?? 0);
+                $dashReal += (float)$real;
+                // previsão individual: média diária x dias totais
+                $media = $diasPassados > 0 ? ($real / $diasPassados) : 0.0;
+                $dashPrev += $media * $diasTotais;
+            }
+            $dashDiasTot += (int)$diasTotais;
+            $dashDiasPass += (int)$diasPassados;
+        }
         $this->render('goals/index', [
             'title' => 'Metas e Previsões',
             'goals' => $goals,
+            'dash_meta' => $dashMeta,
+            'dash_real' => $dashReal,
+            'dash_prev' => $dashPrev,
             '_csrf' => \Core\Auth::csrf(),
         ]);
     }

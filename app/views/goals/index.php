@@ -96,25 +96,26 @@
       <div class="col-md-3">
         <div class="card"><div class="card-body">
           <div class="text-muted small">Meta total do mês</div>
-          <div class="fs-5">—</div>
+          <div class="fs-5">$ <?= number_format((float)($dash_meta ?? 0), 2, ',', '.') ?></div>
         </div></div>
       </div>
       <div class="col-md-3">
         <div class="card"><div class="card-body">
           <div class="text-muted small">Valor atual (realizado)</div>
-          <div class="fs-5">—</div>
+          <div class="fs-5">$ <?= number_format((float)($dash_real ?? 0), 2, ',', '.') ?></div>
         </div></div>
       </div>
       <div class="col-md-3">
         <div class="card"><div class="card-body">
           <div class="text-muted small">% atingido</div>
-          <div class="fs-5">—</div>
+          <?php $__dm = (float)($dash_meta ?? 0); $__dr=(float)($dash_real ?? 0); $__pct = $__dm>0 ? ($__dr/$__dm*100.0) : 0; ?>
+          <div class="fs-5"><?= number_format($__pct, 1, ',', '.') ?>%</div>
         </div></div>
       </div>
       <div class="col-md-3">
         <div class="card"><div class="card-body">
           <div class="text-muted small">Previsão final</div>
-          <div class="fs-5">—</div>
+          <div class="fs-5">$ <?= number_format((float)($dash_prev ?? 0), 2, ',', '.') ?></div>
         </div></div>
       </div>
     </div>
