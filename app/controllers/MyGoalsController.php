@@ -13,7 +13,18 @@ class MyGoalsController extends Controller
         $this->requireRole(['seller','trainee','manager','admin']);
         $me = Auth::user();
         $assign = new GoalAssignment();
-        $items = $assign->listForUser((int)($me['id'] ?? 0), 200, 0);
+        $uid = (int)($me['id'] ?? 0);
+        $items = $assign->listForUser($uid, 200, 0);
+        // Recalcular progresso atual a partir das vendas e persistir
+        $goalModel = new Goal();
+        foreach ($items as &$it) {
+            $from = (string)($it['data_inicio'] ?? date('Y-m-01'));
+            $to = (string)($it['data_fim'] ?? date('Y-m-t'));
+            $real = $goalModel->salesTotalUsd($from, $to, $uid);
+            $assign->updateProgress((int)$it['id_meta'], $uid, (float)$real);
+            $it['progresso_atual'] = (float)$real;
+        }
+        unset($it);
 
         // Simple per-item computed fields
         $today = date('Y-m-d');
