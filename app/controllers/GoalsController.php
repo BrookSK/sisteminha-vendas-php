@@ -30,7 +30,15 @@ class GoalsController extends Controller
                 $mediaG = $diasPassados > 0 ? ($realTotal / $diasPassados) : 0.0;
                 $dashPrev += $mediaG * $diasTotais;
             } else {
+                // garantir ao menos uma atribuição ao criador se estiver faltando
                 $rows = $assign->listByGoal((int)$g['id']);
+                if (empty($rows)) {
+                    $creatorId = (int)($g['criado_por'] ?? 0);
+                    if ($creatorId > 0) {
+                        $assign->upsert((int)$g['id'], $creatorId, (float)($g['valor_meta'] ?? 0));
+                        $rows = $assign->listByGoal((int)$g['id']);
+                    }
+                }
                 foreach ($rows as $r) {
                     $real = $goalModel->salesTotalUsd($from, $to, (int)$r['id_vendedor']);
                     $assign->updateProgress((int)$g['id'], (int)$r['id_vendedor'], (float)$real);
