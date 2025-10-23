@@ -71,11 +71,14 @@ class GoalsController extends Controller
     private function notifyAll(string $title, string $message): void
     {
         // notifica todos os usuários ativos
-        $db = (new Goal())->db; // access PDO
+        $db = \Core\Database::pdo(); // obter PDO da camada de DB
         $rows = $db->query("SELECT id FROM usuarios WHERE ativo=1")->fetchAll(\PDO::FETCH_ASSOC) ?: [];
-        $notif = new Notification();
-        foreach ($rows as $r) {
-            $notif->create((int)$r['id'], $title, $message, 'meta');
+        $userIds = array_map(function($r){ return (int)($r['id'] ?? 0); }, $rows);
+        $userIds = array_values(array_filter($userIds, fn($v)=>$v>0));
+        if (!empty($userIds)) {
+            $notif = new Notification();
+            $createdBy = (int)(Auth::user()['id'] ?? 0);
+            $notif->createWithUsers($createdBy, $title, $message, 'meta', 'new', $userIds);
         }
     }
 }
