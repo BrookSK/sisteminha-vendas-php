@@ -21,7 +21,7 @@
       </div>
       <div class="col-md-6">
         <label class="form-label">Cliente</label>
-        <div class="d-flex align-items-end gap-2 mb-2">
+        <div class="input-group mb-2">
           <input type="text" class="form-control" id="cliente_search" placeholder="Buscar cliente por nome, e-mail, suite...">
           <button type="button" class="btn btn-outline-secondary" id="refreshClientsIntl">Atualizar lista</button>
         </div>
