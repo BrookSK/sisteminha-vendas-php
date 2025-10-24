@@ -48,6 +48,11 @@ class SalesController extends Controller
         $this->requireRole(['seller','manager','admin']);
         $this->csrfCheck();
         $data = $this->collect($_POST);
+        // Validate selected client (handles stale form opened before creating client in another tab)
+        if ((int)($data['cliente_id'] ?? 0) <= 0) {
+            $this->flash('danger', 'Selecione um cliente. Se cadastrou agora em outra aba, use o botão "Atualizar lista" no campo Cliente e selecione novamente.');
+            return $this->redirect('/admin/sales/new');
+        }
         $setting = new Setting();
         $rate = (float)$setting->get('usd_rate', '5.83');
         $emb = (float)$setting->get('embalagem_usd_por_kg', '9.70');

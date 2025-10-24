@@ -23,14 +23,19 @@
 
             <div class="col-md-6">
               <label class="form-label">Cliente</label>
-              <select class="form-select" name="cliente_id" required>
-                <option value="">Selecione...</option>
-                <?php foreach ($clients as $c): ?>
-                  <option value="<?= (int)$c['id'] ?>" <?= isset($sale['cliente_id']) && (int)$sale['cliente_id'] === (int)$c['id'] ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($c['nome']) ?> <?= $c['suite'] ? '(' . htmlspecialchars($c['suite']) . ')' : '' ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
+              <div class="d-flex align-items-end gap-2">
+                <div class="flex-grow-1">
+                  <select class="form-select" name="cliente_id" required>
+                    <option value="">Selecione...</option>
+                    <?php foreach ($clients as $c): ?>
+                      <option value="<?= (int)$c['id'] ?>" <?= isset($sale['cliente_id']) && (int)$sale['cliente_id'] === (int)$c['id'] ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($c['nome']) ?> <?= $c['suite'] ? '(' . htmlspecialchars($c['suite']) . ')' : '' ?>
+                      </option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+                <button type="button" class="btn btn-outline-secondary" id="refreshClients">Atualizar lista</button>
+              </div>
               <div class="form-text">Caso o cliente não exista, cadastre em Clientes.</div>
             </div>
 
@@ -143,3 +148,32 @@
     </div>
   </div>
 </div>
+
+<script>
+(function(){
+  const btn = document.getElementById('refreshClients');
+  const sel = document.querySelector('select[name="cliente_id"]');
+  if (!btn || !sel) return;
+  btn.addEventListener('click', async function(){
+    const prev = sel.value;
+    btn.disabled = true; btn.textContent = 'Atualizando...';
+    try {
+      const r = await fetch('/admin/clients/options');
+      if (!r.ok) throw new Error('fail');
+      const list = await r.json();
+      sel.innerHTML = '<option value="">Selecione...</option>';
+      (list||[]).forEach(function(it){
+        const opt = document.createElement('option');
+        opt.value = String(it.id);
+        opt.textContent = String(it.text || '');
+        sel.appendChild(opt);
+      });
+      if (prev) sel.value = prev;
+    } catch(e) {
+      alert('Não foi possível atualizar a lista agora. Recarregue a página se o cliente não aparecer.');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Atualizar lista';
+    }
+  });
+})();
+</script>

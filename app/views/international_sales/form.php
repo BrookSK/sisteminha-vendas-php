@@ -21,7 +21,10 @@
       </div>
       <div class="col-md-6">
         <label class="form-label">Cliente</label>
-        <input type="text" class="form-control mb-2" id="cliente_search" placeholder="Buscar cliente por nome, e-mail, suite...">
+        <div class="d-flex align-items-end gap-2 mb-2">
+          <input type="text" class="form-control" id="cliente_search" placeholder="Buscar cliente por nome, e-mail, suite...">
+          <button type="button" class="btn btn-outline-secondary" id="refreshClientsIntl">Atualizar lista</button>
+        </div>
         <!-- anchored dropdown container (fixed, scrollable) -->
         <div class="client-dropdown" id="clientDropdown"></div>
         <select class="form-select d-none" name="cliente_id" id="cliente_id">
@@ -337,6 +340,32 @@
       clienteSearch.focus();
     }
   });
+
+  // Refresh clients button
+  const refreshBtn = document.getElementById('refreshClientsIntl');
+  if (refreshBtn && cliente) {
+    refreshBtn.addEventListener('click', async function(){
+      const prev = cliente.value;
+      refreshBtn.disabled = true; refreshBtn.textContent = 'Atualizando...';
+      try {
+        const r = await fetch('/admin/clients/options');
+        if (!r.ok) throw new Error('fail');
+        const list = await r.json();
+        cliente.innerHTML = '<option value="">Selecione...</option>';
+        (list||[]).forEach(function(it){
+          const opt = document.createElement('option');
+          opt.value = String(it.id);
+          opt.textContent = String(it.text||'');
+          cliente.appendChild(opt);
+        });
+        if (prev) cliente.value = prev;
+      } catch(e) {
+        alert('Não foi possível atualizar a lista agora. Recarregue a página se o cliente não aparecer.');
+      } finally {
+        refreshBtn.disabled = false; refreshBtn.textContent = 'Atualizar lista';
+      }
+    });
+  }
 
   // Dica opcional pode ser adicionada aqui; edição de data liberada no servidor.
 
