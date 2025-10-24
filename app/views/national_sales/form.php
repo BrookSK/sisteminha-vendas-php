@@ -20,7 +20,10 @@
       </div>
       <div class="col-md-6">
         <label class="form-label">Cliente</label>
-        <input type="text" class="form-control mb-2" id="cliente_search" placeholder="Buscar cliente por nome, e-mail, suite...">
+        <div class="d-flex align-items-end gap-2 mb-2">
+          <input type="text" class="form-control" id="cliente_search" placeholder="Buscar cliente por nome, e-mail, suite...">
+          <button type="button" class="btn btn-outline-secondary" id="refreshClientsNat">Atualizar lista</button>
+        </div>
         <!-- anchored dropdown container (fixed, scrollable) -->
         <div class="client-dropdown" id="clientDropdownNat"></div>
         <select class="form-select d-none" name="cliente_id" id="cliente_id">
@@ -93,7 +96,7 @@
       </div>
 
       <div class="col-12">
-        <button type="button" class="btn btn-sm btn-outline-secondary mb-2" id="btnVerCalculo">🧮 Ver Cálculo</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary mb-2" id="btnVerCalculo">Ver Cálculo</button>
         <div class="row g-3">
           <div class="col-md-3">
             <label class="form-label">Comissão Estimada (USD)</label>
@@ -365,6 +368,32 @@
       clienteSearch.focus();
     }
   });
+
+  // Refresh clients button
+  const refreshBtnNat = document.getElementById('refreshClientsNat');
+  if (refreshBtnNat && cliente) {
+    refreshBtnNat.addEventListener('click', async function(){
+      const prev = cliente.value;
+      refreshBtnNat.disabled = true; refreshBtnNat.textContent = 'Atualizando...';
+      try {
+        const r = await fetch('/admin/clients/options');
+        if (!r.ok) throw new Error('fail');
+        const list = await r.json();
+        cliente.innerHTML = '<option value=\"\">Selecione...</option>';
+        (list||[]).forEach(function(it){
+          const opt = document.createElement('option');
+          opt.value = String(it.id);
+          opt.textContent = String(it.text||'');
+          cliente.appendChild(opt);
+        });
+        if (prev) cliente.value = prev;
+      } catch(e) {
+        alert('Não foi possível atualizar a lista agora. Recarregue a página se o cliente não aparecer.');
+      } finally {
+        refreshBtnNat.disabled = false; refreshBtnNat.textContent = 'Atualizar lista';
+      }
+    });
+  }
 
   // Modal handlers
   const btn = document.getElementById('btnVerCalculo');
