@@ -87,6 +87,7 @@ class InternationalSalesController extends Controller
         $me = Auth::user();
         // Require client selection server-side to avoid FK error
         if (empty($data['cliente_id']) || (int)$data['cliente_id'] <= 0) {
+            $this->flash('danger', 'Selecione um cliente. Se cadastrou agora em outra aba, clique em "Atualizar lista" e selecione o cliente antes de salvar.');
             return $this->redirect('/admin/international-sales/new');
         }
         // Ignore manual observation on create; system manages it automatically on date edits
@@ -156,6 +157,7 @@ class InternationalSalesController extends Controller
         $me = Auth::user();
         // Require client selection server-side as safeguard
         if (empty($data['cliente_id']) || (int)$data['cliente_id'] <= 0) {
+            $this->flash('danger', 'Selecione um cliente. Se cadastrou agora em outra aba, clique em "Atualizar lista" e selecione o cliente antes de salvar.');
             return $this->redirect('/admin/international-sales/edit?id=' . $id);
         }
         // permitir alteração de data para seller/manager/admin
