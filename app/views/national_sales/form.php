@@ -363,6 +363,33 @@
   // Validate client selection on submit
   form.addEventListener('submit', function(e){
     if (!cliente.value) {
+      // Try to auto-pick if there is a unique search result matching current query
+      const q = clienteSearch.value.trim();
+      if (q.length >= 2) {
+        e.preventDefault();
+        fetch('/admin/clients/search?q=' + encodeURIComponent(q))
+          .then(r=>r.json())
+          .then(arr=>{
+            if (Array.isArray(arr) && arr.length === 1) {
+              const item = arr[0];
+              cliente.value = item.id;
+              const sBR = item.suite_br ? ('BR-' + item.suite_br) : null;
+              const sUS = item.suite_us ? ('US-' + item.suite_us) : null;
+              const sRED = item.suite_red ? ('RED-' + item.suite_red) : null;
+              const sGLOB = item.suite_globe ? ('GLOB-' + item.suite_globe) : null;
+              const all = [sBR,sUS,sRED,sGLOB].filter(Boolean);
+              suitesInfo.textContent = all.length ? ('Suítes: ' + all.join(', ')) : '';
+              suite.value = all.join(', ');
+              clienteSearch.value = item.text;
+              form.submit();
+              return;
+            }
+            alert('Selecione um cliente antes de salvar.');
+            clienteSearch.focus();
+          })
+          .catch(()=>{ alert('Selecione um cliente antes de salvar.'); clienteSearch.focus(); });
+        return;
+      }
       e.preventDefault();
       alert('Selecione um cliente antes de salvar.');
       clienteSearch.focus();
@@ -379,7 +406,7 @@
         const r = await fetch('/admin/clients/options');
         if (!r.ok) throw new Error('fail');
         const list = await r.json();
-        cliente.innerHTML = '<option value=\"\">Selecione...</option>';
+        cliente.innerHTML = '<option value="">Selecione...</option>';
         (list||[]).forEach(function(it){
           const opt = document.createElement('option');
           opt.value = String(it.id);
@@ -387,6 +414,26 @@
           cliente.appendChild(opt);
         });
         if (prev) cliente.value = prev;
+        // If there is a unique match to current search, select it automatically
+        const q = (clienteSearch.value||'').trim();
+        if (q.length >= 2) {
+          const res = await fetch('/admin/clients/search?q=' + encodeURIComponent(q));
+          if (res.ok) {
+            const arr = await res.json();
+            if (Array.isArray(arr) && arr.length === 1) {
+              const item = arr[0];
+              cliente.value = String(item.id);
+              const sBR = item.suite_br ? ('BR-' + item.suite_br) : null;
+              const sUS = item.suite_us ? ('US-' + item.suite_us) : null;
+              const sRED = item.suite_red ? ('RED-' + item.suite_red) : null;
+              const sGLOB = item.suite_globe ? ('GLOB-' + item.suite_globe) : null;
+              const all = [sBR,sUS,sRED,sGLOB].filter(Boolean);
+              suitesInfo.textContent = all.length ? ('Suítes: ' + all.join(', ')) : '';
+              suite.value = all.join(', ');
+              clienteSearch.value = item.text;
+            }
+          }
+        }
       } catch(e) {
         alert('Não foi possível atualizar a lista agora. Recarregue a página se o cliente não aparecer.');
       } finally {
@@ -395,12 +442,26 @@
     });
   }
 
+  // Zero-clearing on focus/blur for editable numeric inputs
+  (function(){
+    const editable = Array.from(form.querySelectorAll('input.calc:not([readonly]):not([disabled])'));
+    editable.forEach(function(el){
+      el.addEventListener('focus', function(){
+        const v = (el.value||'').trim();
+        if (v === '0' || v === '0.0' || v === '0.00' || v === '0.0000') { el.value = ''; }
+      });
+      el.addEventListener('blur', function(){
+        const v = (el.value||'').trim();
+        if (v === '') { el.value = '0'; }
+      });
+    });
+  })();
+
   // Modal handlers
   const btn = document.getElementById('btnVerCalculo');
   const modal = document.getElementById('calcModal');
   const close1 = document.getElementById('calcClose');
   const close2 = document.getElementById('calcClose2');
-  const btnCopy = document.getElementById('btnCopyCalc');
   function openM(){ if(modal){ modal.style.display='block'; } }
   function closeM(){ if(modal){ modal.style.display='none'; } }
   if (btn) btn.addEventListener('click', openM);

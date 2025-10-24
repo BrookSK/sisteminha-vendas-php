@@ -4,10 +4,21 @@
   <a href="/admin/clients/new" class="btn btn-primary">Novo Cliente</a>
 </div>
 <form class="row g-2 mb-3" method="get" action="/admin/clients">
-  <div class="col-sm-10">
+  <div class="col-md-7 col-sm-12">
     <input type="text" class="form-control" name="q" placeholder="Buscar por nome, e-mail, telefone ou suite" value="<?= htmlspecialchars($q ?? '') ?>">
   </div>
-  <div class="col-sm-2 d-grid">
+  <div class="col-md-3 col-sm-6">
+    <?php $sortVal = $sort ?? 'created_at_desc'; ?>
+    <select class="form-select" name="sort">
+      <option value="created_at_desc" <?= $sortVal==='created_at_desc'?'selected':'' ?>>Mais recentes</option>
+      <option value="created_at_asc" <?= $sortVal==='created_at_asc'?'selected':'' ?>>Mais antigos</option>
+      <option value="nome_asc" <?= $sortVal==='nome_asc'?'selected':'' ?>>Nome (A-Z)</option>
+      <option value="nome_desc" <?= $sortVal==='nome_desc'?'selected':'' ?>>Nome (Z-A)</option>
+      <option value="total_vendas_desc" <?= $sortVal==='total_vendas_desc'?'selected':'' ?>>Total vendas (maior→menor)</option>
+      <option value="total_vendas_asc" <?= $sortVal==='total_vendas_asc'?'selected':'' ?>>Total vendas (menor→maior)</option>
+    </select>
+  </div>
+  <div class="col-md-2 col-sm-6 d-grid">
     <button class="btn btn-outline-secondary" type="submit">Buscar</button>
   </div>
 </form>
@@ -76,10 +87,10 @@
 <?php if (($totalPages ?? 1) > 1): ?>
 <nav aria-label="Clientes pagination" class="mt-3">
   <ul class="pagination justify-content-center">
-    <?php $qp = $q ?? ''; ?>
+    <?php $qp = $q ?? ''; $sp = $sort ?? 'created_at_desc'; ?>
     <?php $p = (int)($page ?? 1); $tp = (int)($totalPages ?? 1); ?>
     <li class="page-item <?= $p <= 1 ? 'disabled' : '' ?>">
-      <a class="page-link" href="/admin/clients?page=<?= max(1,$p-1) ?>&q=<?= urlencode($qp) ?>" tabindex="-1">Anterior</a>
+      <a class="page-link" href="/admin/clients?page=<?= max(1,$p-1) ?>&q=<?= urlencode($qp) ?>&sort=<?= urlencode($sp) ?>" tabindex="-1">Anterior</a>
     </li>
     <?php 
       $start = max(1, $p-2);
@@ -87,11 +98,11 @@
       for ($i=$start; $i<=$end; $i++):
     ?>
       <li class="page-item <?= $i === $p ? 'active' : '' ?>">
-        <a class="page-link" href="/admin/clients?page=<?= $i ?>&q=<?= urlencode($qp) ?>"><?= $i ?></a>
+        <a class="page-link" href="/admin/clients?page=<?= $i ?>&q=<?= urlencode($qp) ?>&sort=<?= urlencode($sp) ?>"><?= $i ?></a>
       </li>
     <?php endfor; ?>
     <li class="page-item <?= $p >= $tp ? 'disabled' : '' ?>">
-      <a class="page-link" href="/admin/clients?page=<?= min($tp,$p+1) ?>&q=<?= urlencode($qp) ?>">Próxima</a>
+      <a class="page-link" href="/admin/clients?page=<?= min($tp,$p+1) ?>&q=<?= urlencode($qp) ?>&sort=<?= urlencode($sp) ?>">Próxima</a>
     </li>
   </ul>
 </nav>
