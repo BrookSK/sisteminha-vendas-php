@@ -13,7 +13,38 @@ class MyGoalsController extends Controller
         $this->requireRole(['seller','trainee','manager','admin']);
         $me = Auth::user();
         $assign = new GoalAssignment();
-        $items = $assign->listForUser((int)($me['id'] ?? 0), 200, 0);
+        $uid = (int)($me['id'] ?? 0);
+        // Garantir que metas individuais criadas por este usuário estejam atribuídas a ele
+        try {
+            $db = \Core\Database::pdo();
+            $sql = "SELECT m.id, m.valor_meta FROM metas m
+                    WHERE m.tipo='individual' AND m.criado_por = :u
+                      AND NOT EXISTS (
+                        SELECT 1 FROM metas_vendedores mv
+                        WHERE mv.id_meta = m.id AND mv.id_vendedor = :u
+                      )";
+            $st = $db->prepare($sql);
+            $st->execute([':u'=>$uid]);
+            $missing = $st->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+            foreach ($missing as $row) {
+                $gid = (int)$row['id'];
+                $val = (float)($row['valor_meta'] ?? 0);
+                $assign->upsert($gid, $uid, $val);
+            }
+        } catch (\Throwable $e) { /* ignore */ }
+
+        // Carregar itens após possíveis auto-atribuições
+        $items = $assign->listForUser($uid, 200, 0);
+        // Recalcular progresso atual a partir das vendas e persistir
+        $goalModel = new Goal();
+        foreach ($items as &$it) {
+            $from = (string)($it['data_inicio'] ?? date('Y-m-01'));
+            $to = (string)($it['data_fim'] ?? date('Y-m-t'));
+            $real = $goalModel->salesTotalUsd($from, $to, $uid);
+            $assign->updateProgress((int)$it['id_meta'], $uid, (float)$real);
+            $it['progresso_atual'] = (float)$real;
+        }
+        unset($it);
 
         // Simple per-item computed fields
         $today = date('Y-m-d');

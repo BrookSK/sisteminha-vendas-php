@@ -21,7 +21,10 @@
       </div>
       <div class="col-md-6">
         <label class="form-label">Cliente</label>
-        <input type="text" class="form-control mb-2" id="cliente_search" placeholder="Buscar cliente por nome, e-mail, suite...">
+        <div class="input-group mb-2">
+          <input type="text" class="form-control" id="cliente_search" placeholder="Buscar cliente por nome, e-mail, suite...">
+          <button type="button" class="btn btn-outline-secondary" id="refreshClientsIntl">Atualizar lista</button>
+        </div>
         <!-- anchored dropdown container (fixed, scrollable) -->
         <div class="client-dropdown" id="clientDropdown"></div>
         <select class="form-select d-none" name="cliente_id" id="cliente_id">
@@ -276,10 +279,15 @@
   document.addEventListener('click', function(e){ if (!dropdown.contains(e.target) && e.target !== clienteSearch) { closeDropdown(); } });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeDropdown(); });
 
-  clienteSearch.addEventListener('input', function(){ openDropdown();
+  clienteSearch.addEventListener('input', function(){
+    openDropdown();
     const q = clienteSearch.value.trim();
     if (tId) clearTimeout(tId);
-    if (q.length < 2) { dropdown.innerHTML=''; return; }
+    if (q.length < 2) { dropdown.innerHTML = ''; return; }
+
+    // Loading state while fetching
+    dropdown.innerHTML = '<div class="list-group-item text-muted">Carregando...</div>';
+
     tId = setTimeout(async ()=>{
       try {
         const res = await fetch('/admin/clients/search?q='+encodeURIComponent(q));
@@ -332,11 +340,99 @@
   // Validate client selection on submit (required)
   form.addEventListener('submit', function(e){
     if (!cliente.value) {
+      // Try auto-pick when there is a single match for current query
+      const q = clienteSearch.value.trim();
+      if (q.length >= 2) {
+        e.preventDefault();
+        fetch('/admin/clients/search?q=' + encodeURIComponent(q))
+          .then(r=>r.json())
+          .then(arr=>{
+            if (Array.isArray(arr) && arr.length === 1) {
+              const item = arr[0];
+              cliente.value = item.id;
+              const sBR = item.suite_br ? ('BR-' + item.suite_br) : null;
+              const sUS = item.suite_us ? ('US-' + item.suite_us) : null;
+              const sRED = item.suite_red ? ('RED-' + item.suite_red) : null;
+              const sGLOB = item.suite_globe ? ('GLOB-' + item.suite_globe) : null;
+              const all = [sBR,sUS,sRED,sGLOB].filter(Boolean);
+              suitesInfo.textContent = all.length ? ('Suítes: ' + all.join(', ')) : '';
+              suite.value = all.join(', ');
+              clienteSearch.value = item.text;
+              form.submit();
+              return;
+            }
+            alert('Selecione um cliente antes de salvar.');
+            clienteSearch.focus();
+          })
+          .catch(()=>{ alert('Selecione um cliente antes de salvar.'); clienteSearch.focus(); });
+        return;
+      }
       e.preventDefault();
       alert('Selecione um cliente antes de salvar.');
       clienteSearch.focus();
     }
   });
+
+  // Refresh clients button
+  const refreshBtn = document.getElementById('refreshClientsIntl');
+  if (refreshBtn && cliente) {
+    refreshBtn.addEventListener('click', async function(){
+      const prev = cliente.value;
+      refreshBtn.disabled = true; refreshBtn.textContent = 'Atualizando...';
+      try {
+        const r = await fetch('/admin/clients/options');
+        if (!r.ok) throw new Error('fail');
+        const list = await r.json();
+        cliente.innerHTML = '<option value="">Selecione...</option>';
+        (list||[]).forEach(function(it){
+          const opt = document.createElement('option');
+          opt.value = String(it.id);
+          opt.textContent = String(it.text||'');
+          cliente.appendChild(opt);
+        });
+        if (prev) cliente.value = prev;
+        // Auto-select unique match for current query, if any
+        const q = (clienteSearch.value||'').trim();
+        if (q.length >= 2) {
+          const res = await fetch('/admin/clients/search?q=' + encodeURIComponent(q));
+          if (res.ok) {
+            const arr = await res.json();
+            if (Array.isArray(arr) && arr.length === 1) {
+              const item = arr[0];
+              cliente.value = String(item.id);
+              const sBR = item.suite_br ? ('BR-' + item.suite_br) : null;
+              const sUS = item.suite_us ? ('US-' + item.suite_us) : null;
+              const sRED = item.suite_red ? ('RED-' + item.suite_red) : null;
+              const sGLOB = item.suite_globe ? ('GLOB-' + item.suite_globe) : null;
+              const all = [sBR,sUS,sRED,sGLOB].filter(Boolean);
+              suitesInfo.textContent = all.length ? ('Suítes: ' + all.join(', ')) : '';
+              suite.value = all.join(', ');
+              clienteSearch.value = item.text;
+            }
+          }
+        }
+      } catch(e) {
+        alert('Não foi possível atualizar a lista agora. Recarregue a página se o cliente não aparecer.');
+      } finally {
+        refreshBtn.disabled = false; refreshBtn.textContent = 'Atualizar lista';
+      }
+    });
+  }
+
+  // Zero-clearing on focus/blur for editable numeric inputs
+  (function(){
+    const editable = Array.from(form.querySelectorAll('input.calc:not([readonly]):not([disabled])'));
+    editable.forEach(function(el){
+      el.addEventListener('focus', function(){
+        const v = (el.value||'').trim();
+        if (v === '0' || v === '0.0' || v === '0.00' || v === '0.0000') { el.value = ''; }
+      });
+      el.addEventListener('blur', function(){
+        const v = (el.value||'').trim();
+        if (v === '') { el.value = '0'; }
+      });
+    });
+  })();
 
   // Dica opcional pode ser adicionada aqui; edição de data liberada no servidor.
 

@@ -16,17 +16,20 @@ class ClientsController extends Controller
         $this->requireRole(['seller','organic','trainee','manager','admin']);
         $q = trim($_GET['q'] ?? '');
         $client = new Client();
+        // Sorting
+        $sort = $_GET['sort'] ?? 'created_at_desc';
         // Pagination: 20 per page
         $perPage = 20;
         $page = max(1, (int)($_GET['page'] ?? 1));
         $offset = ($page - 1) * $perPage;
         // Sellers can now see all clients (no owner filter)
-        $clients = $client->search($q ?: null, $perPage, $offset, null);
+        $clients = $client->search($q ?: null, $perPage, $offset, null, $sort);
         $total = (int)$client->countAll($q ?: null);
         $totalPages = max(1, (int)ceil($total / $perPage));
         $this->render('clients/index', [
             'title' => 'Clientes',
             'q' => $q,
+            'sort' => $sort,
             'clients' => $clients,
             'page' => $page,
             'perPage' => $perPage,

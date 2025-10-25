@@ -12,10 +12,52 @@ class GoalsController extends Controller
     public function index()
     {
         $this->requireRole(['manager','admin']);
-        $goals = (new Goal())->list(200,0);
+        $goalModel = new Goal();
+        $assign = new GoalAssignment();
+        $goals = $goalModel->list(200,0);
+        // Atualiza progresso atual de cada vendedor por meta e agrega totais do período
+        $dashMeta = 0.0; $dashReal = 0.0; $dashPrev = 0.0; $dashDiasTot = 0; $dashDiasPass = 0;
+        foreach ($goals as $g) {
+            $from = (string)($g['data_inicio'] ?? date('Y-m-01'));
+            $to = (string)($g['data_fim'] ?? date('Y-m-t'));
+            $diasTotais = max(1, (strtotime($to) - strtotime($from)) / 86400 + 1);
+            $diasPassados = max(1, (min(time(), strtotime($to)) - strtotime($from)) / 86400 + 1);
+            if (($g['tipo'] ?? 'global') === 'global') {
+                // contabiliza meta global mesmo sem atribuições
+                $realTotal = $goalModel->salesTotalUsd($from, $to, null);
+                $dashMeta += (float)($g['valor_meta'] ?? 0);
+                $dashReal += (float)$realTotal;
+                $mediaG = $diasPassados > 0 ? ($realTotal / $diasPassados) : 0.0;
+                $dashPrev += $mediaG * $diasTotais;
+            } else {
+                // garantir ao menos uma atribuição ao criador se estiver faltando
+                $rows = $assign->listByGoal((int)$g['id']);
+                if (empty($rows)) {
+                    $creatorId = (int)($g['criado_por'] ?? 0);
+                    if ($creatorId > 0) {
+                        $assign->upsert((int)$g['id'], $creatorId, (float)($g['valor_meta'] ?? 0));
+                        $rows = $assign->listByGoal((int)$g['id']);
+                    }
+                }
+                foreach ($rows as $r) {
+                    $real = $goalModel->salesTotalUsd($from, $to, (int)$r['id_vendedor']);
+                    $assign->updateProgress((int)$g['id'], (int)$r['id_vendedor'], (float)$real);
+                    $dashMeta += (float)($r['valor_meta'] ?? 0);
+                    $dashReal += (float)$real;
+                    // previsão individual: média diária x dias totais
+                    $media = $diasPassados > 0 ? ($real / $diasPassados) : 0.0;
+                    $dashPrev += $media * $diasTotais;
+                }
+            }
+            $dashDiasTot += (int)$diasTotais;
+            $dashDiasPass += (int)$diasPassados;
+        }
         $this->render('goals/index', [
             'title' => 'Metas e Previsões',
             'goals' => $goals,
+            'dash_meta' => $dashMeta,
+            'dash_real' => $dashReal,
+            'dash_prev' => $dashPrev,
             '_csrf' => \Core\Auth::csrf(),
         ]);
     }
@@ -33,7 +75,12 @@ class GoalsController extends Controller
             'data_inicio' => $_POST['data_inicio'] ?? date('Y-m-01'),
             'data_fim' => $_POST['data_fim'] ?? date('Y-m-t'),
         ];
-        $id = (new Goal())->create($in, Auth::user()['id'] ?? null);
+        $creatorId = (int)(Auth::user()['id'] ?? 0);
+        $id = (new Goal())->create($in, $creatorId);
+        // Atribuição automática: metas individuais pertencem ao criador
+        if (($in['tipo'] ?? 'global') === 'individual' && $creatorId > 0) {
+            (new GoalAssignment())->upsert((int)$id, $creatorId, (float)($in['valor_meta'] ?? 0));
+        }
         // Notificar vendedores (simples): todos ativos
         $this->notifyAll("Nova meta: {$in['titulo']}", 'Uma nova meta foi criada. Verifique seu painel.');
         return $this->redirect('/admin/goals');
@@ -55,6 +102,19 @@ class GoalsController extends Controller
             'data_fim' => $_POST['data_fim'] ?? date('Y-m-t'),
         ];
         (new Goal())->updateRow($id, $in);
+        // Garantir atribuição para metas individuais (caso tenham sido criadas antes da automação)
+        try {
+            $g = (new Goal())->find($id);
+            if (($g['tipo'] ?? 'global') === 'individual') {
+                $rows = (new GoalAssignment())->listByGoal($id);
+                if (empty($rows)) {
+                    $creatorId = (int)($g['criado_por'] ?? 0);
+                    if ($creatorId > 0) {
+                        (new GoalAssignment())->upsert($id, $creatorId, (float)($g['valor_meta'] ?? 0));
+                    }
+                }
+            }
+        } catch (\Throwable $e) { /* ignore */ }
         $this->notifyAll("Meta atualizada: {$in['titulo']}", 'Uma meta foi atualizada. Verifique seu painel.');
         return $this->redirect('/admin/goals');
     }
@@ -71,11 +131,14 @@ class GoalsController extends Controller
     private function notifyAll(string $title, string $message): void
     {
         // notifica todos os usuários ativos
-        $db = (new Goal())->db; // access PDO
+        $db = \Core\Database::pdo(); // obter PDO da camada de DB
         $rows = $db->query("SELECT id FROM usuarios WHERE ativo=1")->fetchAll(\PDO::FETCH_ASSOC) ?: [];
-        $notif = new Notification();
-        foreach ($rows as $r) {
-            $notif->create((int)$r['id'], $title, $message, 'meta');
+        $userIds = array_map(function($r){ return (int)($r['id'] ?? 0); }, $rows);
+        $userIds = array_values(array_filter($userIds, fn($v)=>$v>0));
+        if (!empty($userIds)) {
+            $notif = new Notification();
+            $createdBy = (int)(Auth::user()['id'] ?? 0);
+            $notif->createWithUsers($createdBy, $title, $message, 'meta', 'new', $userIds);
         }
     }
 }

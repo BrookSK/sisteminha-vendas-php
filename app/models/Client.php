@@ -27,7 +27,7 @@ class Client extends Model
         }
     }
 
-    public function search(?string $q = null, int $limit = 20, int $offset = 0, ?int $ownerId = null): array
+    public function search(?string $q = null, int $limit = 20, int $offset = 0, ?int $ownerId = null, ?string $sort = null): array
     {
         $hasOwner = $this->hasOwnerColumn();
         $hasMulti = $this->hasMultiSuites();
@@ -66,7 +66,17 @@ class Client extends Model
                 + COALESCE((SELECT COUNT(*) FROM vendas_nacionais vn WHERE vn.cliente_id = c.id),0)
             ) as total_vendas FROM clientes c";
         if ($conds) { $sql .= ' WHERE '.implode(' AND ', $conds); }
-        $sql .= ' ORDER BY c.created_at DESC LIMIT ' . $lim . ' OFFSET ' . $off;
+        // Whitelist sorting
+        $orderBy = 'c.created_at DESC';
+        switch ($sort) {
+            case 'created_at_asc': $orderBy = 'c.created_at ASC'; break;
+            case 'nome_asc': $orderBy = 'c.nome ASC'; break;
+            case 'nome_desc': $orderBy = 'c.nome DESC'; break;
+            case 'total_vendas_desc': $orderBy = 'total_vendas DESC, c.created_at DESC'; break;
+            case 'total_vendas_asc': $orderBy = 'total_vendas ASC, c.created_at DESC'; break;
+            default: /* created_at_desc */ $orderBy = 'c.created_at DESC';
+        }
+        $sql .= ' ORDER BY ' . $orderBy . ' LIMIT ' . $lim . ' OFFSET ' . $off;
         $stmt = $this->db->prepare($sql);
         $stmt->execute($vals);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
