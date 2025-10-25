@@ -279,10 +279,15 @@
   document.addEventListener('click', function(e){ if (!dropdown.contains(e.target) && e.target !== clienteSearch) { closeDropdown(); } });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeDropdown(); });
 
-  clienteSearch.addEventListener('input', function(){ openDropdown();
+  clienteSearch.addEventListener('input', function(){
+    openDropdown();
     const q = clienteSearch.value.trim();
     if (tId) clearTimeout(tId);
-    if (q.length < 2) { dropdown.innerHTML=''; return; }
+    if (q.length < 2) { dropdown.innerHTML = ''; return; }
+
+    // Loading state while fetching
+    dropdown.innerHTML = '<div class="list-group-item text-muted">Carregando...</div>';
+
     tId = setTimeout(async ()=>{
       try {
         const res = await fetch('/admin/clients/search?q='+encodeURIComponent(q));
