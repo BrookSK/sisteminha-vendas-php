@@ -48,6 +48,17 @@ class MyGoalsController extends Controller
                 if ((int)($row['vendedor_id'] ?? 0) === (int)$uid) { $mine = $row; break; }
             }
             $real = (float)($mine['bruto_total'] ?? 0.0);
+            if ($real <= 0.0) {
+                // Segundo caminho: somar por fonte com o mesmo período
+                try {
+                    $src = (new Commission())->sellerSourceSums((int)$uid, $from.' 00:00:00', $to.' 23:59:59');
+                    $real = (float)($src['total']['bruto_total'] ?? 0.0);
+                } catch (\Throwable $e) { /* ignore */ }
+            }
+            if ($real <= 0.0) {
+                // Último fallback: sumarização direta
+                try { $real = (new Goal())->salesTotalUsd($from, $to, $uid); } catch (\Throwable $e) { /* ignore */ }
+            }
             $assign->updateProgress((int)$it['id_meta'], $uid, (float)$real);
             $it['progresso_atual'] = (float)$real;
         }
