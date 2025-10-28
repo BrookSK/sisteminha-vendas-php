@@ -27,13 +27,13 @@ class DashboardController extends Controller
         // Comissão e totais alinhados à tela de comissões
         $comm = new Commission();
         $calc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
-        // Derivar bruto/liquido para os cards a partir do mesmo cálculo
+        // Derivar bruto e líquido (após custos) para os cards a partir do mesmo cálculo
         $sumBruto = 0.0; $sumLiquido = 0.0; $commissionTotalUSD = 0.0;
         if (in_array($role, ['seller','trainee'], true)) {
             foreach (($calc['items'] ?? []) as $it) {
                 if ((int)($it['vendedor_id'] ?? 0) === (int)$sellerId) {
                     $sumBruto = (float)($it['bruto_total'] ?? 0);
-                    $sumLiquido = (float)($it['liquido_total'] ?? 0);
+                    $sumLiquido = (float)($it['liquido_apurado'] ?? ($it['liquido_total'] ?? 0));
                     $commissionTotalUSD = (float)($it['comissao_final'] ?? 0);
                     break;
                 }
@@ -41,7 +41,7 @@ class DashboardController extends Controller
         } else {
             foreach (($calc['items'] ?? []) as $it) {
                 $sumBruto += (float)($it['bruto_total'] ?? 0);
-                $sumLiquido += (float)($it['liquido_total'] ?? 0);
+                $sumLiquido += (float)($it['liquido_apurado'] ?? ($it['liquido_total'] ?? 0));
                 $commissionTotalUSD += (float)($it['comissao_final'] ?? 0);
             }
         }

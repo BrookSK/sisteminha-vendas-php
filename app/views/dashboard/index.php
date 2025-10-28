@@ -71,7 +71,7 @@
   <div class="col-md-3">
     <div class="card text-bg-light">
       <div class="card-body">
-        <div class="fs-6 text-muted">Líquido (USD)</div>
+        <div class="fs-6 text-muted">Líquido (após custos) (USD)</div>
         <div class="fs-4 fw-bold">$ <?= number_format((float)($summary['total_liquido_usd'] ?? 0), 2) ?></div>
         <div class="text-muted">BRL R$ <?= number_format(((float)($summary['total_liquido_usd'] ?? 0)) * (float)($rate ?? 0), 2) ?></div>
       </div>

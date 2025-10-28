@@ -5,6 +5,8 @@ use Core\Controller;
 use Core\Auth;
 use Models\Goal;
 use Models\GoalAssignment;
+use Models\Setting;
+use Models\Commission;
 
 class MyGoalsController extends Controller
 {
@@ -35,12 +37,17 @@ class MyGoalsController extends Controller
 
         // Carregar itens após possíveis auto-atribuições
         $items = $assign->listForUser($uid, 200, 0);
-        // Recalcular progresso atual a partir das vendas e persistir
-        $goalModel = new Goal();
+        // Recalcular progresso atual a partir do mesmo cálculo de comissões (alinhado ao dashboard)
         foreach ($items as &$it) {
             $from = (string)($it['data_inicio'] ?? date('Y-m-01'));
             $to = (string)($it['data_fim'] ?? date('Y-m-t'));
-            $real = $goalModel->salesTotalUsd($from, $to, $uid);
+            $comm = new Commission();
+            $calc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
+            $mine = null;
+            foreach (($calc['items'] ?? []) as $row) {
+                if ((int)($row['vendedor_id'] ?? 0) === (int)$uid) { $mine = $row; break; }
+            }
+            $real = (float)($mine['bruto_total'] ?? 0.0);
             $assign->updateProgress((int)$it['id_meta'], $uid, (float)$real);
             $it['progresso_atual'] = (float)$real;
         }
@@ -62,11 +69,12 @@ class MyGoalsController extends Controller
         }
         unset($it);
 
-        // Injetar meta GLOBAL (50k) como item junto com as demais
-        $from = date('Y-m-01');
-        $to = date('Y-m-t');
+        // Injetar meta GLOBAL (50k) usando período padrão do sistema
+        try { [$from, $to] = (new Setting())->currentPeriod(); } catch (\Throwable $e) { $from = date('Y-m-10'); $to = date('Y-m-09', strtotime('first day of next month')); }
         $globalTargetUsd = 50000.0;
-        $globalActualUsd = (new Goal())->salesTotalUsd($from, $to, null);
+        $commG = new Commission();
+        $calcG = $commG->computeRange($from.' 00:00:00', $to.' 23:59:59');
+        $globalActualUsd = (float)($calcG['team']['team_bruto_total'] ?? 0.0);
         // cálculos iguais aos demais itens
         $today = date('Y-m-d');
         $diasTotais = max(1, (strtotime($to) - strtotime($from))/86400 + 1);
