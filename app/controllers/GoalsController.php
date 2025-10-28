@@ -60,6 +60,12 @@ class GoalsController extends Controller
             'dash_real' => $dashReal,
             'dash_prev' => $dashPrev,
             '_csrf' => \Core\Auth::csrf(),
+            'users' => (function(){
+                try {
+                    $db = \Core\Database::pdo();
+                    return $db->query("SELECT id, name, role, ativo FROM usuarios ORDER BY name")->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                } catch (\Throwable $e) { return []; }
+            })(),
         ]);
     }
 
@@ -84,10 +90,6 @@ class GoalsController extends Controller
         }
         $creatorId = (int)(Auth::user()['id'] ?? 0);
         $id = (new Goal())->create($in, $creatorId);
-        // Atribuição automática: metas individuais pertencem ao criador
-        if (($in['tipo'] ?? 'global') === 'individual' && $creatorId > 0) {
-            (new GoalAssignment())->upsert((int)$id, $creatorId, (float)($in['valor_meta'] ?? 0));
-        }
         // Notificar vendedores (simples): todos ativos
         $this->notifyAll("Nova meta: {$in['titulo']}", 'Uma nova meta foi criada. Verifique seu painel.');
         return $this->redirect('/admin/goals');
@@ -114,19 +116,7 @@ class GoalsController extends Controller
             if (empty($in['data_fim'])) $in['data_fim'] = $to;
         }
         (new Goal())->updateRow($id, $in);
-        // Garantir atribuição para metas individuais (caso tenham sido criadas antes da automação)
-        try {
-            $g = (new Goal())->find($id);
-            if (($g['tipo'] ?? 'global') === 'individual') {
-                $rows = (new GoalAssignment())->listByGoal($id);
-                if (empty($rows)) {
-                    $creatorId = (int)($g['criado_por'] ?? 0);
-                    if ($creatorId > 0) {
-                        (new GoalAssignment())->upsert($id, $creatorId, (float)($g['valor_meta'] ?? 0));
-                    }
-                }
-            }
-        } catch (\Throwable $e) { /* ignore */ }
+        // Removida atribuição automática; usar tela de Metas para atribuir vendedores
         $this->notifyAll("Meta atualizada: {$in['titulo']}", 'Uma meta foi atualizada. Verifique seu painel.');
         return $this->redirect('/admin/goals');
     }
@@ -137,6 +127,19 @@ class GoalsController extends Controller
         $this->csrfCheck();
         $id = (int)($_POST['id'] ?? 0);
         if ($id>0) (new Goal())->deleteRow($id);
+        return $this->redirect('/admin/goals');
+    }
+
+    public function assign()
+    {
+        $this->requireRole(['manager','admin']);
+        $this->csrfCheck();
+        $goalId = (int)($_POST['goal_id'] ?? 0);
+        $sellerId = (int)($_POST['seller_id'] ?? 0);
+        $valor = (float)($_POST['valor_meta'] ?? 0);
+        if ($goalId>0 && $sellerId>0) {
+            (new GoalAssignment())->upsert($goalId, $sellerId, $valor);
+        }
         return $this->redirect('/admin/goals');
     }
 
