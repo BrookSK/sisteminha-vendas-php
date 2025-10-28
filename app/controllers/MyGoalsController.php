@@ -5,6 +5,8 @@ use Core\Controller;
 use Core\Auth;
 use Models\Goal;
 use Models\GoalAssignment;
+use Models\Setting;
+use Models\Commission;
 
 class MyGoalsController extends Controller
 {
@@ -14,33 +16,32 @@ class MyGoalsController extends Controller
         $me = Auth::user();
         $assign = new GoalAssignment();
         $uid = (int)($me['id'] ?? 0);
-        // Garantir que metas individuais criadas por este usuário estejam atribuídas a ele
-        try {
-            $db = \Core\Database::pdo();
-            $sql = "SELECT m.id, m.valor_meta FROM metas m
-                    WHERE m.tipo='individual' AND m.criado_por = :u
-                      AND NOT EXISTS (
-                        SELECT 1 FROM metas_vendedores mv
-                        WHERE mv.id_meta = m.id AND mv.id_vendedor = :u
-                      )";
-            $st = $db->prepare($sql);
-            $st->execute([':u'=>$uid]);
-            $missing = $st->fetchAll(\PDO::FETCH_ASSOC) ?: [];
-            foreach ($missing as $row) {
-                $gid = (int)$row['id'];
-                $val = (float)($row['valor_meta'] ?? 0);
-                $assign->upsert($gid, $uid, $val);
-            }
-        } catch (\Throwable $e) { /* ignore */ }
+        // Removida auto-atribuição de metas individuais ao criador; atribuições devem ser feitas explicitamente
 
         // Carregar itens após possíveis auto-atribuições
         $items = $assign->listForUser($uid, 200, 0);
-        // Recalcular progresso atual a partir das vendas e persistir
-        $goalModel = new Goal();
+        // Recalcular progresso atual a partir do mesmo cálculo de comissões (alinhado ao dashboard)
         foreach ($items as &$it) {
             $from = (string)($it['data_inicio'] ?? date('Y-m-01'));
             $to = (string)($it['data_fim'] ?? date('Y-m-t'));
-            $real = $goalModel->salesTotalUsd($from, $to, $uid);
+            $comm = new Commission();
+            $calc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
+            $mine = null;
+            foreach (($calc['items'] ?? []) as $row) {
+                if ((int)($row['vendedor_id'] ?? 0) === (int)$uid) { $mine = $row; break; }
+            }
+            $real = (float)($mine['bruto_total'] ?? 0.0);
+            if ($real <= 0.0) {
+                // Segundo caminho: somar por fonte com o mesmo período
+                try {
+                    $src = (new Commission())->sellerSourceSums((int)$uid, $from.' 00:00:00', $to.' 23:59:59');
+                    $real = (float)($src['total']['bruto_total'] ?? 0.0);
+                } catch (\Throwable $e) { /* ignore */ }
+            }
+            if ($real <= 0.0) {
+                // Último fallback: sumarização direta
+                try { $real = (new Goal())->salesTotalUsd($from, $to, $uid); } catch (\Throwable $e) { /* ignore */ }
+            }
             $assign->updateProgress((int)$it['id_meta'], $uid, (float)$real);
             $it['progresso_atual'] = (float)$real;
         }
@@ -62,11 +63,12 @@ class MyGoalsController extends Controller
         }
         unset($it);
 
-        // Injetar meta GLOBAL (50k) como item junto com as demais
-        $from = date('Y-m-01');
-        $to = date('Y-m-t');
+        // Injetar meta GLOBAL (50k) usando período padrão do sistema
+        try { [$from, $to] = (new Setting())->currentPeriod(); } catch (\Throwable $e) { $from = date('Y-m-10'); $to = date('Y-m-09', strtotime('first day of next month')); }
         $globalTargetUsd = 50000.0;
-        $globalActualUsd = (new Goal())->salesTotalUsd($from, $to, null);
+        $commG = new Commission();
+        $calcG = $commG->computeRange($from.' 00:00:00', $to.' 23:59:59');
+        $globalActualUsd = (float)($calcG['team']['team_bruto_total'] ?? 0.0);
         // cálculos iguais aos demais itens
         $today = date('Y-m-d');
         $diasTotais = max(1, (strtotime($to) - strtotime($from))/86400 + 1);

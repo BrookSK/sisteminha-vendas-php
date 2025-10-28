@@ -35,11 +35,11 @@
             </div>
             <div class="col-md-2">
               <label class="form-label">Início</label>
-              <input type="date" name="data_inicio" class="form-control" value="<?= date('Y-m-01') ?>" required>
+              <input type="date" name="data_inicio" class="form-control" value="<?= htmlspecialchars($default_from ?? date('Y-m-01')) ?>" required>
             </div>
             <div class="col-md-2">
               <label class="form-label">Fim</label>
-              <input type="date" name="data_fim" class="form-control" value="<?= date('Y-m-t') ?>" required>
+              <input type="date" name="data_fim" class="form-control" value="<?= htmlspecialchars($default_to ?? date('Y-m-t')) ?>" required>
             </div>
             <div class="col-12">
               <label class="form-label">Descrição</label>

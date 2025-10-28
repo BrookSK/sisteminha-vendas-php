@@ -5,6 +5,7 @@ use Core\Controller;
 use Core\Auth;
 use Models\Goal;
 use Models\GoalAssignment;
+use Models\Setting;
 use Models\Notification;
 
 class GoalsController extends Controller
@@ -52,6 +53,9 @@ class GoalsController extends Controller
             $dashDiasTot += (int)$diasTotais;
             $dashDiasPass += (int)$diasPassados;
         }
+        // Período padrão do sistema (10->9 ou configurado)
+        try { [$defFrom,$defTo] = (new Setting())->currentPeriod(); } catch (\Throwable $e) { $defFrom = date('Y-m-10'); $defTo = date('Y-m-09', strtotime('first day of next month')); }
+
         $this->render('goals/index', [
             'title' => 'Metas e Previsões',
             'goals' => $goals,
@@ -59,6 +63,14 @@ class GoalsController extends Controller
             'dash_real' => $dashReal,
             'dash_prev' => $dashPrev,
             '_csrf' => \Core\Auth::csrf(),
+            'users' => (function(){
+                try {
+                    $db = \Core\Database::pdo();
+                    return $db->query("SELECT id, name, role, ativo FROM usuarios ORDER BY name")->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                } catch (\Throwable $e) { return []; }
+            })(),
+            'default_from' => $defFrom,
+            'default_to' => $defTo,
         ]);
     }
 
@@ -72,14 +84,29 @@ class GoalsController extends Controller
             'tipo' => $_POST['tipo'] ?? 'global',
             'valor_meta' => (float)($_POST['valor_meta'] ?? 0),
             'moeda' => $_POST['moeda'] ?? 'USD',
-            'data_inicio' => $_POST['data_inicio'] ?? date('Y-m-01'),
-            'data_fim' => $_POST['data_fim'] ?? date('Y-m-t'),
+            'data_inicio' => $_POST['data_inicio'] ?? null,
+            'data_fim' => $_POST['data_fim'] ?? null,
         ];
+        // Default period: use system-wide currentPeriod when not provided
+        if (empty($in['data_inicio']) || empty($in['data_fim'])) {
+            try { [$from,$to] = (new Setting())->currentPeriod(); } catch (\Throwable $e) { $from = date('Y-m-01'); $to = date('Y-m-t'); }
+            if (empty($in['data_inicio'])) $in['data_inicio'] = $from;
+            if (empty($in['data_fim'])) $in['data_fim'] = $to;
+        }
         $creatorId = (int)(Auth::user()['id'] ?? 0);
         $id = (new Goal())->create($in, $creatorId);
-        // Atribuição automática: metas individuais pertencem ao criador
-        if (($in['tipo'] ?? 'global') === 'individual' && $creatorId > 0) {
-            (new GoalAssignment())->upsert((int)$id, $creatorId, (float)($in['valor_meta'] ?? 0));
+        // Se tipo individual: atribui automaticamente a todos ativos (seller/trainee/manager)
+        if (($in['tipo'] ?? 'global') === 'individual') {
+            try {
+                $db = \Core\Database::pdo();
+                $rows = $db->query("SELECT id, role, ativo FROM usuarios WHERE ativo=1")->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                foreach ($rows as $u) {
+                    $role = $u['role'] ?? '';
+                    if (in_array($role, ['seller','trainee','manager'], true)) {
+                        (new GoalAssignment())->upsert((int)$id, (int)$u['id'], (float)($in['valor_meta'] ?? 0));
+                    }
+                }
+            } catch (\Throwable $e) { /* ignore */ }
         }
         // Notificar vendedores (simples): todos ativos
         $this->notifyAll("Nova meta: {$in['titulo']}", 'Uma nova meta foi criada. Verifique seu painel.');
@@ -98,19 +125,25 @@ class GoalsController extends Controller
             'tipo' => $_POST['tipo'] ?? 'global',
             'valor_meta' => (float)($_POST['valor_meta'] ?? 0),
             'moeda' => $_POST['moeda'] ?? 'USD',
-            'data_inicio' => $_POST['data_inicio'] ?? date('Y-m-01'),
-            'data_fim' => $_POST['data_fim'] ?? date('Y-m-t'),
+            'data_inicio' => $_POST['data_inicio'] ?? null,
+            'data_fim' => $_POST['data_fim'] ?? null,
         ];
+        if (empty($in['data_inicio']) || empty($in['data_fim'])) {
+            try { [$from,$to] = (new Setting())->currentPeriod(); } catch (\Throwable $e) { $from = date('Y-m-01'); $to = date('Y-m-t'); }
+            if (empty($in['data_inicio'])) $in['data_inicio'] = $from;
+            if (empty($in['data_fim'])) $in['data_fim'] = $to;
+        }
         (new Goal())->updateRow($id, $in);
-        // Garantir atribuição para metas individuais (caso tenham sido criadas antes da automação)
+        // Se tipo individual: garantir/atualizar atribuições automáticas para todos ativos
         try {
             $g = (new Goal())->find($id);
             if (($g['tipo'] ?? 'global') === 'individual') {
-                $rows = (new GoalAssignment())->listByGoal($id);
-                if (empty($rows)) {
-                    $creatorId = (int)($g['criado_por'] ?? 0);
-                    if ($creatorId > 0) {
-                        (new GoalAssignment())->upsert($id, $creatorId, (float)($g['valor_meta'] ?? 0));
+                $db = \Core\Database::pdo();
+                $rows = $db->query("SELECT id, role, ativo FROM usuarios WHERE ativo=1")->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                foreach ($rows as $u) {
+                    $role = $u['role'] ?? '';
+                    if (in_array($role, ['seller','trainee','manager'], true)) {
+                        (new GoalAssignment())->upsert($id, (int)$u['id'], (float)($g['valor_meta'] ?? 0));
                     }
                 }
             }
@@ -125,6 +158,19 @@ class GoalsController extends Controller
         $this->csrfCheck();
         $id = (int)($_POST['id'] ?? 0);
         if ($id>0) (new Goal())->deleteRow($id);
+        return $this->redirect('/admin/goals');
+    }
+
+    public function assign()
+    {
+        $this->requireRole(['manager','admin']);
+        $this->csrfCheck();
+        $goalId = (int)($_POST['goal_id'] ?? 0);
+        $sellerId = (int)($_POST['seller_id'] ?? 0);
+        $valor = (float)($_POST['valor_meta'] ?? 0);
+        if ($goalId>0 && $sellerId>0) {
+            (new GoalAssignment())->upsert($goalId, $sellerId, $valor);
+        }
         return $this->redirect('/admin/goals');
     }
 

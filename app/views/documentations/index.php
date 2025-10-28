@@ -32,6 +32,10 @@ $csrf = Auth::csrf();
         <input type="text" id="projectQuery" class="form-control" placeholder="Buscar por nome ou ID..." autocomplete="off">
         <div id="projectSuggestions" class="list-group position-absolute w-100" style="z-index: 1000; max-height: 240px; overflow:auto; display:none;"></div>
       </div>
+      <div class="col-md-3">
+        <label class="form-label">Título da documentação</label>
+        <input type="text" name="q" value="<?= htmlspecialchars((string)($filters['q'] ?? '')) ?>" class="form-control" placeholder="Ex: Política de Trocas">
+      </div>
       <div class="col-md-1 d-grid">
         <button class="btn btn-primary" type="submit">Filtrar</button>
       </div>
