@@ -90,6 +90,19 @@ class GoalsController extends Controller
         }
         $creatorId = (int)(Auth::user()['id'] ?? 0);
         $id = (new Goal())->create($in, $creatorId);
+        // Se tipo individual: atribui automaticamente a todos ativos (seller/trainee/manager)
+        if (($in['tipo'] ?? 'global') === 'individual') {
+            try {
+                $db = \Core\Database::pdo();
+                $rows = $db->query("SELECT id, role, ativo FROM usuarios WHERE ativo=1")->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                foreach ($rows as $u) {
+                    $role = $u['role'] ?? '';
+                    if (in_array($role, ['seller','trainee','manager'], true)) {
+                        (new GoalAssignment())->upsert((int)$id, (int)$u['id'], (float)($in['valor_meta'] ?? 0));
+                    }
+                }
+            } catch (\Throwable $e) { /* ignore */ }
+        }
         // Notificar vendedores (simples): todos ativos
         $this->notifyAll("Nova meta: {$in['titulo']}", 'Uma nova meta foi criada. Verifique seu painel.');
         return $this->redirect('/admin/goals');
@@ -116,7 +129,20 @@ class GoalsController extends Controller
             if (empty($in['data_fim'])) $in['data_fim'] = $to;
         }
         (new Goal())->updateRow($id, $in);
-        // Removida atribuição automática; usar tela de Metas para atribuir vendedores
+        // Se tipo individual: garantir/atualizar atribuições automáticas para todos ativos
+        try {
+            $g = (new Goal())->find($id);
+            if (($g['tipo'] ?? 'global') === 'individual') {
+                $db = \Core\Database::pdo();
+                $rows = $db->query("SELECT id, role, ativo FROM usuarios WHERE ativo=1")->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                foreach ($rows as $u) {
+                    $role = $u['role'] ?? '';
+                    if (in_array($role, ['seller','trainee','manager'], true)) {
+                        (new GoalAssignment())->upsert($id, (int)$u['id'], (float)($g['valor_meta'] ?? 0));
+                    }
+                }
+            }
+        } catch (\Throwable $e) { /* ignore */ }
         $this->notifyAll("Meta atualizada: {$in['titulo']}", 'Uma meta foi atualizada. Verifique seu painel.');
         return $this->redirect('/admin/goals');
     }
