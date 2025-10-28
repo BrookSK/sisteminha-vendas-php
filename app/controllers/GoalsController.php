@@ -5,6 +5,7 @@ use Core\Controller;
 use Core\Auth;
 use Models\Goal;
 use Models\GoalAssignment;
+use Models\Setting;
 use Models\Notification;
 
 class GoalsController extends Controller
@@ -72,9 +73,15 @@ class GoalsController extends Controller
             'tipo' => $_POST['tipo'] ?? 'global',
             'valor_meta' => (float)($_POST['valor_meta'] ?? 0),
             'moeda' => $_POST['moeda'] ?? 'USD',
-            'data_inicio' => $_POST['data_inicio'] ?? date('Y-m-01'),
-            'data_fim' => $_POST['data_fim'] ?? date('Y-m-t'),
+            'data_inicio' => $_POST['data_inicio'] ?? null,
+            'data_fim' => $_POST['data_fim'] ?? null,
         ];
+        // Default period: use system-wide currentPeriod when not provided
+        if (empty($in['data_inicio']) || empty($in['data_fim'])) {
+            try { [$from,$to] = (new Setting())->currentPeriod(); } catch (\Throwable $e) { $from = date('Y-m-01'); $to = date('Y-m-t'); }
+            if (empty($in['data_inicio'])) $in['data_inicio'] = $from;
+            if (empty($in['data_fim'])) $in['data_fim'] = $to;
+        }
         $creatorId = (int)(Auth::user()['id'] ?? 0);
         $id = (new Goal())->create($in, $creatorId);
         // Atribuição automática: metas individuais pertencem ao criador
@@ -98,9 +105,14 @@ class GoalsController extends Controller
             'tipo' => $_POST['tipo'] ?? 'global',
             'valor_meta' => (float)($_POST['valor_meta'] ?? 0),
             'moeda' => $_POST['moeda'] ?? 'USD',
-            'data_inicio' => $_POST['data_inicio'] ?? date('Y-m-01'),
-            'data_fim' => $_POST['data_fim'] ?? date('Y-m-t'),
+            'data_inicio' => $_POST['data_inicio'] ?? null,
+            'data_fim' => $_POST['data_fim'] ?? null,
         ];
+        if (empty($in['data_inicio']) || empty($in['data_fim'])) {
+            try { [$from,$to] = (new Setting())->currentPeriod(); } catch (\Throwable $e) { $from = date('Y-m-01'); $to = date('Y-m-t'); }
+            if (empty($in['data_inicio'])) $in['data_inicio'] = $from;
+            if (empty($in['data_fim'])) $in['data_fim'] = $to;
+        }
         (new Goal())->updateRow($id, $in);
         // Garantir atribuição para metas individuais (caso tenham sido criadas antes da automação)
         try {
