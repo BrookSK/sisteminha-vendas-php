@@ -53,6 +53,9 @@ class GoalsController extends Controller
             $dashDiasTot += (int)$diasTotais;
             $dashDiasPass += (int)$diasPassados;
         }
+        // Período padrão do sistema (10->9 ou configurado)
+        try { [$defFrom,$defTo] = (new Setting())->currentPeriod(); } catch (\Throwable $e) { $defFrom = date('Y-m-10'); $defTo = date('Y-m-09', strtotime('first day of next month')); }
+
         $this->render('goals/index', [
             'title' => 'Metas e Previsões',
             'goals' => $goals,
@@ -66,6 +69,8 @@ class GoalsController extends Controller
                     return $db->query("SELECT id, name, role, ativo FROM usuarios ORDER BY name")->fetchAll(\PDO::FETCH_ASSOC) ?: [];
                 } catch (\Throwable $e) { return []; }
             })(),
+            'default_from' => $defFrom,
+            'default_to' => $defTo,
         ]);
     }
 
