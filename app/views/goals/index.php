@@ -79,11 +79,27 @@
             <td><?= htmlspecialchars($g['data_inicio']) ?> a <?= htmlspecialchars($g['data_fim']) ?></td>
             <td><?= htmlspecialchars($g['criador'] ?? '-') ?></td>
             <td>
-              <form class="d-inline" method="post" action="/admin/goals/delete" onsubmit="return confirm('Excluir esta meta?');">
-                <input type="hidden" name="_csrf" value="<?= htmlspecialchars($_csrf ?? '') ?>">
-                <input type="hidden" name="id" value="<?= (int)$g['id'] ?>">
-                <button class="btn btn-sm btn-outline-danger">Excluir</button>
-              </form>
+              <div class="d-flex flex-wrap gap-2 align-items-center">
+                <form class="d-inline" method="post" action="/admin/goals/assign">
+                  <input type="hidden" name="_csrf" value="<?= htmlspecialchars($_csrf ?? '') ?>">
+                  <input type="hidden" name="goal_id" value="<?= (int)$g['id'] ?>">
+                  <div class="input-group input-group-sm" style="max-width:520px;">
+                    <select name="seller_id" class="form-select">
+                      <option value="">Atribuir vendedor…</option>
+                      <?php foreach (($users ?? []) as $u): ?>
+                        <option value="<?= (int)$u['id'] ?>"><?= htmlspecialchars($u['name']) ?> (<?= htmlspecialchars($u['role']) ?>)</option>
+                      <?php endforeach; ?>
+                    </select>
+                    <input type="number" step="0.01" name="valor_meta" class="form-control" placeholder="Valor meta p/ vendedor">
+                    <button class="btn btn-outline-primary" type="submit">Atribuir</button>
+                  </div>
+                </form>
+                <form class="d-inline" method="post" action="/admin/goals/delete" onsubmit="return confirm('Excluir esta meta?');">
+                  <input type="hidden" name="_csrf" value="<?= htmlspecialchars($_csrf ?? '') ?>">
+                  <input type="hidden" name="id" value="<?= (int)$g['id'] ?>">
+                  <button class="btn btn-sm btn-outline-danger">Excluir</button>
+                </form>
+              </div>
             </td>
           </tr>
         <?php endforeach; endif; ?>
