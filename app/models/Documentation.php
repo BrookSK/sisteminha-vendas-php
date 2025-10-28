@@ -27,6 +27,7 @@ class Documentation extends Model
         if (!empty($filters['status'])) { $wheres[] = 'd.status = ?'; $params[] = $filters['status']; }
         if (!empty($filters['area_id'])) { $wheres[] = 'd.area_id = ?'; $params[] = (int)$filters['area_id']; }
         if (!empty($filters['project_id'])) { $wheres[] = 'd.project_id = ?'; $params[] = (int)$filters['project_id']; }
+        if (!empty($filters['q'])) { $wheres[] = 'd.title LIKE ?'; $params[] = '%'.$filters['q'].'%'; }
         $sql = 'SELECT COUNT(1) FROM documentations d';
         if (!empty($wheres)) { $sql .= ' WHERE ' . implode(' AND ', $wheres); }
         $st = $this->db->prepare($sql);
@@ -67,6 +68,8 @@ class Documentation extends Model
         if (!empty($filters['area_id'])) { $wheres[] = 'd.area_id = ?'; $params[] = (int)$filters['area_id']; }
         // project
         if (!empty($filters['project_id'])) { $wheres[] = 'd.project_id = ?'; $params[] = (int)$filters['project_id']; }
+        // title search
+        if (!empty($filters['q'])) { $wheres[] = 'd.title LIKE ?'; $params[] = '%'.$filters['q'].'%'; }
 
         $sql = 'SELECT d.*, a.name as area_name FROM documentations d LEFT JOIN documentation_areas a ON a.id = d.area_id';
         if (!empty($wheres)) { $sql .= ' WHERE ' . implode(' AND ', $wheres); }

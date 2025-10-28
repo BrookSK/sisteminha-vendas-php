@@ -16,48 +16,23 @@
   </div>
 
   <form class="row g-3" id="sim-form" onsubmit="return false;">
-    <div class="col-12">
-      <label class="form-label">Nome do Produto</label>
-      <input type="text" class="form-control" id="nome_produto" placeholder="Ex: Apple Watch Series 10 Titanium 46mm">
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">Valor do Produto (USD)</label>
-      <input type="number" step="0.01" min="0" class="form-control" id="valor_produto" value="0">
-    </div>
-    <div class="col-md-4">
-      <label class="form-label">Peso do Produto (Kg)</label>
-      <input type="number" step="0.01" min="0" class="form-control" id="peso" value="0">
-      <div class="form-text">Peso é arredondado para cima (ceil).</div>
-    </div>
     <div class="col-md-4">
       <label class="form-label">Taxa de câmbio (USD → BRL)</label>
       <input type="number" step="0.01" min="0" class="form-control" id="taxa_cambio" value="<?= htmlspecialchars((string)$usd_rate) ?>" readonly>
     </div>
-
-    <div class="col-md-4">
-      <div class="form-check form-switch mt-4">
-        <input class="form-check-input" type="checkbox" id="precisa_frete">
-        <label class="form-check-label" for="precisa_frete">Requer frete até a sede?</label>
-      </div>
-    </div>
-    <div class="col-md-4" id="grupo_frete" style="display:none;">
-      <label class="form-label">Valor do Frete até a sede (USD)</label>
-      <input type="number" step="0.01" min="0" class="form-control" id="frete_usd" value="0">
-    </div>
-
-    <div class="col-md-4">
-      <label class="form-label">Imposto local (USD)</label>
-      <input type="number" step="0.01" min="0" class="form-control" id="imposto_local_usd" value="0" readonly>
-      <div class="form-text">Calculado automaticamente como 7% do valor do produto (USD).</div>
-    </div>
-
     <div class="col-md-4">
       <div class="form-check form-switch mt-4">
         <input class="form-check-input" type="checkbox" id="envio_brasil">
         <label class="form-check-label" for="envio_brasil">Envio para o Brasil? (calcular impostos)</label>
       </div>
     </div>
-
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="m-0">Produtos</h5>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="btn-add-prod">Adicionar produto</button>
+      </div>
+      <div id="produtos" class="vstack gap-3"></div>
+    </div>
     <div class="col-12">
       <button class="btn btn-primary" id="btn-calcular">Calcular</button>
       <button class="btn btn-outline-secondary" id="btn-gerar">Gerar mensagem para o cliente</button>
@@ -94,50 +69,96 @@
 
 <script>
 (function(){
-  const precisaFrete = document.getElementById('precisa_frete');
-  const grupoFrete = document.getElementById('grupo_frete');
-  precisaFrete.addEventListener('change', ()=>{
-    grupoFrete.style.display = precisaFrete.checked ? '' : 'none';
-  });
-
   function nfUSD(v){ return `$ ${Number(v||0).toFixed(2)}`; }
   function nfBRL(v){ return `R$ ${Number(v||0).toFixed(2)}`; }
 
-  document.getElementById('btn-calcular').addEventListener('click', ()=>{
-    const nome = document.getElementById('nome_produto').value.trim();
-    const valorProduto = parseFloat(document.getElementById('valor_produto').value||0);
-    const peso = Math.ceil(parseFloat(document.getElementById('peso').value||0));
-    const taxaCambio = parseFloat(document.getElementById('taxa_cambio').value||0);
-    const isFrete = precisaFrete.checked;
-    const freteUsd = isFrete ? parseFloat(document.getElementById('frete_usd').value||0) : 0;
-    // Imposto local = 7% do valor do produto (auto)
-    const impLocal = Math.max(0, valorProduto * 0.07);
-    const impLocalEl = document.getElementById('imposto_local_usd');
-    if (impLocalEl) impLocalEl.value = impLocal.toFixed(2);
-    const taxaServico = (peso > 0 ? (peso * 39.0) : 0);
-    const subtotalUSD = valorProduto + taxaServico + freteUsd + impLocal;
-    const subtotalBRL = subtotalUSD * taxaCambio;
+  const produtos = document.getElementById('produtos');
+  const btnAdd = document.getElementById('btn-add-prod');
 
+  function makeItem(idx){
+    const wrap = document.createElement('div');
+    wrap.className = 'card prod-item';
+    const id = Date.now()+''+Math.floor(Math.random()*1000);
+    wrap.innerHTML = `
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="fw-semibold">Produto</div>
+          <div class="d-flex gap-2">
+            <div class="form-check form-switch">
+              <input class="form-check-input precisa_frete" type="checkbox" id="pf_${id}">
+              <label class="form-check-label" for="pf_${id}">Frete até a sede?</label>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger btn-remove">Remover</button>
+          </div>
+        </div>
+        <div class="row g-2 align-items-end">
+          <div class="col-md-6">
+            <label class="form-label">Nome</label>
+            <input type="text" class="form-control nome_produto" placeholder="Ex: Apple Watch Series 10 Titanium 46mm">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Valor (USD)</label>
+            <input type="number" step="0.01" min="0" class="form-control valor_produto" value="0">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Peso (Kg)</label>
+            <input type="number" step="0.01" min="0" class="form-control peso_produto" value="0">
+          </div>
+          <div class="col-md-3 frete_group" style="display:none;">
+            <label class="form-label">Frete (USD)</label>
+            <input type="number" step="0.01" min="0" class="form-control frete_usd" value="0">
+          </div>
+        </div>
+      </div>`;
+    const pf = wrap.querySelector('.precisa_frete');
+    const fg = wrap.querySelector('.frete_group');
+    pf.addEventListener('change', ()=>{ fg.style.display = pf.checked ? '' : 'none'; });
+    wrap.querySelector('.btn-remove').addEventListener('click', ()=>{ wrap.remove(); });
+    return wrap;
+  }
+
+  btnAdd.addEventListener('click', ()=>{ produtos.appendChild(makeItem(produtos.children.length)); });
+  produtos.appendChild(makeItem(0));
+
+  document.getElementById('btn-calcular').addEventListener('click', ()=>{
+    const taxaCambio = parseFloat(document.getElementById('taxa_cambio').value||0);
     const envioBrasil = document.getElementById('envio_brasil').checked;
-    // Base dos impostos de importação: APENAS o valor do produto em BRL
-    const baseProdutoBRL = valorProduto * taxaCambio;
-    let impostoImport = 0, icms = 0, subtotalComImport = baseProdutoBRL, totalBRL = subtotalBRL;
+    const items = Array.from(produtos.querySelectorAll('.prod-item'));
+    let somaValor = 0, somaPeso = 0, somaFrete = 0, somaImpLocal = 0;
+    const nomes = [];
+    items.forEach(w=>{
+      const nome = w.querySelector('.nome_produto')?.value?.trim() || '';
+      const valor = parseFloat(w.querySelector('.valor_produto')?.value||0);
+      const peso = parseFloat(w.querySelector('.peso_produto')?.value||0);
+      const pf = w.querySelector('.precisa_frete').checked;
+      const frete = pf ? parseFloat(w.querySelector('.frete_usd')?.value||0) : 0;
+      somaValor += Math.max(0, valor);
+      somaPeso += Math.max(0, peso);
+      somaFrete += Math.max(0, frete);
+      const impLocal = Math.max(0, valor * 0.07);
+      somaImpLocal += impLocal;
+      if (nome) nomes.push(nome);
+    });
+    const pesoTotalArred = Math.ceil(somaPeso);
+    const taxaServico = pesoTotalArred > 0 ? (pesoTotalArred * 39.0) : 0;
+    const subtotalUSD = somaValor + taxaServico + somaFrete + somaImpLocal;
+    const subtotalBRL = subtotalUSD * taxaCambio;
+    const baseProdutoBRL = somaValor * taxaCambio;
+    let impostoImport = 0, icms = 0, totalBRL = subtotalBRL;
     if (envioBrasil) {
-      impostoImport = baseProdutoBRL * 0.60; // 60% sobre valor do produto (BRL)
-      subtotalComImport = baseProdutoBRL + impostoImport;
-      icms = subtotalComImport * 0.20; // 20% sobre (produto + 60%)
-      // Total final estimado em BRL: conversão do total em USD (produto + taxa + frete + imposto local) + impostos estimados
+      impostoImport = baseProdutoBRL * 0.60;
+      const subtotalComImport = baseProdutoBRL + impostoImport;
+      icms = subtotalComImport * 0.20;
       totalBRL = subtotalBRL + impostoImport + icms;
     }
 
-    // USD list
     const usdList = document.getElementById('usd-list');
     usdList.innerHTML = '';
     const usdItems = [
-      ['Valor do produto', valorProduto],
+      ['Valor dos produtos', somaValor],
       ['Taxa de serviço (US$ 39/kg)', taxaServico],
-      ...(isFrete ? [['Frete até a sede', freteUsd]] : []),
-      ...(impLocal>0 ? [['Imposto local (USD)', impLocal]] : []),
+      ...(somaFrete>0 ? [['Frete até a sede (somado)', somaFrete]] : []),
+      ...(somaImpLocal>0 ? [['Imposto local (USD) somado (7%)', somaImpLocal]] : []),
       ['Total em dólar', subtotalUSD],
       ['Conversão do total em dólar (BRL)', subtotalBRL],
     ];
@@ -147,11 +168,10 @@
       li.innerHTML = `<span>${k}</span><span><strong>${isBRLconv ? nfBRL(v) : nfUSD(v)}</strong></span>`; usdList.appendChild(li);
     });
 
-    // BRL list
     const brlList = document.getElementById('brl-list');
     brlList.innerHTML = '';
     const brlItems = [
-      ...(envioBrasil ? [['Imposto de Importação (60%) sobre produto', impostoImport]] : []),
+      ...(envioBrasil ? [['Imposto de Importação (60%) sobre produtos', impostoImport]] : []),
       ...(envioBrasil ? [['ICMS (20%) sobre (produto+60%)', icms]] : []),
       ...(envioBrasil ? [['Total de impostos (BRL)', (impostoImport + icms)]] : []),
     ];
@@ -160,19 +180,18 @@
       li.innerHTML = `<span>${k}</span><span><strong>${nfBRL(v)}</strong></span>`; brlList.appendChild(li);
     });
 
-    // Guardar no estado para geração
-    window.__sim = { nome, valorProduto, taxaServico, freteUsd, impLocal, subtotalUSD, taxaCambio, subtotalBRL, envioBrasil, impostoImport, icms, totalBRL };
+    window.__sim = { nomes, somaValor, taxaServico, somaFrete, somaImpLocal, subtotalUSD, taxaCambio, subtotalBRL, envioBrasil, impostoImport, icms, totalBRL, pesoTotalArred };
   });
 
   document.getElementById('btn-gerar').addEventListener('click', ()=>{
     const s = window.__sim || {};
-    const nome = document.getElementById('nome_produto').value.trim() || 'produto';
+    const lista = (s.nomes||[]).length ? s.nomes.join(', ') : 'produtos';
     const linhas = [];
-    linhas.push(`O produto ${nome} tem o valor de ${nfUSD(s.valorProduto||0)}, e a taxa de serviço é de ${nfUSD(s.taxaServico||0)} (calculada a US$ 39 por kg).`);
+    linhas.push(`Os itens (${lista}) somam ${nfUSD(s.somaValor||0)}. A taxa de serviço é ${nfUSD(s.taxaServico||0)} (US$ 39 por kg, considerando peso total arredondado de ${s.pesoTotalArred||0} kg).`);
     const compUSD = s.subtotalUSD||0;
-    linhas.push(`O total, já com o frete até nossa sede e o imposto local (quando aplicável), fica aproximadamente em ${nfUSD(compUSD)}, o que convertido pela taxa de câmbio atual (${nfBRL(s.taxaCambio||0)}) fica em torno de ${nfBRL(s.subtotalBRL||0)}.`);
+    linhas.push(`O total, já com fretes até a sede e imposto local quando aplicável, fica em ${nfUSD(compUSD)}, o que convertido pela taxa de câmbio atual (${nfBRL(s.taxaCambio||0)}) fica em ${nfBRL(s.subtotalBRL||0)}.`);
     if (s.envioBrasil) {
-      linhas.push('A estimativa dos impostos de importação, calculados sobre o valor do produto em reais, seria:');
+      linhas.push('A estimativa dos impostos de importação, calculados sobre o valor dos produtos em reais, seria:');
       linhas.push(`Imposto de Importação (60%): ${nfBRL(s.impostoImport||0)}`);
       linhas.push(`ICMS (20% sobre (produto + 60%)): ${nfBRL(s.icms||0)}`);
       linhas.push('⚠️ Lembrando que esses valores de impostos são apenas estimativas.');
