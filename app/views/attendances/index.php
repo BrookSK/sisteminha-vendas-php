@@ -52,6 +52,14 @@
           <td><?= htmlspecialchars($i['updated_at'] ?? '-') ?></td>
           <td class="text-end">
             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="(function(){var el=document.getElementById('<?= $rowId ?>'); if(el){ el.style.display = (el.style.display==='none'?'table-row':'none'); }})();">Editar</button>
+            <?php if ((Auth::user()['role'] ?? '') === 'admin'): ?>
+            <form method="post" action="/admin/attendances/delete" style="display:inline-block" onsubmit="return confirm('Excluir atendimento de <?= htmlspecialchars($i['data']) ?> de <?= htmlspecialchars($i['usuario_email'] ?? '-') ?>?');">
+              <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrf()) ?>">
+              <input type="hidden" name="data" value="<?= htmlspecialchars($i['data']) ?>">
+              <input type="hidden" name="usuario_id" value="<?= (int)($i['usuario_id'] ?? 0) ?>">
+              <button type="submit" class="btn btn-sm btn-outline-danger ms-1">Excluir</button>
+            </form>
+            <?php endif; ?>
           </td>
         </tr>
         <tr id="<?= $rowId ?>" style="display:none; background:#fafafa;">

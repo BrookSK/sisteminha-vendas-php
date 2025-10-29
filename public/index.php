@@ -127,6 +127,9 @@ $router->group('/admin', function($r) {
     $r->get('/finance/export-company.pdf', 'Controllers\\FinanceController@exportCompanyPdf');
     $r->get('/finance/export-company.xlsx', 'Controllers\\FinanceController@exportCompanyXlsx');
     $r->get('/finance/export-seller.pdf', 'Controllers\\FinanceController@exportSellerPdf');
+    $r->get('/finance/export-costs.csv', 'Controllers\\FinanceController@exportCostsCsv');
+    $r->get('/finance/export-attendances.csv', 'Controllers\\FinanceController@exportAttendancesCsv');
+    $r->get('/finance/export-attendances.xlsx', 'Controllers\\FinanceController@exportAttendancesXlsx');
 
     // Logs
     $r->get('/logs', 'Controllers\\LogsController@index');
@@ -159,6 +162,7 @@ $router->group('/admin', function($r) {
     $r->post('/attendances/save', 'Controllers\\AttendancesController@save');
     $r->get('/attendances/export', 'Controllers\\AttendancesController@exportCsv');
     $r->get('/attendances/export-pdf', 'Controllers\\AttendancesController@exportPdf');
+    $r->post('/attendances/delete', 'Controllers\\AttendancesController@delete');
 
     // Custos
     $r->get('/costs', 'Controllers\\CostsController@index');
