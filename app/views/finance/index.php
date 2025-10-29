@@ -256,15 +256,18 @@
 <?php
   $pctSettings = (float)($team['team_cost_settings_rate'] ?? 0);
   $pctExplicit = (float)($team['team_cost_percent_rate'] ?? 0);
-  $pctTotal = $pctSettings + $pctExplicit; // fração do bruto
+  $currGross = (float)($team['team_bruto_total'] ?? 0);
+  $sumComms = (float)($team['sum_commissions_usd'] ?? 0);
+  $commPct = ($currGross > 0) ? ($sumComms / $currGross) : 0.0; // fração do bruto
+  $pctCosts = $pctSettings + $pctExplicit;
+  $pctTotalEff = $pctCosts + $commPct; // custos (%) + comissões (%)
   $fixedUsd = (float)($team['team_cost_fixed_usd'] ?? 0);
   $beGross = null; $beBrl = null; $gapUsd = null; $gapBrl = null;
-  if ($pctTotal < 1.0) {
-    $den = (1.0 - $pctTotal);
+  if ($pctTotalEff < 1.0) {
+    $den = (1.0 - $pctTotalEff);
     if ($den <= 0) { $den = 0.000001; }
-    $beGross = $fixedUsd / $den; // G - pct*G - fixed = 0 => G = fixed / (1-pct)
+    $beGross = $fixedUsd / $den; // G - (pctCosts+commPct)*G - fixed = 0 => G = fixed / (1 - (pctCosts+commPct))
     $beBrl = $beGross * (float)($rate ?? 0);
-    $currGross = (float)($team['team_bruto_total'] ?? 0);
     $gapUsd = max(0.0, $beGross - $currGross);
     $gapBrl = $gapUsd * (float)($rate ?? 0);
   }
@@ -274,8 +277,8 @@
     <span>Previsão para Cobrir Custos <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Estimativa do bruto necessário para zerar o resultado após custos (fixos + percentuais sobre o bruto).">?</span></span>
   </div>
   <div class="card-body">
-    <?php if ($pctTotal >= 1.0): ?>
-      <div class="text-danger small">Percentual total de custos (settings + percentuais) é maior ou igual a 100%. Não é possível atingir ponto de equilíbrio.</div>
+    <?php if ($pctTotalEff >= 1.0): ?>
+      <div class="text-danger small">Percentual efetivo (custos + comissões) ≥ 100%. Não é possível atingir ponto de equilíbrio.</div>
     <?php else: ?>
       <div class="row g-3">
         <div class="col-md-4">
@@ -288,8 +291,8 @@
         <div class="col-md-4">
           <div class="p-2 border rounded h-100">
             <div class="text-muted small">Fórmula</div>
-            <div class="small">G = Fixos ÷ (1 − Percentuais)</div>
-            <div class="small text-muted">Fixos: $ <?= number_format($fixedUsd,2) ?> | Percentuais: <?= number_format($pctTotal*100,2) ?>%</div>
+            <div class="small">G = Fixos ÷ (1 − (Custos% + Comissões%))</div>
+            <div class="small text-muted">Fixos: $ <?= number_format($fixedUsd,2) ?> | Custos%: <?= number_format($pctCosts*100,2) ?>% | Comissões%: <?= number_format($commPct*100,2) ?>%</div>
           </div>
         </div>
         <div class="col-md-4">
@@ -332,7 +335,7 @@
             $totalBrl = $sAmtBrl;
           ?>
           <tr>
-            <td>Custo Global (settings)</td>
+            <td>Impostos</td>
             <td>percent</td>
             <td class="text-end">$ <?= number_format($sAmt, 2) ?></td>
             <td class="text-end">R$ <?= number_format($sAmtBrl, 2) ?></td>
