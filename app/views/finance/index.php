@@ -6,41 +6,6 @@
     <span class="badge text-bg-warning">Custo Global: <?= number_format((float)($cost_rate ?? 0)*100, 2) ?>%</span>
   </div>
 
-<div class="card mt-4">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Atendimentos dos Vendedores <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Resumo do período com número de atendimentos de hoje, concluídos e a data do último atendimento.">?</span></span>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-striped mb-0 align-middle">
-        <thead>
-          <tr>
-            <th>Vendedor</th>
-            <th class="text-end">Atendimentos (hoje)</th>
-            <th class="text-end">Concluídos (hoje)</th>
-            <th class="text-end">Atendimentos (período)</th>
-            <th class="text-end">Concluídos (período)</th>
-            <th class="text-end">Último atendimento</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach (($comm['items'] ?? []) as $it): ?>
-            <?php $uid = (int)($it['vendedor_id'] ?? 0); $att = $attendanceByUser[$uid] ?? null; ?>
-            <tr>
-              <td><?= htmlspecialchars($it['user']['name'] ?? '') ?></td>
-              <td class="text-end"><?= (int)($att['today_total'] ?? 0) ?></td>
-              <td class="text-end"><?= (int)($att['today_done'] ?? 0) ?></td>
-              <td class="text-end"><?= (int)($att['period_total'] ?? 0) ?></td>
-              <td class="text-end"><?= (int)($att['period_done'] ?? 0) ?></td>
-              <td class="text-end"><?= htmlspecialchars((string)($att['last_att_date'] ?? '-')) ?></td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
 <div class="modal fade" id="modalByRole" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -481,6 +446,41 @@
                 <?php $sid = (int)($it['vendedor_id'] ?? 0); $uFrom = urlencode($from ?? ''); $uTo = urlencode($to ?? ''); $sellerPdfUrl = "/admin/finance/export-seller.pdf?seller_id=".$sid."&from=".$uFrom."&to=".$uTo; ?>
                 <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars($sellerPdfUrl) ?>">PDF</a>
               </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Atendimentos dos Vendedores <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Resumo do período com número de atendimentos de hoje, concluídos e a data do último atendimento.">?</span></span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>Vendedor</th>
+            <th class="text-end">Atendimentos (hoje)</th>
+            <th class="text-end">Concluídos (hoje)</th>
+            <th class="text-end">Atendimentos (período)</th>
+            <th class="text-end">Concluídos (período)</th>
+            <th class="text-end">Último atendimento</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach (($comm['items'] ?? []) as $it): ?>
+            <?php $uid = (int)($it['vendedor_id'] ?? 0); $att = $attendanceByUser[$uid] ?? null; ?>
+            <tr>
+              <td><?= htmlspecialchars($it['user']['name'] ?? '') ?></td>
+              <td class="text-end"><?= (int)($att['today_total'] ?? 0) ?></td>
+              <td class="text-end"><?= (int)($att['today_done'] ?? 0) ?></td>
+              <td class="text-end"><?= (int)($att['period_total'] ?? 0) ?></td>
+              <td class="text-end"><?= (int)($att['period_done'] ?? 0) ?></td>
+              <td class="text-end"><?= htmlspecialchars((string)($att['last_att_date'] ?? '-')) ?></td>
             </tr>
           <?php endforeach; ?>
         </tbody>
