@@ -7,6 +7,9 @@ use Core\Auth;
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= htmlspecialchars($title ?? 'Sisteminha') ?></title>
+  <link rel="icon" type="image/png" href="/assets/img/cropped-imagem_2024-08-10_023503715-192x192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/cropped-imagem_2024-08-10_023503715-192x192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="/assets/img/cropped-imagem_2024-08-10_023503715-192x192.png">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="/assets/css/style.css" rel="stylesheet">
   <!-- DataTables (CDN) -->

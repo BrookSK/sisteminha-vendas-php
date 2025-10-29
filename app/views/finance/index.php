@@ -33,11 +33,25 @@
         new bootstrap.Tooltip(tooltipTriggerEl);
       });
     }
+    function initModals(){
+      if (!window.bootstrap || !bootstrap.Modal) return;
+      document.querySelectorAll('[data-bs-toggle="modal"][data-bs-target]').forEach(function(btn){
+        btn.addEventListener('click', function(ev){
+          ev.preventDefault();
+          var sel = this.getAttribute('data-bs-target');
+          if (!sel) return;
+          var el = document.querySelector(sel);
+          if (!el) return;
+          var m = bootstrap.Modal.getOrCreateInstance(el);
+          m.show();
+        });
+      });
+    }
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
-      setTimeout(initTooltips, 0);
+      setTimeout(function(){ initTooltips(); initModals(); }, 0);
     } else {
-      document.addEventListener('DOMContentLoaded', initTooltips);
-      window.addEventListener('load', initTooltips);
+      document.addEventListener('DOMContentLoaded', function(){ initTooltips(); initModals(); });
+      window.addEventListener('load', function(){ initTooltips(); initModals(); });
     }
   })();
   </script>
@@ -228,7 +242,56 @@
   </div>
 </div>
 
-<div class="row g-3 mb-2">
+<?php $explicit = $costs['explicit_costs'] ?? []; $teamBrutoForCosts = (float)($team['team_bruto_total'] ?? 0); ?>
+<?php if (!empty($explicit)): ?>
+<div class="card mt-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Custos Cadastrados (itens) <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Lista de custos cadastrados no período e seus valores finais em USD.">?</span></span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>Descrição</th>
+            <th>Tipo</th>
+            <th class="text-end">Valor Final (USD)</th>
+            <th class="text-end">Valor Final (BRL)</th>
+            <th>Fórmula</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($explicit as $c): ?>
+            <?php
+              $tipo = (string)($c['valor_tipo'] ?? 'fixed');
+              if ($tipo === '') $tipo = 'fixed';
+              if ($tipo === 'percent') {
+                $pct = (float)($c['valor_percent'] ?? 0);
+                $amt = ($teamBrutoForCosts * ($pct/100.0));
+                $formula = number_format($pct,2).'%' . ' × US$ ' . number_format($teamBrutoForCosts,2) . ' = US$ ' . number_format($amt,2);
+              } else {
+                $amt = (float)($c['valor_usd'] ?? 0);
+                $formula = '—';
+              }
+              $rateNow = (float)($rate ?? 0);
+              $amtBrl = $rateNow > 0 ? ($amt * $rateNow) : 0.0;
+            ?>
+            <tr>
+              <td><?= htmlspecialchars($c['descricao'] ?? '') ?></td>
+              <td><?= ($tipo === 'percent' ? 'percent' : 'fixed') ?></td>
+              <td class="text-end">$ <?= number_format($amt, 2) ?></td>
+              <td class="text-end">R$ <?= number_format($amtBrl, 2) ?></td>
+              <td class="small text-muted"><?= htmlspecialchars($formula) ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
+<div class="row mb-2 mt-3">
   <div class="col-md-4">
     <div class="p-2 border rounded h-100">
       <div class="d-flex justify-content-between align-items-center">
@@ -260,35 +323,7 @@
       <div class="small">Ativos: <?= (int)($team['active_count'] ?? 0) ?> | Rate: <?= number_format((float)($team['bonus_rate'] ?? 0)*100, 2) ?>%</div>
     </div>
   </div>
-</div>
-
-<div class="card mt-3">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Comissões por Função <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Somatório das comissões finais agrupado por função (seller, manager, trainee, etc).">?</span></span>
-    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalByRole">Como é calculado</button>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-striped mb-0">
-        <thead>
-          <tr>
-            <th>Função</th>
-            <th class="text-end">Comissão (USD)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach (($byRole ?? []) as $role => $sum): ?>
-            <tr>
-              <td><?= htmlspecialchars($role) ?></td>
-              <td class="text-end">$ <?= number_format((float)$sum, 2) ?></td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
+  
 <?php 
   $bruto = (float)($team['team_bruto_total'] ?? 0);
   $settingsRate = (float)($team['team_cost_settings_rate'] ?? 0);
@@ -329,6 +364,34 @@
             <td>Soma dos custos fixos (Custos)</td>
             <td class="text-end">$ <?= number_format((float)($team['team_cost_fixed_usd'] ?? 0), 2) ?></td>
           </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Comissões por Função <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Somatório das comissões finais agrupado por função (seller, manager, trainee, etc).">?</span></span>
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalByRole">Como é calculado</button>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0">
+        <thead>
+          <tr>
+            <th>Função</th>
+            <th class="text-end">Comissão (USD)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach (($byRole ?? []) as $role => $sum): ?>
+            <tr>
+              <td><?= htmlspecialchars($role) ?></td>
+              <td class="text-end">$ <?= number_format((float)$sum, 2) ?></td>
+            </tr>
+          <?php endforeach; ?>
         </tbody>
       </table>
     </div>
