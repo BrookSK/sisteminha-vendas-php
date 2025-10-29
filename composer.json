@@ -1,0 +1,16 @@
+{
+  "name": "braziliana/sisteminha-vendas-php",
+  "description": "Sistema Braziliana - Vendas/Financeiro",
+  "type": "project",
+  "require": {
+    "php": ">=8.0",
+    "dompdf/dompdf": "^2.0",
+    "phpoffice/phpspreadsheet": "^1.29"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
