@@ -15,7 +15,7 @@ use Core\Auth;
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
-    <a class="navbar-brand" href="/admin">Sistema Brasiliana</a>
+    <a class="navbar-brand" href="/admin">Sistema Braziliana</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -208,6 +208,9 @@ use Core\Auth;
               <ul class="dropdown-menu" aria-labelledby="menuAdmin">
                 <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/reports">Relatórios</a></li>
+                <?php endif; ?>
+                <?php if ($role === 'admin'): ?>
+                <li><a class="dropdown-item" href="/admin/finance">Financeiro</a></li>
                 <?php endif; ?>
                 <li><a class="dropdown-item" href="/admin/users">Usuários</a></li>
                 <li><a class="dropdown-item" href="/admin/approvals">Aprovações</a></li>

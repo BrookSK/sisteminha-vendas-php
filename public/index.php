@@ -6,6 +6,11 @@ declare(strict_types=1);
 // Caminhos base
 $basePath = dirname(__DIR__);
 $appPath  = $basePath . '/app';
+// Composer autoload (if available)
+$vendorAutoload = $basePath . '/vendor/autoload.php';
+if (is_file($vendorAutoload)) {
+    require_once $vendorAutoload;
+}
 
 // Carrega config
 $config = require $appPath . '/config/config.php';
@@ -116,6 +121,12 @@ $router->group('/admin', function($r) {
     $r->get('/reports', 'Controllers\\ReportsController@index');
     $r->get('/reports/export-pdf', 'Controllers\\ReportsController@exportPdf');
     $r->get('/reports/cost-allocation.csv', 'Controllers\\ReportsController@costAllocationCsv');
+
+    // Financeiro (admin)
+    $r->get('/finance', 'Controllers\\FinanceController@index');
+    $r->get('/finance/export-company.pdf', 'Controllers\\FinanceController@exportCompanyPdf');
+    $r->get('/finance/export-company.xlsx', 'Controllers\\FinanceController@exportCompanyXlsx');
+    $r->get('/finance/export-seller.pdf', 'Controllers\\FinanceController@exportSellerPdf');
 
     // Logs
     $r->get('/logs', 'Controllers\\LogsController@index');
