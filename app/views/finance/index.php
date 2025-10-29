@@ -26,10 +26,19 @@
 
 <script>
   (function() {
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-      new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+    function initTooltips(){
+      if (!window.bootstrap || !bootstrap.Tooltip) return;
+      var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+    }
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      setTimeout(initTooltips, 0);
+    } else {
+      document.addEventListener('DOMContentLoaded', initTooltips);
+      window.addEventListener('load', initTooltips);
+    }
   })();
   </script>
 </div>

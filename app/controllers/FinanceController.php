@@ -183,7 +183,13 @@ class FinanceController extends Controller
             $dompdf->loadHtml($html);
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
-            $dompdf->stream('vendedor_'.$sellerId.'.pdf', ['Attachment' => true]);
+            $displayName = $mine_['user']['name'] ?? ($mine['user']['name'] ?? '') ?? '';
+            if ($displayName === '' && isset($mine['user']['email'])) { $displayName = $mine['user']['email']; }
+            if ($displayName === '') { $displayName = 'vendedor_'.$sellerId; }
+            $safe = strtolower(trim((string)$displayName));
+            $safe = preg_replace('/[^A-Za-z0-9_\-]+/', '_', $safe);
+            $filename = ($safe !== '' ? $safe : ('vendedor_'.$sellerId)).'_financeiro.pdf';
+            $dompdf->stream($filename, ['Attachment' => true]);
             exit;
         }
         header('Content-Type: text/html; charset=utf-8');
