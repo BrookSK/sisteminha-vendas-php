@@ -262,14 +262,23 @@
   $pctCosts = $pctSettings + $pctExplicit;
   $pctTotalEff = $pctCosts + $commPct; // custos (%) + comissões (%)
   $fixedUsd = (float)($team['team_cost_fixed_usd'] ?? 0);
-  $beGross = null; $beBrl = null; $gapUsd = null; $gapBrl = null;
+  $beGross = null; $beBrl = null; $gapUsd = 0.0; $gapBrl = 0.0;
   if ($pctTotalEff < 1.0) {
     $den = (1.0 - $pctTotalEff);
     if ($den <= 0) { $den = 0.000001; }
     $beGross = $fixedUsd / $den; // G - (pctCosts+commPct)*G - fixed = 0 => G = fixed / (1 - (pctCosts+commPct))
     $beBrl = $beGross * (float)($rate ?? 0);
-    $gapUsd = max(0.0, $beGross - $currGross);
-    $gapBrl = $gapUsd * (float)($rate ?? 0);
+    // Falta baseada no déficit atual de caixa da empresa
+    $companyCash = (float)($team['company_cash_usd'] ?? 0);
+    if ($companyCash < 0) {
+      $deficit = -$companyCash;
+      // Vendas adicionais necessárias para cobrir o déficit atual,
+      // usando a mesma taxa efetiva de retenção (1 - pctTotalEff)
+      $gapUsd = $deficit / $den;
+      $gapBrl = $gapUsd * (float)($rate ?? 0);
+    } else {
+      $gapUsd = 0.0; $gapBrl = 0.0;
+    }
   }
 ?>
 <div class="card mt-3">
@@ -293,6 +302,7 @@
             <div class="text-muted small">Fórmula</div>
             <div class="small">G = Fixos ÷ (1 − (Custos% + Comissões%))</div>
             <div class="small text-muted">Fixos: $ <?= number_format($fixedUsd,2) ?> | Custos%: <?= number_format($pctCosts*100,2) ?>% | Comissões%: <?= number_format($commPct*100,2) ?>%</div>
+            <div class="small text-muted">Falta ≈ Déficit atual ÷ (1 − (Custos% + Comissões%))</div>
           </div>
         </div>
         <div class="col-md-4">
@@ -300,6 +310,10 @@
             <div class="text-muted small">Falta para atingir (aprox.)</div>
             <div class="fw-bold <?= ($gapUsd ?? 0) > 0 ? '' : 'text-success' ?>">$ <?= number_format((float)$gapUsd, 2) ?></div>
             <div class="small text-muted">R$ <?= number_format((float)$gapBrl, 2) ?></div>
+            <?php $retEff = max(0.0, 1.0 - $pctTotalEff); $companyCash = (float)($team['company_cash_usd'] ?? 0); $deficitNow = $companyCash < 0 ? -$companyCash : 0.0; $deficitNowBrl = $deficitNow * (float)($rate ?? 0); ?>
+            <div class="small text-muted mt-1">Déficit atual: $ <?= number_format($deficitNow, 2) ?></div>
+            <div class="small text-muted">Déficit atual (BRL): R$ <?= number_format($deficitNowBrl, 2) ?></div>
+            <div class="small text-muted">Retenção efetiva: <?= number_format($retEff*100, 2) ?>%</div>
           </div>
         </div>
       </div>
