@@ -33,11 +33,25 @@
         new bootstrap.Tooltip(tooltipTriggerEl);
       });
     }
+    function initModals(){
+      if (!window.bootstrap || !bootstrap.Modal) return;
+      document.querySelectorAll('[data-bs-toggle="modal"][data-bs-target]').forEach(function(btn){
+        btn.addEventListener('click', function(ev){
+          ev.preventDefault();
+          var sel = this.getAttribute('data-bs-target');
+          if (!sel) return;
+          var el = document.querySelector(sel);
+          if (!el) return;
+          var m = bootstrap.Modal.getOrCreateInstance(el);
+          m.show();
+        });
+      });
+    }
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
-      setTimeout(initTooltips, 0);
+      setTimeout(function(){ initTooltips(); initModals(); }, 0);
     } else {
-      document.addEventListener('DOMContentLoaded', initTooltips);
-      window.addEventListener('load', initTooltips);
+      document.addEventListener('DOMContentLoaded', function(){ initTooltips(); initModals(); });
+      window.addEventListener('load', function(){ initTooltips(); initModals(); });
     }
   })();
   </script>
@@ -227,6 +241,51 @@
     </div>
   </div>
 </div>
+
+<?php $explicit = $costs['explicit_costs'] ?? []; $teamBrutoForCosts = (float)($team['team_bruto_total'] ?? 0); ?>
+<?php if (!empty($explicit)): ?>
+<div class="card mt-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Custos Cadastrados (itens) <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Lista de custos cadastrados no período e seus valores finais em USD.">?</span></span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>Descrição</th>
+            <th>Tipo</th>
+            <th class="text-end">Valor Final (USD)</th>
+            <th>Fórmula</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($explicit as $c): ?>
+            <?php
+              $tipo = (string)($c['valor_tipo'] ?? 'fixed');
+              if ($tipo === '') $tipo = 'fixed';
+              if ($tipo === 'percent') {
+                $pct = (float)($c['valor_percent'] ?? 0);
+                $amt = ($teamBrutoForCosts * ($pct/100.0));
+                $formula = number_format($pct,2).'%' . ' × US$ ' . number_format($teamBrutoForCosts,2) . ' = US$ ' . number_format($amt,2);
+              } else {
+                $amt = (float)($c['valor_usd'] ?? 0);
+                $formula = '—';
+              }
+            ?>
+            <tr>
+              <td><?= htmlspecialchars($c['descricao'] ?? '') ?></td>
+              <td><?= ($tipo === 'percent' ? 'percent' : 'fixed') ?></td>
+              <td class="text-end">$ <?= number_format($amt, 2) ?></td>
+              <td class="small text-muted"><?= htmlspecialchars($formula) ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
 
 <div class="row g-3 mb-2">
   <div class="col-md-4">
