@@ -52,4 +52,28 @@ class Attendance extends Model
         }
         return (int)($row['c'] ?? 0);
     }
+
+    public function listRange(string $fromDate, string $toDate, ?int $userId = null): array
+    {
+        if ($userId) {
+            $stmt = $this->db->prepare('SELECT a.*, u.email as usuario_email FROM atendimentos a
+                LEFT JOIN usuarios u ON u.id = a.usuario_id
+                WHERE a.usuario_id = :uid AND a.data BETWEEN :from_d AND :to_d
+                ORDER BY a.data ASC');
+            $stmt->execute([':uid'=>$userId, ':from_d'=>$fromDate, ':to_d'=>$toDate]);
+        } else {
+            $stmt = $this->db->prepare('SELECT a.*, u.email as usuario_email FROM atendimentos a
+                LEFT JOIN usuarios u ON u.id = a.usuario_id
+                WHERE a.data BETWEEN :from_d AND :to_d
+                ORDER BY a.data ASC');
+            $stmt->execute([':from_d'=>$fromDate, ':to_d'=>$toDate]);
+        }
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function delete(string $date, int $userId): void
+    {
+        $stmt = $this->db->prepare('DELETE FROM atendimentos WHERE data = :data AND usuario_id = :uid');
+        $stmt->execute([':data'=>$date, ':uid'=>$userId]);
+    }
 }

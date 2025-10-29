@@ -43,6 +43,35 @@
         <tr><th>Rate do Bônus</th><td class="right"><?= number_format((float)($team_['bonus_rate'] ?? 0)*100, 2) ?>%</td></tr>
       </tbody>
     </table>
+
+    <h3>Atendimentos</h3>
+    <?php $attRows = $att_['rows'] ?? []; $todayTot = (int)($att_['today_total'] ?? 0); $todayDone = (int)($att_['today_done'] ?? 0); ?>
+    <table>
+      <tbody>
+        <tr><th>Atendimentos de hoje</th><td class="right"><?= $todayTot ?></td></tr>
+        <tr><th>Concluídos hoje</th><td class="right"><?= $todayDone ?></td></tr>
+      </tbody>
+    </table>
+    <?php if (!empty($attRows)): ?>
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th class="right">Total</th>
+            <th class="right">Concluídos</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($attRows as $r): ?>
+            <tr>
+              <td><?= htmlspecialchars($r['data'] ?? '') ?></td>
+              <td class="right"><?= (int)($r['total_atendimentos'] ?? 0) ?></td>
+              <td class="right"><?= (int)($r['total_concluidos'] ?? 0) ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    <?php endif; ?>
   <?php endif; ?>
 </body>
 </html>
