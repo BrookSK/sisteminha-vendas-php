@@ -272,6 +272,21 @@
           </tr>
         </thead>
         <tbody>
+          <?php
+            $rateNow = (float)($rate ?? 0);
+            $sRate = (float)($team['team_cost_settings_rate'] ?? 0);
+            $sAmt = $teamBrutoForCosts * $sRate;
+            $sAmtBrl = $rateNow > 0 ? ($sAmt * $rateNow) : 0.0;
+            $totalUsd = $sAmt;
+            $totalBrl = $sAmtBrl;
+          ?>
+          <tr>
+            <td>Custo Global (settings)</td>
+            <td>percent</td>
+            <td class="text-end">$ <?= number_format($sAmt, 2) ?></td>
+            <td class="text-end">R$ <?= number_format($sAmtBrl, 2) ?></td>
+            <td class="small text-muted"><?= number_format($sRate*100,2) ?>% × US$ <?= number_format($teamBrutoForCosts,2) ?> = US$ <?= number_format($sAmt,2) ?></td>
+          </tr>
           <?php foreach ($explicit as $c): ?>
             <?php
               $tipo = (string)($c['valor_tipo'] ?? 'fixed');
@@ -284,8 +299,9 @@
                 $amt = (float)($c['valor_usd'] ?? 0);
                 $formula = '—';
               }
-              $rateNow = (float)($rate ?? 0);
               $amtBrl = $rateNow > 0 ? ($amt * $rateNow) : 0.0;
+              $totalUsd += $amt;
+              $totalBrl += $amtBrl;
             ?>
             <tr>
               <td><?= htmlspecialchars($c['descricao'] ?? '') ?></td>
@@ -295,6 +311,13 @@
               <td class="small text-muted"><?= htmlspecialchars($formula) ?></td>
             </tr>
           <?php endforeach; ?>
+          <tr>
+            <td><strong>Total</strong></td>
+            <td>—</td>
+            <td class="text-end"><strong>$ <?= number_format($totalUsd, 2) ?></strong></td>
+            <td class="text-end"><strong>R$ <?= number_format($totalBrl, 2) ?></strong></td>
+            <td class="small text-muted">—</td>
+          </tr>
         </tbody>
       </table>
     </div>
