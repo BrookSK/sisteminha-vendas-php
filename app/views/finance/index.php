@@ -256,6 +256,7 @@
             <th>Descrição</th>
             <th>Tipo</th>
             <th class="text-end">Valor Final (USD)</th>
+            <th class="text-end">Valor Final (BRL)</th>
             <th>Fórmula</th>
           </tr>
         </thead>
@@ -272,11 +273,14 @@
                 $amt = (float)($c['valor_usd'] ?? 0);
                 $formula = '—';
               }
+              $rateNow = (float)($rate ?? 0);
+              $amtBrl = $rateNow > 0 ? ($amt * $rateNow) : 0.0;
             ?>
             <tr>
               <td><?= htmlspecialchars($c['descricao'] ?? '') ?></td>
               <td><?= ($tipo === 'percent' ? 'percent' : 'fixed') ?></td>
               <td class="text-end">$ <?= number_format($amt, 2) ?></td>
+              <td class="text-end">R$ <?= number_format($amtBrl, 2) ?></td>
               <td class="small text-muted"><?= htmlspecialchars($formula) ?></td>
             </tr>
           <?php endforeach; ?>
@@ -287,7 +291,7 @@
 </div>
 <?php endif; ?>
 
-<div class="row g-3 mb-2">
+<div class="row mb-2 mt-3">
   <div class="col-md-4">
     <div class="p-2 border rounded h-100">
       <div class="d-flex justify-content-between align-items-center">
