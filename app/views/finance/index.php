@@ -323,35 +323,7 @@
       <div class="small">Ativos: <?= (int)($team['active_count'] ?? 0) ?> | Rate: <?= number_format((float)($team['bonus_rate'] ?? 0)*100, 2) ?>%</div>
     </div>
   </div>
-</div>
-
-<div class="card mt-3">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>Comissões por Função <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Somatório das comissões finais agrupado por função (seller, manager, trainee, etc).">?</span></span>
-    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalByRole">Como é calculado</button>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-striped mb-0">
-        <thead>
-          <tr>
-            <th>Função</th>
-            <th class="text-end">Comissão (USD)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach (($byRole ?? []) as $role => $sum): ?>
-            <tr>
-              <td><?= htmlspecialchars($role) ?></td>
-              <td class="text-end">$ <?= number_format((float)$sum, 2) ?></td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
+  
 <?php 
   $bruto = (float)($team['team_bruto_total'] ?? 0);
   $settingsRate = (float)($team['team_cost_settings_rate'] ?? 0);
@@ -392,6 +364,34 @@
             <td>Soma dos custos fixos (Custos)</td>
             <td class="text-end">$ <?= number_format((float)($team['team_cost_fixed_usd'] ?? 0), 2) ?></td>
           </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Comissões por Função <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Somatório das comissões finais agrupado por função (seller, manager, trainee, etc).">?</span></span>
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalByRole">Como é calculado</button>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0">
+        <thead>
+          <tr>
+            <th>Função</th>
+            <th class="text-end">Comissão (USD)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach (($byRole ?? []) as $role => $sum): ?>
+            <tr>
+              <td><?= htmlspecialchars($role) ?></td>
+              <td class="text-end">$ <?= number_format((float)$sum, 2) ?></td>
+            </tr>
+          <?php endforeach; ?>
         </tbody>
       </table>
     </div>
