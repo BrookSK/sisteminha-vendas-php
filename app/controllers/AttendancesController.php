@@ -64,4 +64,19 @@ class AttendancesController extends Controller
         fclose($out);
         exit;
     }
+
+    public function delete()
+    {
+        $this->csrfCheck();
+        $u = \Core\Auth::user();
+        $role = $u['role'] ?? 'seller';
+        if ($role !== 'admin') { http_response_code(403); echo 'Acesso negado'; return; }
+        $date = (string)($_POST['data'] ?? '');
+        $uid = (int)($_POST['usuario_id'] ?? 0);
+        if (!$date || $uid<=0) { http_response_code(400); echo 'Parâmetros inválidos'; return; }
+        (new Attendance())->delete($date, $uid);
+        (new Log())->add($u['id'] ?? null, 'atendimentos', 'delete', null, json_encode(['data'=>$date,'usuario_id'=>$uid]));
+        $_SESSION['flash'][] = ['type'=>'success','message'=>'Atendimento excluído com sucesso.'];
+        $this->redirect('/admin/attendances');
+    }
 }

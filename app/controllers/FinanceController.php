@@ -6,6 +6,7 @@ use Models\Report;
 use Models\Commission;
 use Models\Setting;
 use Models\User;
+use Models\Attendance;
 
 class FinanceController extends Controller
 {
@@ -28,6 +29,48 @@ class FinanceController extends Controller
         $commCalc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
         $costs = $comm->costsInRange($from.' 00:00:00', $to.' 23:59:59');
 
+        // Attendance-specific period (defaults to main period)
+        $attFrom = $_GET['att_from'] ?? $from;
+        $attTo = $_GET['att_to'] ?? $to;
+
+        // Attendance summary by user for the period and for today
+        $attendanceByUser = [];
+        try {
+            $attModel = new Attendance();
+            $rowsInRange = $attModel->listRange($attFrom, $attTo, null);
+            $fromD = substr($attFrom, 0, 10);
+            $toD = substr($attTo, 0, 10);
+            $today = date('Y-m-d');
+            foreach ($rowsInRange as $row) {
+                $uid = (int)($row['usuario_id'] ?? 0);
+                if ($uid <= 0) continue;
+                $d = (string)($row['data'] ?? '');
+                if ($d < $fromD || $d > $toD) continue;
+                if (!isset($attendanceByUser[$uid])) {
+                    $attendanceByUser[$uid] = [
+                        'today_total' => 0,
+                        'today_done' => 0,
+                        'period_total' => 0,
+                        'period_done' => 0,
+                        'last_att_date' => null,
+                        'rows' => [],
+                    ];
+                }
+                $attendanceByUser[$uid]['rows'][] = $row;
+                $attendanceByUser[$uid]['period_total'] += (int)($row['total_atendimentos'] ?? 0);
+                $attendanceByUser[$uid]['period_done'] += (int)($row['total_concluidos'] ?? 0);
+                if ($attendanceByUser[$uid]['last_att_date'] === null || $attendanceByUser[$uid]['last_att_date'] < $d) {
+                    $attendanceByUser[$uid]['last_att_date'] = $d;
+                }
+                if ($d === $today) {
+                    $attendanceByUser[$uid]['today_total'] += (int)($row['total_atendimentos'] ?? 0);
+                    $attendanceByUser[$uid]['today_done'] += (int)($row['total_concluidos'] ?? 0);
+                }
+            }
+        } catch (\Throwable $e) {
+            // ignore attendance errors
+        }
+
         // Group commissions by role
         $byRole = ['seller'=>0.0,'manager'=>0.0,'trainee'=>0.0,'organic'=>0.0,'admin'=>0.0];
         foreach (($commCalc['items'] ?? []) as $it) {
@@ -46,6 +89,9 @@ class FinanceController extends Controller
             'costs' => $costs,
             'byRole' => $byRole,
             'users' => (new User())->allBasic(),
+            'attendanceByUser' => $attendanceByUser,
+            'att_from' => $attFrom,
+            'att_to' => $attTo,
         ]);
     }
 
@@ -84,6 +130,109 @@ class FinanceController extends Controller
             .'<p><strong>Dompdf não encontrado.</strong> Instale com:</p>'
             .'<pre>composer require dompdf/dompdf</pre>'
             .'<hr>'.$html.'</div>';
+    }
+
+    public function exportCostsCsv()
+    {
+        $this->requireRole(['admin']);
+        $setting = new Setting();
+        $from = $_GET['from'] ?? null; $to = $_GET['to'] ?? null;
+        if (!$from || !$to) { [$from,$to] = $setting->currentPeriod(); }
+        $rate = (float)$setting->get('usd_rate', '5.83');
+        $comm = new Commission();
+        $calc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
+        $teamBruto = (float)($calc['team']['team_bruto_total'] ?? 0);
+        $costs = $comm->costsInRange($from.' 00:00:00', $to.' 23:59:59');
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="financeiro_custos_'.urlencode($from).'_'.urlencode($to).'.csv"');
+        $out = fopen('php://output', 'w');
+        fputcsv($out, ['descricao','tipo','valor_usd_final','valor_brl_final','formula']);
+        foreach (($costs['explicit_costs'] ?? []) as $c) {
+            $tipo = (string)($c['valor_tipo'] ?? 'fixed');
+            if ($tipo === '') { $tipo = 'fixed'; }
+            if ($tipo === 'percent') {
+                $pct = (float)($c['valor_percent'] ?? 0);
+                $usd = $teamBruto * ($pct/100.0);
+                $formula = number_format($pct,2).'% x US$ '.number_format($teamBruto,2).' = US$ '.number_format($usd,2);
+            } else {
+                $usd = (float)($c['valor_usd'] ?? 0);
+                $formula = '';
+            }
+            $brl = $usd * $rate;
+            fputcsv($out, [
+                (string)($c['descricao'] ?? ''),
+                $tipo,
+                number_format($usd, 2, '.', ''),
+                number_format($brl, 2, '.', ''),
+                $formula,
+            ]);
+        }
+        fclose($out);
+        exit;
+    }
+
+    public function exportAttendancesCsv()
+    {
+        $this->requireRole(['admin']);
+        $attFrom = $_GET['att_from'] ?? ($_GET['from'] ?? null);
+        $attTo = $_GET['att_to'] ?? ($_GET['to'] ?? null);
+        if (!$attFrom || !$attTo) { $set = new Setting(); [$attFrom,$attTo] = $set->currentPeriod(); }
+        $att = new Attendance();
+        $rows = $att->listRange($attFrom, $attTo, null);
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="financeiro_atendimentos_'.urlencode($attFrom).'_'.urlencode($attTo).'.csv"');
+        $out = fopen('php://output', 'w');
+        fputcsv($out, ['data','usuario_id','usuario_email','total_atendimentos','total_concluidos','created_at','updated_at']);
+        foreach ($rows as $r) {
+            fputcsv($out, [
+                $r['data'] ?? '',
+                $r['usuario_id'] ?? '',
+                $r['usuario_email'] ?? '',
+                $r['total_atendimentos'] ?? 0,
+                $r['total_concluidos'] ?? 0,
+                $r['created_at'] ?? '',
+                $r['updated_at'] ?? '',
+            ]);
+        }
+        fclose($out);
+        exit;
+    }
+
+    public function exportAttendancesXlsx()
+    {
+        $this->requireRole(['admin']);
+        $attFrom = $_GET['att_from'] ?? ($_GET['from'] ?? null);
+        $attTo = $_GET['att_to'] ?? ($_GET['to'] ?? null);
+        if (!$attFrom || !$attTo) { $set = new Setting(); [$attFrom,$attTo] = $set->currentPeriod(); }
+        $att = new Attendance();
+        $rows = $att->listRange($attFrom, $attTo, null);
+        if (class_exists('PhpOffice\\PhpSpreadsheet\\Spreadsheet')) {
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Atendimentos');
+            $sheet->fromArray(['Período', $attFrom.' a '.$attTo], null, 'A1');
+            $sheet->fromArray(['data','usuario_id','usuario_email','total_atendimentos','total_concluidos','created_at','updated_at'], null, 'A3');
+            $r = 4;
+            foreach ($rows as $row) {
+                $sheet->fromArray([
+                    $row['data'] ?? '',
+                    $row['usuario_id'] ?? '',
+                    $row['usuario_email'] ?? '',
+                    $row['total_atendimentos'] ?? 0,
+                    $row['total_concluidos'] ?? 0,
+                    $row['created_at'] ?? '',
+                    $row['updated_at'] ?? '',
+                ], null, 'A'.$r);
+                $r++;
+            }
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="financeiro_atendimentos_'.urlencode($attFrom).'_'.urlencode($attTo).'.xlsx"');
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
+            exit;
+        }
+        // Fallback CSV
+        $this->exportAttendancesCsv();
     }
 
     public function exportCompanyXlsx()
@@ -172,9 +321,28 @@ class FinanceController extends Controller
         $mine = null; $team = $calc['team'];
         foreach (($calc['items'] ?? []) as $it) { if ((int)$it['vendedor_id'] === $sellerId) { $mine = $it; break; } }
 
+        // Attendance data for this seller in range and today
+        $attMine = ['today_total'=>0,'today_done'=>0,'rows'=>[]];
+        try {
+            $attModel = new Attendance();
+            $rows = $attModel->list(1000, 0, $sellerId);
+            $fromD = substr($from, 0, 10);
+            $toD = substr($to, 0, 10);
+            $today = date('Y-m-d');
+            foreach ($rows as $r) {
+                $d = (string)($r['data'] ?? '');
+                if ($d < $fromD || $d > $toD) continue;
+                $attMine['rows'][] = $r;
+                if ($d === $today) {
+                    $attMine['today_total'] += (int)($r['total_atendimentos'] ?? 0);
+                    $attMine['today_done'] += (int)($r['total_concluidos'] ?? 0);
+                }
+            }
+        } catch (\Throwable $e) {}
+
         ob_start();
         $title = 'Relatório de Desempenho do Vendedor';
-        $rate_ = $rate; $from_=$from; $to_=$to; $team_=$team; $mine_=$mine;
+        $rate_ = $rate; $from_=$from; $to_=$to; $team_=$team; $mine_=$mine; $att_=$attMine;
         include dirname(__DIR__) . '/views/finance/partials_seller.php';
         $html = ob_get_clean();
 

@@ -192,12 +192,23 @@
     <label class="form-label">Até</label>
     <input type="date" name="to" value="<?= htmlspecialchars($to ?? date('Y-m-t')) ?>" class="form-control">
   </div>
+  <div class="col-auto">
+    <label class="form-label">Atend. De</label>
+    <input type="date" name="att_from" value="<?= htmlspecialchars($att_from ?? ($from ?? '')) ?>" class="form-control">
+  </div>
+  <div class="col-auto">
+    <label class="form-label">Atend. Até</label>
+    <input type="date" name="att_to" value="<?= htmlspecialchars($att_to ?? ($to ?? '')) ?>" class="form-control">
+  </div>
   <div class="col-auto align-self-end">
     <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
   </div>
   <div class="col-auto align-self-end">
     <a class="btn btn-outline-primary" href="/admin/finance/export-company.pdf?from=<?= urlencode($from ?? '') ?>&to=<?= urlencode($to ?? '') ?>">Exportar Empresa PDF</a>
     <a class="btn btn-outline-success" href="/admin/finance/export-company.xlsx?from=<?= urlencode($from ?? '') ?>&to=<?= urlencode($to ?? '') ?>">Exportar Empresa XLSX</a>
+    <a class="btn btn-outline-dark" href="/admin/finance/export-costs.csv?from=<?= urlencode($from ?? '') ?>&to=<?= urlencode($to ?? '') ?>">Custos CSV</a>
+    <a class="btn btn-outline-dark" href="/admin/finance/export-attendances.csv?att_from=<?= urlencode($att_from ?? ($from ?? '')) ?>&att_to=<?= urlencode($att_to ?? ($to ?? '')) ?>">Atendimentos CSV</a>
+    <a class="btn btn-outline-dark" href="/admin/finance/export-attendances.xlsx?att_from=<?= urlencode($att_from ?? ($from ?? '')) ?>&att_to=<?= urlencode($att_to ?? ($to ?? '')) ?>">Atendimentos XLSX</a>
   </div>
 </form>
 
@@ -435,6 +446,41 @@
                 <?php $sid = (int)($it['vendedor_id'] ?? 0); $uFrom = urlencode($from ?? ''); $uTo = urlencode($to ?? ''); $sellerPdfUrl = "/admin/finance/export-seller.pdf?seller_id=".$sid."&from=".$uFrom."&to=".$uTo; ?>
                 <a class="btn btn-sm btn-outline-secondary" href="<?= htmlspecialchars($sellerPdfUrl) ?>">PDF</a>
               </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Atendimentos dos Vendedores <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Resumo do período com número de atendimentos de hoje, concluídos e a data do último atendimento.">?</span></span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>Vendedor</th>
+            <th class="text-end">Atendimentos (hoje)</th>
+            <th class="text-end">Concluídos (hoje)</th>
+            <th class="text-end">Atendimentos (período)</th>
+            <th class="text-end">Concluídos (período)</th>
+            <th class="text-end">Último atendimento</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach (($comm['items'] ?? []) as $it): ?>
+            <?php $uid = (int)($it['vendedor_id'] ?? 0); $att = $attendanceByUser[$uid] ?? null; ?>
+            <tr>
+              <td><?= htmlspecialchars($it['user']['name'] ?? '') ?></td>
+              <td class="text-end"><?= (int)($att['today_total'] ?? 0) ?></td>
+              <td class="text-end"><?= (int)($att['today_done'] ?? 0) ?></td>
+              <td class="text-end"><?= (int)($att['period_total'] ?? 0) ?></td>
+              <td class="text-end"><?= (int)($att['period_done'] ?? 0) ?></td>
+              <td class="text-end"><?= htmlspecialchars((string)($att['last_att_date'] ?? '-')) ?></td>
             </tr>
           <?php endforeach; ?>
         </tbody>
