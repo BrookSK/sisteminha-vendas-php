@@ -208,7 +208,6 @@ class DashboardController extends Controller
         $sim = $_POST['sim'] ?? $_GET['sim'] ?? [];
         $costRatePct = isset($sim['cost_rate_pct']) ? (float)$sim['cost_rate_pct'] : ($costRateBase * 100.0);
         $costRateSim = max(0.0, min(100.0, $costRatePct)) / 100.0;
-        $prolaborePctSim = isset($sim['prolabore_pct']) ? (float)$sim['prolabore_pct'] : $prolaborePctBase;
 
         $barLabels = ['Impostos'];
         $barDataBase = [ $teamBruto * $costRateBase ];
@@ -216,6 +215,8 @@ class DashboardController extends Controller
 
         $explicitBaseSum = 0.0; $explicitSimSum = 0.0;
         $simExp = $sim['explicit'] ?? [];
+        // Track Pro-Labore value from explicit overrides if present
+        $prolaboreUsdSim = null;
         foreach ($explicit as $idx => $c) {
             $label = (string)($c['descricao'] ?? ($c['categoria'] ?? 'Custo'));
             $tipo = (string)($c['valor_tipo'] ?? 'fixed'); if ($tipo === '') $tipo = 'fixed';
@@ -231,10 +232,16 @@ class DashboardController extends Controller
 
             $barLabels[] = $label; $barDataBase[] = $valBase; $barDataSim[] = $valSim;
             $explicitBaseSum += $valBase; $explicitSimSum += $valSim;
+
+            // If this cost is Pro-Labore, use its simulated value for KPI
+            $labelLower = strtolower($label);
+            if ($prolaboreUsdSim === null && (str_contains($labelLower, 'pro-labore') || str_contains($labelLower, 'prolabore') || str_contains($labelLower, 'pro labore'))) {
+                $prolaboreUsdSim = $valSim;
+            }
         }
 
-        // Prolabore
-        $prolaboreUsdSim = $teamBruto * ($prolaborePctSim / 100.0);
+        // Pro-Labore simulated: fallback to base if not found among explicit
+        if ($prolaboreUsdSim === null) { $prolaboreUsdSim = $prolaboreUsdBase; }
 
         // Simulated cash adjusts the base by delta of costs
         $baseGlobal = $teamBruto * $costRateBase;
@@ -248,7 +255,6 @@ class DashboardController extends Controller
                 'team_bruto_total' => $teamBruto,
                 'orders_count' => $report->countInPeriodAll($from, $to, null),
                 'global_cost_rate' => $costRateSim,
-                'prolabore_pct' => $prolaborePctSim,
                 'prolabore_usd' => $prolaboreUsdSim,
                 'company_cash_usd' => $companyCashUsdSim,
                 'company_cash_brl' => $companyCashBrlSim,
@@ -264,7 +270,6 @@ class DashboardController extends Controller
             ],
             'sim' => [
                 'cost_rate_pct' => $costRateSim*100.0,
-                'prolabore_pct' => $prolaborePctSim,
                 'explicit' => $simExp,
                 'explicit_source' => $explicit,
             ],
