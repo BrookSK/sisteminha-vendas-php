@@ -270,7 +270,7 @@ class Report extends Model
             $from = date('Y-m-01');
             $to = date('Y-m-t');
         }
-        // Aggregates vendas + vendas_internacionais per seller
+        // Aggregates vendas + vendas_internacionais + vendas_nacionais per seller
         $sql = "WITH s AS (
             SELECT u.id, u.name, u.email, u.role FROM usuarios u WHERE u.role <> 'admin'
         ), a AS (
@@ -278,21 +278,27 @@ class Report extends Model
             FROM vendas WHERE created_at BETWEEN :fromTs AND :toTs GROUP BY usuario_id
         ), b AS (
             SELECT vendedor_id as uid, COUNT(*) as atend_vi, COALESCE(SUM(total_bruto_usd),0) as bruto_vi, COALESCE(SUM(total_liquido_usd),0) as liquido_vi
-            FROM vendas_internacionais WHERE data_lancamento BETWEEN :fromD AND :toD GROUP BY vendedor_id
+            FROM vendas_internacionais WHERE data_lancamento BETWEEN :fromD1 AND :toD1 GROUP BY vendedor_id
+        ), c AS (
+            SELECT vendedor_id as uid, COUNT(*) as atend_vn, COALESCE(SUM(total_bruto_usd),0) as bruto_vn, COALESCE(SUM(total_liquido_usd),0) as liquido_vn
+            FROM vendas_nacionais WHERE data_lancamento BETWEEN :fromD2 AND :toD2 GROUP BY vendedor_id
         )
         SELECT s.id as usuario_id, s.name, s.email, s.role,
-               COALESCE(a.atend_v,0) + COALESCE(b.atend_vi,0) as atendimentos,
-               COALESCE(a.bruto_v,0) + COALESCE(b.bruto_vi,0) as total_bruto_usd,
-               COALESCE(a.liquido_v,0) + COALESCE(b.liquido_vi,0) as total_liquido_usd
+               COALESCE(a.atend_v,0) + COALESCE(b.atend_vi,0) + COALESCE(c.atend_vn,0) as atendimentos,
+               COALESCE(a.bruto_v,0) + COALESCE(b.bruto_vi,0) + COALESCE(c.bruto_vn,0) as total_bruto_usd,
+               COALESCE(a.liquido_v,0) + COALESCE(b.liquido_vi,0) + COALESCE(c.liquido_vn,0) as total_liquido_usd
         FROM s
         LEFT JOIN a ON a.uid = s.id
         LEFT JOIN b ON b.uid = s.id
+        LEFT JOIN c ON c.uid = s.id
         ORDER BY s.name";
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':fromTs', $from.' 00:00:00');
         $stmt->bindValue(':toTs', $to.' 23:59:59');
-        $stmt->bindValue(':fromD', $from);
-        $stmt->bindValue(':toD', $to);
+        $stmt->bindValue(':fromD1', $from);
+        $stmt->bindValue(':toD1', $to);
+        $stmt->bindValue(':fromD2', $from);
+        $stmt->bindValue(':toD2', $to);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
