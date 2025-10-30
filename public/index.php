@@ -91,6 +91,7 @@ $router->get('/logout', 'Controllers\\AuthController@logout');
 $router->group('/admin', function($r) {
     // Dashboard
     $r->get('/', 'Controllers\\DashboardController@index');
+    $r->get('/dashboard/simulator', 'Controllers\\DashboardController@simulator');
     
     // Clientes
     $r->get('/clients', 'Controllers\\ClientsController@index');
