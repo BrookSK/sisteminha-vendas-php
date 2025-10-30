@@ -131,6 +131,11 @@ $tot = $admin_data['totals'] ?? [];
               <label class="form-label">Valor (%)</label>
               <input type="text" class="form-control num-percent" name="sim[cost_rate_pct]" value="<?= htmlspecialchars((string)($sim['cost_rate_pct'] ?? 0)) ?>" placeholder="ex.: 15,00">
             </div>
+            <div class="col-12 form-check mt-1">
+              <?php $impRemoved = (int)($sim['cost_rate_remove'] ?? 0) === 1; ?>
+              <input class="form-check-input" type="checkbox" value="1" id="remImpostos" name="sim[cost_rate_remove]" <?= $impRemoved ? 'checked' : '' ?>>
+              <label class="form-check-label" for="remImpostos">Remover Impostos (Global) do simulado</label>
+            </div>
           </div>
           <!-- Demais custos explícitos do período -->
           <?php $source = $sim['explicit_source'] ?? []; foreach ($source as $i => $row): ?>
@@ -150,8 +155,8 @@ $tot = $admin_data['totals'] ?? [];
               </div>
               <div class="col-md-4">
                 <label class="form-label">Valor</label>
-                <?php $defaultVal = ($sel==='percent') ? (float)($row['valor_percent'] ?? 0) : (float)($row['valor_usd'] ?? 0); $cur = $sim['explicit'][$i]['valor'] ?? $defaultVal; $cls = ($sel==='percent') ? 'num-percent' : 'num-money'; ?>
-                <input type="text" class="form-control <?= $cls ?>" name="sim[explicit][<?= $i ?>][valor]" value="<?= htmlspecialchars((string)$cur) ?>" placeholder="ex.: 1.234,56">
+                <?php $defaultVal = ($sel==='percent') ? (float)($row['valor_percent'] ?? 0) : (float)($row['valor_usd'] ?? 0); $cur = $sim['explicit'][$i]['valor'] ?? $defaultVal; $cls = ($sel==='percent') ? 'num-percent' : 'num-money'; $valStr = is_numeric($cur) ? number_format((float)$cur, 2, ',', '.') : (string)$cur; ?>
+                <input type="text" class="form-control <?= $cls ?>" name="sim[explicit][<?= $i ?>][valor]" value="<?= htmlspecialchars($valStr) ?>" placeholder="ex.: 1.234,56">
               </div>
               <div class="col-md-12 form-check mt-1">
                 <?php $isRemoved = (int)($sim['explicit'][$i]['remove'] ?? 0) === 1; ?>
@@ -184,8 +189,8 @@ $tot = $admin_data['totals'] ?? [];
                 </div>
                 <div class="col-md-4">
                   <label class="form-label">Valor</label>
-                  <?php $clsa = ($ts==='percent') ? 'num-percent' : 'num-money'; ?>
-                  <input type="text" class="form-control <?= $clsa ?>" name="sim[add][<?= $j ?>][valor]" value="<?= htmlspecialchars((string)($r['valor'] ?? '0')) ?>" placeholder="0,00">
+                  <?php $clsa = ($ts==='percent') ? 'num-percent' : 'num-money'; $rawAdd = $r['valor'] ?? '0'; $valAdd = is_numeric($rawAdd) ? number_format((float)$rawAdd, 2, ',', '.') : (string)$rawAdd; ?>
+                  <input type="text" class="form-control <?= $clsa ?>" name="sim[add][<?= $j ?>][valor]" value="<?= htmlspecialchars($valAdd) ?>" placeholder="0,00">
                 </div>
                 <div class="col-md-12 form-check mt-1">
                   <?php $isRemAdd = (int)($r['remove'] ?? 0) === 1; ?>
