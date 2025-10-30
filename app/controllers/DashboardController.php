@@ -172,4 +172,110 @@ class DashboardController extends Controller
             'admin_data' => $adminData,
         ]);
     }
+
+    public function simulator()
+    {
+        $setting = new Setting();
+        $rate = (float)$setting->get('usd_rate', '5.83');
+        [$from, $to] = $setting->currentPeriod();
+        $me = Auth::user();
+        $role = $me['role'] ?? 'seller';
+        if ($role !== 'admin') { return $this->redirect('/admin/dashboard'); }
+
+        $comm = new Commission();
+        $calc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
+        $team = $calc['team'] ?? [];
+        $teamBruto = (float)($team['team_bruto_total'] ?? 0);
+        $companyCashUsdBase = (float)($team['company_cash_usd'] ?? 0);
+        $companyCashBrlBase = (float)($team['company_cash_brl'] ?? ($companyCashUsdBase * $rate));
+        $costRateBase = (float)$setting->get('cost_rate', '0.15');
+        if ($costRateBase < 0) $costRateBase = 0; if ($costRateBase > 1) $costRateBase = 1;
+        $costModel = new Cost();
+        $prolaborePctBase = (float)$costModel->sumProLaborePercentInPeriod($from, $to);
+        $prolaboreUsdBase = $teamBruto * ($prolaborePctBase / 100.0);
+
+        // Sales charts reuse real data
+        $report = new Report();
+        $bySeller = $report->bySeller($from, $to);
+        $pieLabels = []; $pieData = []; $lineLabels = []; $lineData = [];
+        foreach ($bySeller as $row) { $pieLabels[] = (string)($row['name'] ?? ''); $pieData[] = (int)($row['atendimentos'] ?? 0); $lineLabels[] = end($pieLabels); $lineData[] = (float)($row['total_bruto_usd'] ?? 0); }
+
+        // Base explicit costs list
+        $costsInRange = $comm->costsInRange($from.' 00:00:00', $to.' 23:59:59');
+        $explicit = array_values($costsInRange['explicit_costs'] ?? []);
+
+        // Overrides from POST/GET
+        $sim = $_POST['sim'] ?? $_GET['sim'] ?? [];
+        $costRatePct = isset($sim['cost_rate_pct']) ? (float)$sim['cost_rate_pct'] : ($costRateBase * 100.0);
+        $costRateSim = max(0.0, min(100.0, $costRatePct)) / 100.0;
+        $prolaborePctSim = isset($sim['prolabore_pct']) ? (float)$sim['prolabore_pct'] : $prolaborePctBase;
+
+        $barLabels = ['Impostos'];
+        $barDataBase = [ $teamBruto * $costRateBase ];
+        $barDataSim  = [ $teamBruto * $costRateSim ];
+
+        $explicitBaseSum = 0.0; $explicitSimSum = 0.0;
+        $simExp = $sim['explicit'] ?? [];
+        foreach ($explicit as $idx => $c) {
+            $label = (string)($c['descricao'] ?? ($c['categoria'] ?? 'Custo'));
+            $tipo = (string)($c['valor_tipo'] ?? 'fixed'); if ($tipo === '') $tipo = 'fixed';
+            // Base value
+            if ($tipo === 'percent') { $pct = (float)($c['valor_percent'] ?? 0); $valBase = $teamBruto * ($pct/100.0); }
+            else { $valBase = (float)($c['valor_usd'] ?? 0); }
+            // Sim override
+            $ov = $simExp[$idx] ?? [];
+            $tipoSim = $ov['valor_tipo'] ?? $tipo;
+            $tipoSim = in_array($tipoSim, ['percent','fixed'], true) ? $tipoSim : $tipo;
+            if ($tipoSim === 'percent') { $pctSim = isset($ov['valor']) ? (float)$ov['valor'] : (float)($c['valor_percent'] ?? 0); $valSim = $teamBruto * ($pctSim/100.0); }
+            else { $valSim = isset($ov['valor']) ? (float)$ov['valor'] : (float)($c['valor_usd'] ?? 0); }
+
+            $barLabels[] = $label; $barDataBase[] = $valBase; $barDataSim[] = $valSim;
+            $explicitBaseSum += $valBase; $explicitSimSum += $valSim;
+        }
+
+        // Prolabore
+        $prolaboreUsdSim = $teamBruto * ($prolaborePctSim / 100.0);
+
+        // Simulated cash adjusts the base by delta of costs
+        $baseGlobal = $teamBruto * $costRateBase;
+        $simGlobal = $teamBruto * $costRateSim;
+        $delta = ($simGlobal - $baseGlobal) + ($prolaboreUsdSim - $prolaboreUsdBase) + ($explicitSimSum - $explicitBaseSum);
+        $companyCashUsdSim = $companyCashUsdBase - $delta;
+        $companyCashBrlSim = $companyCashUsdSim * $rate;
+
+        $adminData = [
+            'admin_kpis' => [
+                'team_bruto_total' => $teamBruto,
+                'orders_count' => $report->countInPeriodAll($from, $to, null),
+                'global_cost_rate' => $costRateSim,
+                'prolabore_pct' => $prolaborePctSim,
+                'prolabore_usd' => $prolaboreUsdSim,
+                'company_cash_usd' => $companyCashUsdSim,
+                'company_cash_brl' => $companyCashBrlSim,
+                'active_sellers' => count($bySeller),
+                'sum_commissions_usd' => (float)($team['sum_commissions_usd'] ?? 0),
+            ],
+            'charts' => [
+                'pie' => ['labels' => $pieLabels, 'data' => $pieData],
+                'line' => ['labels' => $lineLabels, 'data' => $lineData],
+                'bar' => ['labels' => $barLabels, 'data' => $barDataSim],
+                'bar_base' => ['labels' => $barLabels, 'data' => $barDataBase],
+                'scatter' => [],
+            ],
+            'sim' => [
+                'cost_rate_pct' => $costRateSim*100.0,
+                'prolabore_pct' => $prolaborePctSim,
+                'explicit' => $simExp,
+                'explicit_source' => $explicit,
+            ],
+        ];
+
+        $this->render('dashboard/simulator', [
+            'title' => 'Simulador de Custos',
+            'rate' => $rate,
+            'period_from' => $from,
+            'period_to' => $to,
+            'admin_data' => $adminData,
+        ]);
+    }
 }
