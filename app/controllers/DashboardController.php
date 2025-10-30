@@ -245,6 +245,11 @@ class DashboardController extends Controller
                 // still count base for baseline, but do not add to simulated
                 $barLabels[] = $label; $barDataBase[] = $valBase; $barDataSim[] = 0.0; // show removed as zero
                 $explicitBaseSum += $valBase; // base sum includes it
+                // If this removed item is Pro-Labore, reflect as zero in KPI
+                $labelLower = strtolower($label);
+                if (str_contains($labelLower, 'pro-labore') || str_contains($labelLower, 'prolabore') || str_contains($labelLower, 'pro labore')) {
+                    $prolaboreUsdSim = 0.0;
+                }
                 // no add to explicitSimSum
                 continue;
             }
