@@ -223,6 +223,8 @@ class DashboardController extends Controller
         $sim = $_POST['sim'] ?? $_GET['sim'] ?? [];
         $costRatePct = isset($sim['cost_rate_pct']) ? $parseNumber($sim['cost_rate_pct']) : ($costRateBase * 100.0);
         $costRateSim = max(0.0, min(100.0, $costRatePct)) / 100.0;
+        $costRateRemoved = (int)($sim['cost_rate_remove'] ?? 0) === 1;
+        if ($costRateRemoved) { $costRateSim = 0.0; }
 
         $barLabels = ['Impostos'];
         $barDataBase = [ $teamBruto * $costRateBase ];
@@ -381,6 +383,7 @@ class DashboardController extends Controller
             ],
             'sim' => [
                 'cost_rate_pct' => $costRateSim*100.0,
+                'cost_rate_remove' => $costRateRemoved ? 1 : 0,
                 'explicit' => $simExp,
                 'explicit_source' => $explicit,
                 'add_existing' => $addedOut,
