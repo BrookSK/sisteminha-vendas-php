@@ -120,7 +120,7 @@ $rate = (float)($rate ?? 0);
             </div>
             <div class="col-md-4">
               <label class="form-label">Valor (%)</label>
-              <input type="number" step="0.01" class="form-control" name="sim[cost_rate_pct]" value="<?= htmlspecialchars((string)($sim['cost_rate_pct'] ?? 0)) ?>">
+              <input type="text" class="form-control num" name="sim[cost_rate_pct]" value="<?= htmlspecialchars((string)($sim['cost_rate_pct'] ?? 0)) ?>" placeholder="ex.: 15,00">
             </div>
           </div>
           <!-- Demais custos explícitos do período -->
@@ -142,7 +142,7 @@ $rate = (float)($rate ?? 0);
               <div class="col-md-4">
                 <label class="form-label">Valor</label>
                 <?php $defaultVal = ($sel==='percent') ? (float)($row['valor_percent'] ?? 0) : (float)($row['valor_usd'] ?? 0); $cur = $sim['explicit'][$i]['valor'] ?? $defaultVal; ?>
-                <input type="number" step="0.01" class="form-control" name="sim[explicit][<?= $i ?>][valor]" value="<?= htmlspecialchars((string)$cur) ?>">
+                <input type="text" class="form-control num" name="sim[explicit][<?= $i ?>][valor]" value="<?= htmlspecialchars((string)$cur) ?>" placeholder="ex.: 1.234,56">
               </div>
               <div class="col-md-12 form-check mt-1">
                 <input class="form-check-input" type="checkbox" value="1" id="rem<?= $i ?>" name="sim[explicit][<?= $i ?>][remove]">
@@ -156,12 +156,74 @@ $rate = (float)($rate ?? 0);
             <div>Adicionar novos custos (não serão salvos)</div>
             <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddCost">+ Novo custo</button>
           </div>
-          <div id="addCosts"></div>
+          <div id="addCosts" data-count="<?= (int)count($sim['add_existing'] ?? []) ?>">
+            <?php $adds = $sim['add_existing'] ?? []; foreach ($adds as $j => $r): ?>
+              <div class="row g-2 align-items-end mb-2">
+                <div class="col-md-5">
+                  <label class="form-label">Descrição</label>
+                  <input type="text" class="form-control" name="sim[add][<?= $j ?>][descricao]" value="<?= htmlspecialchars((string)($r['descricao'] ?? '')) ?>">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Tipo</label>
+                  <?php $ts = (string)($r['valor_tipo'] ?? 'fixed'); ?>
+                  <select class="form-select" name="sim[add][<?= $j ?>][valor_tipo]">
+                    <option value="fixed" <?= $ts==='fixed'?'selected':'' ?>>USD Fixo</option>
+                    <option value="fixed_brl" <?= $ts==='fixed_brl'?'selected':'' ?>>BRL Fixo</option>
+                    <option value="percent" <?= $ts==='percent'?'selected':'' ?>>Percentual (%)</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Valor</label>
+                  <input type="text" class="form-control num" name="sim[add][<?= $j ?>][valor]" value="<?= htmlspecialchars((string)($r['valor'] ?? '0')) ?>" placeholder="0,00">
+                </div>
+                <div class="col-md-12 form-check mt-1">
+                  <input class="form-check-input" type="checkbox" value="1" id="addrem<?= $j ?>" name="sim[add][<?= $j ?>][remove]">
+                  <label class="form-check-label" for="addrem<?= $j ?>">Remover este custo adicionado</label>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
           <div class="mt-3">
             <button type="submit" class="btn btn-primary">Aplicar</button>
             <a href="?" class="btn btn-outline-secondary">Limpar</a>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<?php $tot = $admin_data['totals'] ?? []; ?>
+<div class="row g-3 mt-2">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="fs-6 text-muted">Total de Custos (Base)</div>
+        </div>
+        <div class="row g-2">
+          <div class="col-6 small text-muted">Impostos</div><div class="col-6 text-end fw-bold">$ <?= number_format((float)($tot['impostos_base'] ?? 0), 2) ?></div>
+          <div class="col-6 small text-muted">Pro-labore</div><div class="col-6 text-end fw-bold">$ <?= number_format((float)($tot['prolabore_base'] ?? 0), 2) ?></div>
+          <div class="col-6 small text-muted">Explícitos</div><div class="col-6 text-end fw-bold">$ <?= number_format((float)($tot['explicit_base'] ?? 0), 2) ?></div>
+          <div class="col-12"><hr></div>
+          <div class="col-6 small text-muted">Total</div><div class="col-6 text-end fw-bold">$ <?= number_format((float)($tot['total_base'] ?? 0), 2) ?></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="fs-6 text-muted">Total de Custos (Simulado)</div>
+        </div>
+        <div class="row g-2">
+          <div class="col-6 small text-muted">Impostos</div><div class="col-6 text-end fw-bold">$ <?= number_format((float)($tot['impostos_sim'] ?? 0), 2) ?></div>
+          <div class="col-6 small text-muted">Pro-labore</div><div class="col-6 text-end fw-bold">$ <?= number_format((float)($tot['prolabore_sim'] ?? 0), 2) ?></div>
+          <div class="col-6 small text-muted">Explícitos</div><div class="col-6 text-end fw-bold">$ <?= number_format((float)($tot['explicit_sim'] ?? 0), 2) ?></div>
+          <div class="col-12"><hr></div>
+          <div class="col-6 small text-muted">Total</div><div class="col-6 text-end fw-bold">$ <?= number_format((float)($tot['total_sim'] ?? 0), 2) ?></div>
+        </div>
       </div>
     </div>
   </div>
@@ -252,7 +314,7 @@ $rate = (float)($rate ?? 0);
     var btn = document.getElementById('btnAddCost');
     if (!btn) return;
     var wrap = document.getElementById('addCosts');
-    var idx = 0;
+    var idx = parseInt(wrap.getAttribute('data-count') || '0', 10);
     btn.addEventListener('click', function(){
       var row = document.createElement('div');
       row.className = 'row g-2 align-items-end mb-2';
@@ -271,10 +333,24 @@ $rate = (float)($rate ?? 0);
         '</div>'+
         '<div class="col-md-4">'+
           '<label class="form-label">Valor</label>'+
-          '<input type="number" step="0.01" class="form-control" name="sim[add]['+idx+'][valor]" placeholder="0.00">'+
+          '<input type="text" class="form-control num" name="sim[add]['+idx+'][valor]" placeholder="0,00">'+
+        '</div>'+
+        '<div class="col-md-12 form-check mt-1">'+
+          '<input class="form-check-input" type="checkbox" value="1" id="addrem'+idx+'" name="sim[add]['+idx+'][remove]">'+
+          '<label class="form-check-label" for="addrem'+idx+'">Remover este custo adicionado</label>'+
         '</div>';
       wrap.appendChild(row);
       idx++;
+    });
+  })();
+
+  // Optional normalize on submit (server also normalizes)
+  (function(){
+    var form = document.querySelector('form[method="post"]');
+    if (!form) return;
+    form.addEventListener('submit', function(){
+      // noop: backend normaliza; aqui apenas trim
+      document.querySelectorAll('.num').forEach(function(inp){ inp.value = (inp.value||'').trim(); });
     });
   })();
 })();

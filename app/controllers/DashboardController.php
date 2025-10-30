@@ -205,8 +205,23 @@ class DashboardController extends Controller
         $explicit = array_values($costsInRange['explicit_costs'] ?? []);
 
         // Overrides from POST/GET
+        $parseNumber = function($val): float {
+            if (is_null($val)) return 0.0;
+            if (is_float($val) || is_int($val)) return (float)$val;
+            $s = trim((string)$val);
+            if ($s === '') return 0.0;
+            // Normalize BR format: 1.234,56 -> 1234.56
+            if (strpos($s, ',') !== false) {
+                $s = str_replace('.', '', $s);
+                $s = str_replace(',', '.', $s);
+            } else {
+                // Remove thousand separators like 1,234.56
+                $s = str_replace(',', '', $s);
+            }
+            return (float)$s;
+        };
         $sim = $_POST['sim'] ?? $_GET['sim'] ?? [];
-        $costRatePct = isset($sim['cost_rate_pct']) ? (float)$sim['cost_rate_pct'] : ($costRateBase * 100.0);
+        $costRatePct = isset($sim['cost_rate_pct']) ? $parseNumber($sim['cost_rate_pct']) : ($costRateBase * 100.0);
         $costRateSim = max(0.0, min(100.0, $costRatePct)) / 100.0;
 
         $barLabels = ['Impostos'];
@@ -236,13 +251,13 @@ class DashboardController extends Controller
             $tipoSim = $ov['valor_tipo'] ?? $tipo;
             $tipoSim = in_array($tipoSim, ['percent','fixed','fixed_brl'], true) ? $tipoSim : $tipo;
             if ($tipoSim === 'percent') {
-                $pctSim = isset($ov['valor']) ? (float)$ov['valor'] : (float)($c['valor_percent'] ?? 0);
+                $pctSim = isset($ov['valor']) ? $parseNumber($ov['valor']) : (float)($c['valor_percent'] ?? 0);
                 $valSim = $teamBruto * ($pctSim/100.0);
             } elseif ($tipoSim === 'fixed_brl') {
-                $brl = isset($ov['valor']) ? (float)$ov['valor'] : 0.0;
+                $brl = isset($ov['valor']) ? $parseNumber($ov['valor']) : 0.0;
                 $valSim = ($rate > 0) ? ($brl / $rate) : 0.0;
             } else {
-                $valSim = isset($ov['valor']) ? (float)$ov['valor'] : (float)($c['valor_usd'] ?? 0);
+                $valSim = isset($ov['valor']) ? $parseNumber($ov['valor']) : (float)($c['valor_usd'] ?? 0);
             }
 
             $barLabels[] = $label; $barDataBase[] = $valBase; $barDataSim[] = $valSim;
@@ -260,13 +275,15 @@ class DashboardController extends Controller
 
         // Add new custom explicit costs (non-persistent)
         $simAdd = $sim['add'] ?? [];
+        $addedOut = [];
         if (is_array($simAdd)) {
             foreach ($simAdd as $row) {
                 $desc = trim((string)($row['descricao'] ?? ''));
                 if ($desc === '') continue;
+                if (isset($row['remove']) && (int)$row['remove'] === 1) { continue; }
                 $tipoN = (string)($row['valor_tipo'] ?? 'fixed');
                 if (!in_array($tipoN, ['percent','fixed','fixed_brl'], true)) { $tipoN = 'fixed'; }
-                $valN = (float)($row['valor'] ?? 0);
+                $valN = $parseNumber($row['valor'] ?? 0);
                 $valBaseN = 0.0; // base has no such cost
                 if ($tipoN === 'percent') { $valSimN = $teamBruto * ($valN/100.0); }
                 elseif ($tipoN === 'fixed_brl') { $valSimN = ($rate > 0) ? ($valN / $rate) : 0.0; }
@@ -277,6 +294,7 @@ class DashboardController extends Controller
                 if ($prolaboreUsdSim === null && (str_contains($dl,'pro-labore')||str_contains($dl,'prolabore')||str_contains($dl,'pro labore'))) {
                     $prolaboreUsdSim = $valSimN;
                 }
+                $addedOut[] = ['descricao'=>$desc,'valor_tipo'=>$tipoN,'valor'=>$valN];
             }
         }
 
@@ -328,6 +346,12 @@ class DashboardController extends Controller
         $companyCashUsdSim = $sumRateadoUsd - $sumCommissionsUsd;
         $companyCashBrlSim = $companyCashUsdSim * $usdRate;
 
+        // Totals (base x simulated)
+        $impostosBase = $teamBruto * $costRateBase;
+        $impostosSim = $teamBruto * $costRateSim;
+        $totalBase = $impostosBase + $prolaboreUsdBase + $explicitBaseSum;
+        $totalSim = $impostosSim + $prolaboreUsdSim + $explicitSimSum;
+
         $adminData = [
             'admin_kpis' => [
                 'team_bruto_total' => $teamBruto,
@@ -350,6 +374,17 @@ class DashboardController extends Controller
                 'cost_rate_pct' => $costRateSim*100.0,
                 'explicit' => $simExp,
                 'explicit_source' => $explicit,
+                'add_existing' => $addedOut,
+            ],
+            'totals' => [
+                'impostos_base' => $impostosBase,
+                'impostos_sim' => $impostosSim,
+                'prolabore_base' => $prolaboreUsdBase,
+                'prolabore_sim' => $prolaboreUsdSim,
+                'explicit_base' => $explicitBaseSum,
+                'explicit_sim' => $explicitSimSum,
+                'total_base' => $totalBase,
+                'total_sim' => $totalSim,
             ],
         ];
 
