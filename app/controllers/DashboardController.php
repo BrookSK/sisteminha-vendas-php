@@ -58,6 +58,7 @@ class DashboardController extends Controller
                 $commissionTotalUSD += (float)($it['comissao_final'] ?? 0);
             }
         }
+
         $summary = ['total_bruto_usd' => $sumBruto, 'total_liquido_usd' => $sumLiquido];
 
         // Últimas vendas do dia (filtra por vendedor quando for seller)
@@ -220,6 +221,7 @@ class DashboardController extends Controller
             }
             return (float)$s;
         };
+
         $sim = $_POST['sim'] ?? $_GET['sim'] ?? [];
         $costRatePct = isset($sim['cost_rate_pct']) ? $parseNumber($sim['cost_rate_pct']) : ($costRateBase * 100.0);
         $costRateSim = max(0.0, min(100.0, $costRatePct)) / 100.0;
@@ -355,6 +357,12 @@ class DashboardController extends Controller
         }
         $companyCashUsdSim = $sumRateadoUsd - $sumCommissionsUsd;
         $companyCashBrlSim = $companyCashUsdSim * $usdRate;
+        // If no overrides at all, mirror base values to match the rest of the system
+        if (!$hasOverrides) {
+            $sumCommissionsUsd = (float)($team['sum_commissions_usd'] ?? 0.0);
+            $companyCashUsdSim = (float)($companyCashUsdBase ?? 0.0);
+            $companyCashBrlSim = $companyCashUsdSim * $usdRate;
+        }
 
         // Totals (base x simulated)
         $impostosBase = $teamBruto * $costRateBase;
