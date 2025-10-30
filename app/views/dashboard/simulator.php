@@ -154,7 +154,8 @@ $tot = $admin_data['totals'] ?? [];
                 <input type="text" class="form-control <?= $cls ?>" name="sim[explicit][<?= $i ?>][valor]" value="<?= htmlspecialchars((string)$cur) ?>" placeholder="ex.: 1.234,56">
               </div>
               <div class="col-md-12 form-check mt-1">
-                <input class="form-check-input" type="checkbox" value="1" id="rem<?= $i ?>" name="sim[explicit][<?= $i ?>][remove]">
+                <?php $isRemoved = (int)($sim['explicit'][$i]['remove'] ?? 0) === 1; ?>
+                <input class="form-check-input" type="checkbox" value="1" id="rem<?= $i ?>" name="sim[explicit][<?= $i ?>][remove]" <?= $isRemoved ? 'checked' : '' ?>>
                 <label class="form-check-label" for="rem<?= $i ?>">Remover este custo do simulado</label>
               </div>
             </div>
@@ -187,7 +188,8 @@ $tot = $admin_data['totals'] ?? [];
                   <input type="text" class="form-control <?= $clsa ?>" name="sim[add][<?= $j ?>][valor]" value="<?= htmlspecialchars((string)($r['valor'] ?? '0')) ?>" placeholder="0,00">
                 </div>
                 <div class="col-md-12 form-check mt-1">
-                  <input class="form-check-input" type="checkbox" value="1" id="addrem<?= $j ?>" name="sim[add][<?= $j ?>][remove]">
+                  <?php $isRemAdd = (int)($r['remove'] ?? 0) === 1; ?>
+                  <input class="form-check-input" type="checkbox" value="1" id="addrem<?= $j ?>" name="sim[add][<?= $j ?>][remove]" <?= $isRemAdd ? 'checked' : '' ?>>
                   <label class="form-check-label" for="addrem<?= $j ?>">Remover este custo adicionado</label>
                 </div>
               </div>
