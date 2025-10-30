@@ -225,10 +225,25 @@ class DashboardController extends Controller
             else { $valBase = (float)($c['valor_usd'] ?? 0); }
             // Sim override
             $ov = $simExp[$idx] ?? [];
+            // Skip if removed
+            if (isset($ov['remove']) && (int)$ov['remove'] === 1) {
+                // still count base for baseline, but do not add to simulated
+                $barLabels[] = $label; $barDataBase[] = $valBase; $barDataSim[] = 0.0; // show removed as zero
+                $explicitBaseSum += $valBase; // base sum includes it
+                // no add to explicitSimSum
+                continue;
+            }
             $tipoSim = $ov['valor_tipo'] ?? $tipo;
-            $tipoSim = in_array($tipoSim, ['percent','fixed'], true) ? $tipoSim : $tipo;
-            if ($tipoSim === 'percent') { $pctSim = isset($ov['valor']) ? (float)$ov['valor'] : (float)($c['valor_percent'] ?? 0); $valSim = $teamBruto * ($pctSim/100.0); }
-            else { $valSim = isset($ov['valor']) ? (float)$ov['valor'] : (float)($c['valor_usd'] ?? 0); }
+            $tipoSim = in_array($tipoSim, ['percent','fixed','fixed_brl'], true) ? $tipoSim : $tipo;
+            if ($tipoSim === 'percent') {
+                $pctSim = isset($ov['valor']) ? (float)$ov['valor'] : (float)($c['valor_percent'] ?? 0);
+                $valSim = $teamBruto * ($pctSim/100.0);
+            } elseif ($tipoSim === 'fixed_brl') {
+                $brl = isset($ov['valor']) ? (float)$ov['valor'] : 0.0;
+                $valSim = ($rate > 0) ? ($brl / $rate) : 0.0;
+            } else {
+                $valSim = isset($ov['valor']) ? (float)$ov['valor'] : (float)($c['valor_usd'] ?? 0);
+            }
 
             $barLabels[] = $label; $barDataBase[] = $valBase; $barDataSim[] = $valSim;
             $explicitBaseSum += $valBase; $explicitSimSum += $valSim;
@@ -243,12 +258,75 @@ class DashboardController extends Controller
         // Pro-Labore simulated: fallback to base if not found among explicit
         if ($prolaboreUsdSim === null) { $prolaboreUsdSim = $prolaboreUsdBase; }
 
-        // Simulated cash adjusts the base by delta of costs
-        $baseGlobal = $teamBruto * $costRateBase;
-        $simGlobal = $teamBruto * $costRateSim;
-        $delta = ($simGlobal - $baseGlobal) + ($prolaboreUsdSim - $prolaboreUsdBase) + ($explicitSimSum - $explicitBaseSum);
-        $companyCashUsdSim = $companyCashUsdBase - $delta;
-        $companyCashBrlSim = $companyCashUsdSim * $rate;
+        // Add new custom explicit costs (non-persistent)
+        $simAdd = $sim['add'] ?? [];
+        if (is_array($simAdd)) {
+            foreach ($simAdd as $row) {
+                $desc = trim((string)($row['descricao'] ?? ''));
+                if ($desc === '') continue;
+                $tipoN = (string)($row['valor_tipo'] ?? 'fixed');
+                if (!in_array($tipoN, ['percent','fixed','fixed_brl'], true)) { $tipoN = 'fixed'; }
+                $valN = (float)($row['valor'] ?? 0);
+                $valBaseN = 0.0; // base has no such cost
+                if ($tipoN === 'percent') { $valSimN = $teamBruto * ($valN/100.0); }
+                elseif ($tipoN === 'fixed_brl') { $valSimN = ($rate > 0) ? ($valN / $rate) : 0.0; }
+                else { $valSimN = $valN; }
+                $barLabels[] = $desc; $barDataBase[] = $valBaseN; $barDataSim[] = $valSimN;
+                $explicitSimSum += $valSimN;
+                $dl = strtolower($desc);
+                if ($prolaboreUsdSim === null && (str_contains($dl,'pro-labore')||str_contains($dl,'prolabore')||str_contains($dl,'pro labore'))) {
+                    $prolaboreUsdSim = $valSimN;
+                }
+            }
+        }
+
+        // Recompute commissions dynamically based on simulated total team cost
+        // 1) Aggregate sales per user
+        $agg = $comm->aggregateByUser($from.' 00:00:00', $to.' 23:59:59');
+        // 2) Count eligible active for cost split
+        $activeCostSplit = 0;
+        foreach ($agg as $row) {
+            $roleU = $row['user']['role'] ?? '';
+            if ((int)($row['user']['ativo'] ?? 0) === 1 && in_array($roleU, ['seller','trainee','manager'], true)) {
+                $activeCostSplit++;
+            }
+        }
+        // 3) Build simulated team cost total
+        $teamCostSim = ($teamBruto * $costRateSim) + $explicitSimSum;
+        $equalCostShare = ($activeCostSplit > 0) ? ($teamCostSim / $activeCostSplit) : 0.0;
+        // 4) Recompute commissions similar to Commission::computeRange
+        try { $setRate = new Setting(); } catch (\Throwable $e) { $setRate = null; }
+        $usdRate = $setRate ? (float)$setRate->get('usd_rate', '5.83') : 5.83;
+        if ($usdRate <= 0) { $usdRate = 5.83; }
+        $teamBrutoBRL = $teamBruto * $usdRate; $metaEquipeBRL = 50000.0 * $usdRate;
+        $applyBonus = ($teamBrutoBRL >= $metaEquipeBRL);
+        // Bonus rate same rule as computeRange
+        $activeBonusCount = 0; foreach ($agg as $row){ $r=$row['user']['role'] ?? 'seller'; if ((int)($row['user']['ativo'] ?? 0)===1 && in_array($r,['seller','trainee','manager'],true)) $activeBonusCount++; }
+        $bonusRate = ($applyBonus && $activeBonusCount>0) ? (0.05 / $activeBonusCount) : 0.0;
+        $sumRateadoUsd = 0.0; $sumCommissionsUsd = 0.0;
+        foreach ($agg as $uid => $row) {
+            $liquido = (float)($row['liquido_total'] ?? 0);
+            $bruto = (float)($row['bruto_total'] ?? 0);
+            $roleU = $row['user']['role'] ?? '';
+            $isEligible = in_array($roleU, ['seller','trainee','manager'], true) && ((int)($row['user']['ativo'] ?? 0) === 1);
+            $allocatedCost = $isEligible ? $equalCostShare : 0.0;
+            $liquidoAfterCost = $liquido - $allocatedCost;
+            $bruto_brl = $bruto * $usdRate;
+            $liq_ap_brl = $liquidoAfterCost * $usdRate;
+            // Commission brackets same as computeRange
+            if ($bruto_brl <= 30000.0 * $usdRate) { $perc = 0.15; }
+            elseif ($bruto_brl <= 45000.0 * $usdRate) { $perc = 0.25; }
+            else { $perc = 0.25; }
+            $baseComBRL = max(0.0, $liq_ap_brl);
+            $indBRL = $baseComBRL * $perc;
+            $bonusBRL = $applyBonus ? ($baseComBRL * $bonusRate) : 0.0;
+            $finalBRL = max(0.0, $indBRL + $bonusBRL);
+            $finalUSD = ($usdRate>0) ? ($finalBRL/$usdRate) : 0.0;
+            $sumRateadoUsd += $liquidoAfterCost;
+            $sumCommissionsUsd += $finalUSD;
+        }
+        $companyCashUsdSim = $sumRateadoUsd - $sumCommissionsUsd;
+        $companyCashBrlSim = $companyCashUsdSim * $usdRate;
 
         $adminData = [
             'admin_kpis' => [
@@ -259,7 +337,7 @@ class DashboardController extends Controller
                 'company_cash_usd' => $companyCashUsdSim,
                 'company_cash_brl' => $companyCashBrlSim,
                 'active_sellers' => count($bySeller),
-                'sum_commissions_usd' => (float)($team['sum_commissions_usd'] ?? 0),
+                'sum_commissions_usd' => (float)$sumCommissionsUsd,
             ],
             'charts' => [
                 'pie' => ['labels' => $pieLabels, 'data' => $pieData],
