@@ -135,6 +135,7 @@ $rate = (float)($rate ?? 0);
                 <select class="form-select" name="sim[explicit][<?= $i ?>][valor_tipo]">
                   <?php $t = $row['valor_tipo'] ?? 'fixed'; $ov = $sim['explicit'][$i]['valor_tipo'] ?? null; $sel = $ov ?? $t; ?>
                   <option value="fixed" <?= $sel==='fixed'?'selected':'' ?>>USD Fixo</option>
+                  <option value="fixed_brl" <?= $sel==='fixed_brl'?'selected':'' ?>>BRL Fixo</option>
                   <option value="percent" <?= $sel==='percent'?'selected':'' ?>>Percentual (%)</option>
                 </select>
               </div>
@@ -143,8 +144,19 @@ $rate = (float)($rate ?? 0);
                 <?php $defaultVal = ($sel==='percent') ? (float)($row['valor_percent'] ?? 0) : (float)($row['valor_usd'] ?? 0); $cur = $sim['explicit'][$i]['valor'] ?? $defaultVal; ?>
                 <input type="number" step="0.01" class="form-control" name="sim[explicit][<?= $i ?>][valor]" value="<?= htmlspecialchars((string)$cur) ?>">
               </div>
+              <div class="col-md-12 form-check mt-1">
+                <input class="form-check-input" type="checkbox" value="1" id="rem<?= $i ?>" name="sim[explicit][<?= $i ?>][remove]">
+                <label class="form-check-label" for="rem<?= $i ?>">Remover este custo do simulado</label>
+              </div>
             </div>
           <?php endforeach; ?>
+
+          <hr>
+          <div class="mb-2 d-flex justify-content-between align-items-center">
+            <div>Adicionar novos custos (não serão salvos)</div>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddCost">+ Novo custo</button>
+          </div>
+          <div id="addCosts"></div>
           <div class="mt-3">
             <button type="submit" class="btn btn-primary">Aplicar</button>
             <a href="?" class="btn btn-outline-secondary">Limpar</a>
@@ -226,8 +238,44 @@ $rate = (float)($rate ?? 0);
     });
   }
   if (charts && byId('chartBar')) {
-    var colorsB = (charts.bar.labels||[]).map(function(_,i){ return palette[i % palette.length]; });
-    new Chart(byId('chartBar'), { type: 'bar', data: { labels: charts.bar.labels||[], datasets: [{ label:'Custos (USD)', data: charts.bar.data||[], backgroundColor: colorsB }] }, options: { responsive:true, scales:{ y:{ beginAtZero:true } } } });
+    var labels = charts.bar.labels || [];
+    var colorsSim = labels.map(function(_,i){ return palette[i % palette.length]; });
+    var ds = [
+      { label: 'Base', data: (charts.bar_base && charts.bar_base.data) ? charts.bar_base.data : [], backgroundColor: 'rgba(78,121,167,0.35)' },
+      { label: 'Simulado', data: charts.bar.data || [], backgroundColor: colorsSim }
+    ];
+    new Chart(byId('chartBar'), { type: 'bar', data: { labels: labels, datasets: ds }, options: { responsive:true, scales:{ y:{ beginAtZero:true } } } });
   }
+
+  // Add cost dynamic rows
+  (function(){
+    var btn = document.getElementById('btnAddCost');
+    if (!btn) return;
+    var wrap = document.getElementById('addCosts');
+    var idx = 0;
+    btn.addEventListener('click', function(){
+      var row = document.createElement('div');
+      row.className = 'row g-2 align-items-end mb-2';
+      row.innerHTML = ''+
+        '<div class="col-md-5">'+
+          '<label class="form-label">Descrição</label>'+
+          '<input type="text" class="form-control" name="sim[add]['+idx+'][descricao]" placeholder="Ex.: Pro-Labore Extra">'+
+        '</div>'+
+        '<div class="col-md-3">'+
+          '<label class="form-label">Tipo</label>'+
+          '<select class="form-select" name="sim[add]['+idx+'][valor_tipo]">'+
+            '<option value="fixed" selected>USD Fixo</option>'+
+            '<option value="fixed_brl">BRL Fixo</option>'+
+            '<option value="percent">Percentual (%)</option>'+
+          '</select>'+
+        '</div>'+
+        '<div class="col-md-4">'+
+          '<label class="form-label">Valor</label>'+
+          '<input type="number" step="0.01" class="form-control" name="sim[add]['+idx+'][valor]" placeholder="0.00">'+
+        '</div>';
+      wrap.appendChild(row);
+      idx++;
+    });
+  })();
 })();
 </script>
