@@ -215,9 +215,6 @@ use Core\Auth;
                 <?php if ($role === 'admin'): ?>
                 <li><a class="dropdown-item" href="/admin/finance">Financeiro</a></li>
                 <?php endif; ?>
-                <?php if ($role === 'admin'): ?>
-                <li><a class="dropdown-item" href="/admin/dashboard/simulator">Simulador do Dashboard</a></li>
-                <?php endif; ?>
                 <li><a class="dropdown-item" href="/admin/users">Usuários</a></li>
                 <li><a class="dropdown-item" href="/admin/approvals">Aprovações</a></li>
                 <?php if ($role !== 'manager'): ?>
