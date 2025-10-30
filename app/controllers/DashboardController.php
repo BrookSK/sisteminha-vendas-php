@@ -311,6 +311,17 @@ class DashboardController extends Controller
             }
         }
 
+        // Determine if there are any overrides vs base
+        $hasOverrides = false;
+        if ($costRateRemoved) { $hasOverrides = true; }
+        if (abs($costRateBase - $costRateSim) > 1e-9) { $hasOverrides = true; }
+        if (is_array($simExp)) {
+            foreach ($simExp as $ov) {
+                if (isset($ov['remove']) || isset($ov['valor']) || isset($ov['valor_tipo'])) { $hasOverrides = true; break; }
+            }
+        }
+        if (!empty($addedOut)) { $hasOverrides = true; }
+
         // Recompute commissions dynamically based on simulated total team cost
         // (Moved after totals are computed so we can include Pro-labore in cost split)
         // 1) Aggregate sales per user
