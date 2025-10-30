@@ -57,6 +57,19 @@ $rate = (float)($rate ?? 0);
 </div>
 
 <div class="row g-3 mt-2">
+  <div class="col-md-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Vendedores Ativos</div>
+        <div class="fs-3 fw-bold mb-3"><?= (int)($k['active_sellers'] ?? 0) ?></div>
+        <div class="text-muted small">Comissões a Pagar</div>
+        <div class="fs-5 fw-bold">$ <?= number_format((float)($k['sum_commissions_usd'] ?? 0), 2) ?></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-2">
   <div class="col-md-4">
     <div class="card h-100">
       <div class="card-body">
@@ -92,18 +105,25 @@ $rate = (float)($rate ?? 0);
       <div class="card-body">
         <div class="fs-6 text-muted mb-2">Custos (Ajuste Rápido)</div>
         <form method="post">
-          <div class="row g-2">
-            <div class="col-md-6">
-              <label class="form-label">Impostos (%)</label>
+          <div class="mb-2">Custos explícitos</div>
+          <!-- Impostos (Global) inline -->
+          <div class="row g-2 align-items-end mb-2">
+            <div class="col-md-5">
+              <label class="form-label">Descrição</label>
+              <input type="text" class="form-control" value="Impostos (Global)" disabled>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Tipo</label>
+              <select class="form-select" disabled>
+                <option selected>Percentual (%)</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Valor (%)</label>
               <input type="number" step="0.01" class="form-control" name="sim[cost_rate_pct]" value="<?= htmlspecialchars((string)($sim['cost_rate_pct'] ?? 0)) ?>">
             </div>
-            <div class="col-md-6">
-              <label class="form-label">Pro-labore (%)</label>
-              <input type="number" step="0.01" class="form-control" name="sim[prolabore_pct]" value="<?= htmlspecialchars((string)($sim['prolabore_pct'] ?? 0)) ?>">
-            </div>
           </div>
-          <hr>
-          <div class="mb-2">Custos explícitos</div>
+          <!-- Demais custos explícitos do período -->
           <?php $source = $sim['explicit_source'] ?? []; foreach ($source as $i => $row): ?>
             <div class="row g-2 align-items-end mb-2">
               <div class="col-md-5">
