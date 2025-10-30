@@ -62,9 +62,6 @@ $tot = $admin_data['totals'] ?? [];
       </div>
     </div>
   </div>
-</div>
-
-<div class="row g-3 mt-2">
   <div class="col-md-3">
     <div class="card h-100">
       <div class="card-body d-flex flex-column justify-content-between">
@@ -132,7 +129,7 @@ $tot = $admin_data['totals'] ?? [];
             </div>
             <div class="col-md-4">
               <label class="form-label">Valor (%)</label>
-              <input type="text" class="form-control num" name="sim[cost_rate_pct]" value="<?= htmlspecialchars((string)($sim['cost_rate_pct'] ?? 0)) ?>" placeholder="ex.: 15,00">
+              <input type="text" class="form-control num-percent" name="sim[cost_rate_pct]" value="<?= htmlspecialchars((string)($sim['cost_rate_pct'] ?? 0)) ?>" placeholder="ex.: 15,00">
             </div>
           </div>
           <!-- Demais custos explícitos do período -->
@@ -153,8 +150,8 @@ $tot = $admin_data['totals'] ?? [];
               </div>
               <div class="col-md-4">
                 <label class="form-label">Valor</label>
-                <?php $defaultVal = ($sel==='percent') ? (float)($row['valor_percent'] ?? 0) : (float)($row['valor_usd'] ?? 0); $cur = $sim['explicit'][$i]['valor'] ?? $defaultVal; ?>
-                <input type="text" class="form-control num" name="sim[explicit][<?= $i ?>][valor]" value="<?= htmlspecialchars((string)$cur) ?>" placeholder="ex.: 1.234,56">
+                <?php $defaultVal = ($sel==='percent') ? (float)($row['valor_percent'] ?? 0) : (float)($row['valor_usd'] ?? 0); $cur = $sim['explicit'][$i]['valor'] ?? $defaultVal; $cls = ($sel==='percent') ? 'num-percent' : 'num-money'; ?>
+                <input type="text" class="form-control <?= $cls ?>" name="sim[explicit][<?= $i ?>][valor]" value="<?= htmlspecialchars((string)$cur) ?>" placeholder="ex.: 1.234,56">
               </div>
               <div class="col-md-12 form-check mt-1">
                 <input class="form-check-input" type="checkbox" value="1" id="rem<?= $i ?>" name="sim[explicit][<?= $i ?>][remove]">
@@ -186,7 +183,8 @@ $tot = $admin_data['totals'] ?? [];
                 </div>
                 <div class="col-md-4">
                   <label class="form-label">Valor</label>
-                  <input type="text" class="form-control num" name="sim[add][<?= $j ?>][valor]" value="<?= htmlspecialchars((string)($r['valor'] ?? '0')) ?>" placeholder="0,00">
+                  <?php $clsa = ($ts==='percent') ? 'num-percent' : 'num-money'; ?>
+                  <input type="text" class="form-control <?= $clsa ?>" name="sim[add][<?= $j ?>][valor]" value="<?= htmlspecialchars((string)($r['valor'] ?? '0')) ?>" placeholder="0,00">
                 </div>
                 <div class="col-md-12 form-check mt-1">
                   <input class="form-check-input" type="checkbox" value="1" id="addrem<?= $j ?>" name="sim[add][<?= $j ?>][remove]">
@@ -304,7 +302,7 @@ $tot = $admin_data['totals'] ?? [];
         plugins: {
           tooltip: {
             callbacks: {
-              label: function(ctx) { return fmtUSD.format((ctx.parsed && ctx.parsed.y) || 0); }
+              label: function(ctx) { return 'USD ' + fmtUSD.format((ctx.parsed && ctx.parsed.y) || 0); }
             }
           }
         }
@@ -345,7 +343,7 @@ $tot = $admin_data['totals'] ?? [];
         '</div>'+
         '<div class="col-md-4">'+
           '<label class="form-label">Valor</label>'+
-          '<input type="text" class="form-control num" name="sim[add]['+idx+'][valor]" placeholder="0,00">'+
+          '<input type="text" class="form-control num-money" name="sim[add]['+idx+'][valor]" placeholder="0,00">'+
         '</div>'+
         '<div class="col-md-12 form-check mt-1">'+
           '<input class="form-check-input" type="checkbox" value="1" id="addrem'+idx+'" name="sim[add]['+idx+'][remove]">'+
@@ -356,41 +354,64 @@ $tot = $admin_data['totals'] ?? [];
     });
   })();
 
-  // BR-style numeric mask: 1.234,56
+  // BR-style numeric mask
   (function(){
-    function formatBR(val){
-      if (val == null) return '';
-      var s = (''+val).replace(/[^0-9]/g,'');
-      if (s.length === 0) return '';
-      // ensure at least 3 chars for inserting comma
-      if (s.length === 1) s = '00'+s; else if (s.length === 2) s = '0'+s;
-      var intPart = s.slice(0, -2);
-      var decPart = s.slice(-2);
-      // add thousand separators to intPart
-      var withSep = '';
-      for (var i = 0, j = intPart.length; j > 0; j--, i++){
-        var ch = intPart.charAt(j-1);
-        withSep = ch + withSep;
-        if (i % 3 === 2 && j-1 > 0) withSep = '.' + withSep;
+    function addThousands(intStr){
+      var out = '', cnt = 0;
+      for (var i = intStr.length - 1; i >= 0; i--) {
+        out = intStr[i] + out; cnt++;
+        if (cnt % 3 === 0 && i !== 0) out = '.' + out;
       }
-      return withSep + ',' + decPart;
+      return out;
     }
-    function onInput(e){
-      var el = e.target;
-      var posFromEnd = el.value.length - el.selectionStart;
-      var formatted = formatBR(el.value);
-      el.value = formatted;
-      // try to keep caret near end
-      var newPos = el.value.length - posFromEnd;
-      if (newPos < 0) newPos = 0;
-      el.setSelectionRange(newPos, newPos);
+    // Money: 1.234,56 (two decimals, cents shift)
+    function formatMoneyBR(val){
+      var s = (''+(val||'')).replace(/[^0-9]/g,'');
+      if (!s) return '';
+      if (s.length === 1) s = '00'+s; else if (s.length === 2) s = '0'+s;
+      var intPart = s.slice(0,-2), decPart = s.slice(-2);
+      return addThousands(intPart) + ',' + decPart;
     }
-    document.querySelectorAll('.num').forEach(function(inp){
+    // Percent: keep scale as typed (no cent-shift). Allow optional decimals.
+    function formatPercentBR(val){
+      var s = (''+(val||''));
+      // convert dot to comma if last typed decimal
+      s = s.replace(/[^0-9,\.]/g,'').replace(/\./g,',');
+      var parts = s.split(',');
+      var intDigits = parts[0].replace(/[^0-9]/g,'');
+      var decDigits = parts[1] ? parts[1].replace(/[^0-9]/g,'') : '';
+      var intFmt = addThousands(intDigits);
+      return intFmt + (decDigits !== '' ? (','+decDigits) : '');
+    }
+    function bindMoney(inp){
+      function onInput(e){
+        var el = e.target; var posFromEnd = el.value.length - (el.selectionStart||0);
+        el.value = formatMoneyBR(el.value);
+        var newPos = el.value.length - posFromEnd; if (newPos < 0) newPos = 0; try{ el.setSelectionRange(newPos,newPos); }catch(_){ }
+      }
       inp.addEventListener('input', onInput);
-      inp.addEventListener('blur', function(){ inp.value = formatBR(inp.value); });
-      // initial format if numeric ascii
-      if (inp.value && /[0-9]/.test(inp.value)) { inp.value = formatBR(inp.value); }
-    });
+      inp.addEventListener('blur', function(){ inp.value = formatMoneyBR(inp.value); });
+      if (inp.value && /[0-9]/.test(inp.value)) inp.value = formatMoneyBR(inp.value);
+    }
+    function bindPercent(inp){
+      function onInput(e){ e.target.value = formatPercentBR(e.target.value); }
+      inp.addEventListener('input', onInput);
+      inp.addEventListener('blur', function(){ inp.value = formatPercentBR(inp.value); });
+      if (inp.value) inp.value = formatPercentBR(inp.value);
+    }
+    document.querySelectorAll('.num-money').forEach(bindMoney);
+    document.querySelectorAll('.num-percent').forEach(bindPercent);
+
+    // Toggle input class when type changes
+    function toggleForSelect(sel){
+      var row = sel.closest('.row'); if (!row) return;
+      var input = row.querySelector('input[name$="[valor]"]'); if (!input) return;
+      input.classList.remove('num-money','num-percent');
+      if (sel.value === 'percent') { input.classList.add('num-percent'); bindPercent(input); }
+      else { input.classList.add(sel.value === 'fixed_brl' ? 'num-money' : 'num-money'); bindMoney(input); }
+    }
+    document.querySelectorAll('select[name^="sim[explicit]"][name$="[valor_tipo]"]').forEach(function(s){ s.addEventListener('change', function(){ toggleForSelect(s); }); });
+    document.querySelectorAll('select[name^="sim[add]"][name$="[valor_tipo]"]').forEach(function(s){ s.addEventListener('change', function(){ toggleForSelect(s); }); });
   })();
 
   // Optional normalize on submit (server also normalizes)
