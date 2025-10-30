@@ -102,11 +102,11 @@ class DashboardController extends Controller
             // Line (por vendedor): valor vendido (USD) por vendedor (categoria = vendedor)
             $lineLabels = $pieLabels; $lineData = [];
             foreach ($bySeller as $row) { $lineData[] = (float)($row['total_bruto_usd'] ?? 0); }
-            // Custos (barras): global (settings), Pro-Labore e itens explícitos
+            // Custos (barras): Impostos e itens explícitos (evitar duplicar Pro-Labore)
             $costsInRange = $comm->costsInRange($from.' 00:00:00', $to.' 23:59:59');
             $explicit = $costsInRange['explicit_costs'] ?? [];
-            $barLabels = ['Global (settings)', 'Pro-Labore'];
-            $barData = [ $teamBruto * $costRate, $prolaboreUsd ];
+            $barLabels = ['Impostos'];
+            $barData = [ $teamBruto * $costRate ];
             foreach ($explicit as $c) {
                 $label = (string)($c['descricao'] ?? ($c['categoria'] ?? 'Custo'));
                 $tipo = (string)($c['valor_tipo'] ?? 'fixed');
