@@ -6,6 +6,7 @@ $k = $admin_data['admin_kpis'] ?? [];
 $c = $admin_data['charts'] ?? [];
 $sim = $admin_data['sim'] ?? [];
 $rate = (float)($rate ?? 0);
+$tot = $admin_data['totals'] ?? [];
 ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h4 class="m-0">Simulador de Custos</h4>
@@ -41,16 +42,10 @@ $rate = (float)($rate ?? 0);
     </div>
   </div>
   <div class="col-md-3">
-    <div class="card h-100">
-      <div class="card-body d-flex flex-column justify-content-between">
-        <div>
-          <div class="text-muted small">Pro-labore</div>
-          <div class="fs-4 fw-bold">$ <?= number_format((float)($k['prolabore_usd'] ?? 0), 2) ?></div>
-        </div>
-        <div class="mt-2">
-          <div class="text-muted small">Caixa</div>
-          <div class="fs-5 fw-bold">$ <?= number_format((float)($k['company_cash_usd'] ?? 0), 2) ?></div>
-        </div>
+    <div class="card text-white" style="background: linear-gradient(135deg, #557CFF, #4E5DFF);">
+      <div class="card-body">
+        <div class="small">Total de Custos (Simulado)</div>
+        <div class="display-6 fw-bold">$ <?= number_format((float)($tot['total_sim'] ?? 0), 2) ?></div>
       </div>
     </div>
   </div>
@@ -64,6 +59,23 @@ $rate = (float)($rate ?? 0);
         <div class="fs-3 fw-bold mb-3"><?= (int)($k['active_sellers'] ?? 0) ?></div>
         <div class="text-muted small">Comissões a Pagar</div>
         <div class="fs-5 fw-bold">$ <?= number_format((float)($k['sum_commissions_usd'] ?? 0), 2) ?></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-2">
+  <div class="col-md-3">
+    <div class="card h-100">
+      <div class="card-body d-flex flex-column justify-content-between">
+        <div>
+          <div class="text-muted small">Pro-labore</div>
+          <div class="fs-4 fw-bold">$ <?= number_format((float)($k['prolabore_usd'] ?? 0), 2) ?></div>
+        </div>
+        <div class="mt-2">
+          <div class="text-muted small">Caixa</div>
+          <div class="fs-5 fw-bold">$ <?= number_format((float)($k['company_cash_usd'] ?? 0), 2) ?></div>
+        </div>
       </div>
     </div>
   </div>
@@ -341,6 +353,43 @@ $rate = (float)($rate ?? 0);
         '</div>';
       wrap.appendChild(row);
       idx++;
+    });
+  })();
+
+  // BR-style numeric mask: 1.234,56
+  (function(){
+    function formatBR(val){
+      if (val == null) return '';
+      var s = (''+val).replace(/[^0-9]/g,'');
+      if (s.length === 0) return '';
+      // ensure at least 3 chars for inserting comma
+      if (s.length === 1) s = '00'+s; else if (s.length === 2) s = '0'+s;
+      var intPart = s.slice(0, -2);
+      var decPart = s.slice(-2);
+      // add thousand separators to intPart
+      var withSep = '';
+      for (var i = 0, j = intPart.length; j > 0; j--, i++){
+        var ch = intPart.charAt(j-1);
+        withSep = ch + withSep;
+        if (i % 3 === 2 && j-1 > 0) withSep = '.' + withSep;
+      }
+      return withSep + ',' + decPart;
+    }
+    function onInput(e){
+      var el = e.target;
+      var posFromEnd = el.value.length - el.selectionStart;
+      var formatted = formatBR(el.value);
+      el.value = formatted;
+      // try to keep caret near end
+      var newPos = el.value.length - posFromEnd;
+      if (newPos < 0) newPos = 0;
+      el.setSelectionRange(newPos, newPos);
+    }
+    document.querySelectorAll('.num').forEach(function(inp){
+      inp.addEventListener('input', onInput);
+      inp.addEventListener('blur', function(){ inp.value = formatBR(inp.value); });
+      // initial format if numeric ascii
+      if (inp.value && /[0-9]/.test(inp.value)) { inp.value = formatBR(inp.value); }
     });
   })();
 
