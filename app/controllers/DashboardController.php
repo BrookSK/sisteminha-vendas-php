@@ -310,6 +310,7 @@ class DashboardController extends Controller
         }
 
         // Recompute commissions dynamically based on simulated total team cost
+        // (Moved after totals are computed so we can include Pro-labore in cost split)
         // 1) Aggregate sales per user
         $agg = $comm->aggregateByUser($from.' 00:00:00', $to.' 23:59:59');
         // 2) Count eligible active for cost split
@@ -320,16 +321,15 @@ class DashboardController extends Controller
                 $activeCostSplit++;
             }
         }
-        // 3) Build simulated team cost total
-        $teamCostSim = ($teamBruto * $costRateSim) + $explicitSimSum;
+        // 3) Build simulated team cost total including impostos + pro-labore + explícitos
+        $teamCostSim = ($teamBruto * $costRateSim) + $prolaboreUsdSim + $explicitSimSum;
         $equalCostShare = ($activeCostSplit > 0) ? ($teamCostSim / $activeCostSplit) : 0.0;
-        // 4) Recompute commissions similar to Commission::computeRange
+        // 4) Recompute commissions similar to computeRange
         try { $setRate = new Setting(); } catch (\Throwable $e) { $setRate = null; }
         $usdRate = $setRate ? (float)$setRate->get('usd_rate', '5.83') : 5.83;
         if ($usdRate <= 0) { $usdRate = 5.83; }
         $teamBrutoBRL = $teamBruto * $usdRate; $metaEquipeBRL = 50000.0 * $usdRate;
         $applyBonus = ($teamBrutoBRL >= $metaEquipeBRL);
-        // Bonus rate same rule as computeRange
         $activeBonusCount = 0; foreach ($agg as $row){ $r=$row['user']['role'] ?? 'seller'; if ((int)($row['user']['ativo'] ?? 0)===1 && in_array($r,['seller','trainee','manager'],true)) $activeBonusCount++; }
         $bonusRate = ($applyBonus && $activeBonusCount>0) ? (0.05 / $activeBonusCount) : 0.0;
         $sumRateadoUsd = 0.0; $sumCommissionsUsd = 0.0;
@@ -342,7 +342,6 @@ class DashboardController extends Controller
             $liquidoAfterCost = $liquido - $allocatedCost;
             $bruto_brl = $bruto * $usdRate;
             $liq_ap_brl = $liquidoAfterCost * $usdRate;
-            // Commission brackets same as computeRange
             if ($bruto_brl <= 30000.0 * $usdRate) { $perc = 0.15; }
             elseif ($bruto_brl <= 45000.0 * $usdRate) { $perc = 0.25; }
             else { $perc = 0.25; }
