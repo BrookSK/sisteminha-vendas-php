@@ -128,4 +128,16 @@ class Cost extends Model
         $percent = (float)($this->db->query("SELECT COALESCE(SUM(valor_percent),0) s FROM custos WHERE valor_tipo='percent'")->fetch(PDO::FETCH_ASSOC)['s'] ?? 0);
         return ['fixed_usd'=>$fixedUsd,'fixed_brl'=>$fixedBrl,'percent'=>$percent];
     }
+
+    /** Sum Pro-Labore percent (valor_percent) entries within a period. */
+    public function sumProLaborePercentInPeriod(string $from, string $to): float
+    {
+        $sql = "SELECT COALESCE(SUM(valor_percent),0) AS s
+                FROM custos
+                WHERE categoria = 'Pro-Labore' AND valor_tipo = 'percent' AND data BETWEEN :f AND :t";
+        $st = $this->db->prepare($sql);
+        $st->execute([':f'=>$from, ':t'=>$to]);
+        $row = $st->fetch(PDO::FETCH_ASSOC) ?: [];
+        return (float)($row['s'] ?? 0);
+    }
 }

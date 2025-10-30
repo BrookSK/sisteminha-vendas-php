@@ -253,6 +253,74 @@
   </div>
 </div>
 
+<?php
+  $pctSettings = (float)($team['team_cost_settings_rate'] ?? 0);
+  $pctExplicit = (float)($team['team_cost_percent_rate'] ?? 0);
+  $currGross = (float)($team['team_bruto_total'] ?? 0);
+  $sumComms = (float)($team['sum_commissions_usd'] ?? 0);
+  $commPct = ($currGross > 0) ? ($sumComms / $currGross) : 0.0; // fração do bruto
+  $pctCosts = $pctSettings + $pctExplicit;
+  $pctTotalEff = $pctCosts + $commPct; // custos (%) + comissões (%)
+  $fixedUsd = (float)($team['team_cost_fixed_usd'] ?? 0);
+  $beGross = null; $beBrl = null; $gapUsd = 0.0; $gapBrl = 0.0;
+  if ($pctTotalEff < 1.0) {
+    $den = (1.0 - $pctTotalEff);
+    if ($den <= 0) { $den = 0.000001; }
+    $beGross = $fixedUsd / $den; // G - (pctCosts+commPct)*G - fixed = 0 => G = fixed / (1 - (pctCosts+commPct))
+    $beBrl = $beGross * (float)($rate ?? 0);
+    // Falta baseada no déficit atual de caixa da empresa
+    $companyCash = (float)($team['company_cash_usd'] ?? 0);
+    if ($companyCash < 0) {
+      $deficit = -$companyCash;
+      // Vendas adicionais necessárias para cobrir o déficit atual,
+      // usando a mesma taxa efetiva de retenção (1 - pctTotalEff)
+      $gapUsd = $deficit / $den;
+      $gapBrl = $gapUsd * (float)($rate ?? 0);
+    } else {
+      $gapUsd = 0.0; $gapBrl = 0.0;
+    }
+  }
+?>
+<div class="card mt-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Previsão para Cobrir Custos <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Estimativa do bruto necessário para zerar o resultado após custos (fixos + percentuais sobre o bruto).">?</span></span>
+  </div>
+  <div class="card-body">
+    <?php if ($pctTotalEff >= 1.0): ?>
+      <div class="text-danger small">Percentual efetivo (custos + comissões) ≥ 100%. Não é possível atingir ponto de equilíbrio.</div>
+    <?php else: ?>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="p-2 border rounded h-100">
+            <div class="text-muted small">Bruto Necessário (break-even)</div>
+            <div class="fw-bold">$ <?= number_format((float)$beGross, 2) ?></div>
+            <div class="small text-muted">R$ <?= number_format((float)$beBrl, 2) ?></div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-2 border rounded h-100">
+            <div class="text-muted small">Fórmula</div>
+            <div class="small">G = Fixos ÷ (1 − (Custos% + Comissões%))</div>
+            <div class="small text-muted">Fixos: $ <?= number_format($fixedUsd,2) ?> | Custos%: <?= number_format($pctCosts*100,2) ?>% | Comissões%: <?= number_format($commPct*100,2) ?>%</div>
+            <div class="small text-muted">Falta ≈ Déficit atual ÷ (1 − (Custos% + Comissões%))</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-2 border rounded h-100">
+            <div class="text-muted small">Falta para atingir (aprox.)</div>
+            <div class="fw-bold <?= ($gapUsd ?? 0) > 0 ? '' : 'text-success' ?>">$ <?= number_format((float)$gapUsd, 2) ?></div>
+            <div class="small text-muted">R$ <?= number_format((float)$gapBrl, 2) ?></div>
+            <?php $retEff = max(0.0, 1.0 - $pctTotalEff); $companyCash = (float)($team['company_cash_usd'] ?? 0); $deficitNow = $companyCash < 0 ? -$companyCash : 0.0; $deficitNowBrl = $deficitNow * (float)($rate ?? 0); ?>
+            <div class="small text-muted mt-1">Déficit atual: $ <?= number_format($deficitNow, 2) ?></div>
+            <div class="small text-muted">Déficit atual (BRL): R$ <?= number_format($deficitNowBrl, 2) ?></div>
+            <div class="small text-muted">Retenção efetiva: <?= number_format($retEff*100, 2) ?>%</div>
+          </div>
+        </div>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
+
 <?php $explicit = $costs['explicit_costs'] ?? []; $teamBrutoForCosts = (float)($team['team_bruto_total'] ?? 0); ?>
 <?php if (!empty($explicit)): ?>
 <div class="card mt-3">
@@ -281,7 +349,7 @@
             $totalBrl = $sAmtBrl;
           ?>
           <tr>
-            <td>Custo Global (settings)</td>
+            <td>Impostos</td>
             <td>percent</td>
             <td class="text-end">$ <?= number_format($sAmt, 2) ?></td>
             <td class="text-end">R$ <?= number_format($sAmtBrl, 2) ?></td>

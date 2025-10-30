@@ -50,6 +50,7 @@
   </div>
 </div>
 
+<?php if ($role !== 'admin'): ?>
 <div class="row g-3">
   <div class="col-md-3">
     <div class="card text-bg-light">
@@ -88,6 +89,101 @@
   </div>
 </div>
 
+<?php endif; ?>
+
+<?php if ($role === 'admin' && !empty($admin_data)): ?>
+  <?php $k = $admin_data['admin_kpis'] ?? []; $c = $admin_data['charts'] ?? []; ?>
+  <?php $bruto = (float)($k['team_bruto_total'] ?? 0); $taxRate = (float)($k['global_cost_rate'] ?? 0); $taxUsd = $bruto * $taxRate; ?>
+  <div class="row g-3 mt-2">
+    <div class="col-md-3">
+      <div class="card text-white" style="background: linear-gradient(135deg, #557CFF, #4E5DFF);">
+        <div class="card-body">
+          <div class="small">Bruto da Empresa</div>
+          <div class="display-6 fw-bold">$ <?= number_format($bruto, 2) ?></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-white" style="background: linear-gradient(135deg, #557CFF, #4E5DFF);">
+        <div class="card-body">
+          <div class="small">Pedidos</div>
+          <div class="display-6 fw-bold"><?= (int)($k['orders_count'] ?? 0) ?></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-white" style="background: linear-gradient(135deg, #557CFF, #4E5DFF);">
+        <div class="card-body">
+          <div class="small">Impostos (Global)</div>
+          <div class="display-6 fw-bold">$ <?= number_format($taxUsd, 2) ?></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card h-100">
+        <div class="card-body d-flex flex-column justify-content-between">
+          <div>
+            <div class="text-muted small">Pro-labore</div>
+            <div class="fs-4 fw-bold">$ <?= number_format((float)($k['prolabore_usd'] ?? 0), 2) ?></div>
+          </div>
+          <div class="mt-2">
+            <div class="text-muted small">Caixa</div>
+            <div class="fs-5 fw-bold">$ <?= number_format((float)($k['company_cash_usd'] ?? 0), 2) ?></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-2">
+    <div class="col-md-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Vendedores Ativos</div>
+          <div class="fs-3 fw-bold mb-3"><?= (int)($k['active_sellers'] ?? 0) ?></div>
+          <div class="text-muted small">Comissões a Pagar</div>
+          <div class="fs-5 fw-bold">$ <?= number_format((float)($k['sum_commissions_usd'] ?? 0), 2) ?></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="fs-6 text-muted mb-2">Vendas por Vendedor (Qtd)</div>
+          <canvas id="chartPie" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-5">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="fs-6 text-muted mb-2">Valor Vendido por Vendedor (USD)</div>
+          <canvas id="chartLine" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-2">
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="fs-6 text-muted mb-2">Custos da Empresa</div>
+          <canvas id="chartBar" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="fs-6 text-muted mb-2">Vendas x Atendimentos</div>
+          <canvas id="chartScatter" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+<?php endif; ?>
+
 <div class="card mt-4">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span>Últimas Vendas (Hoje)</span>
@@ -124,3 +220,46 @@
     </div>
   </div>
 </div>
+
+<?php if ($role === 'admin' && !empty($admin_data)): ?>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    (function(){
+      var charts = <?= json_encode($admin_data['charts'] ?? [], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) ?>;
+      function byId(id){ return document.getElementById(id); }
+      var palette = ['#4e79a7','#f28e2b','#e15759','#76b7b2','#59a14f','#edc949','#af7aa1','#ff9da7','#9c755f','#bab0ab','#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd'];
+      var fmtUSD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+      if (charts && byId('chartPie')) {
+        var pieColors = (charts.pie.labels||[]).map(function(_,i){ return palette[i % palette.length]; });
+        new Chart(byId('chartPie'), {
+          type: 'pie',
+          data: { labels: charts.pie.labels || [], datasets: [{ label: 'Vendas (qtd)', data: charts.pie.data || [], backgroundColor: pieColors, borderColor: '#ffffff', borderWidth: 2 }] },
+          options: { responsive: true, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: function(ctx){ var lbl = ctx.label || ''; var v = ctx.parsed || 0; var ds = ctx.dataset || {}; var data = ds.data || []; var total = data.reduce(function(a,b){ return a + (b||0); }, 0) || 1; var pct = ((v/total)*100).toFixed(1)+'%'; return lbl+': '+v+' ('+pct+')'; } } } } }
+        });
+      }
+      if (charts && byId('chartLine')) {
+        new Chart(byId('chartLine'), {
+          type: 'line',
+          data: { labels: charts.line.labels || [], datasets: [{ label: 'Valor Vendido (USD)', data: charts.line.data || [], borderColor: '#4e79a7', backgroundColor: 'rgba(78,121,167,0.15)', tension: 0.25, fill: true, pointRadius: 3, pointHoverRadius: 5 }] },
+          options: { responsive: true, scales: { y: { beginAtZero: true } }, plugins: { tooltip: { callbacks: { label: function(ctx){ var v = ctx.parsed.y || 0; return (ctx.dataset.label? ctx.dataset.label+': ' : '') + fmtUSD.format(v); } } } } }
+        });
+      }
+      if (charts && byId('chartBar')) {
+        var barColors = (charts.bar.labels||[]).map(function(_,i){ return palette[i % palette.length]; });
+        new Chart(byId('chartBar'), {
+          type: 'bar',
+          data: { labels: charts.bar.labels || [], datasets: [{ label: 'Custos (USD)', data: charts.bar.data || [], backgroundColor: barColors }] },
+          options: { responsive: true, scales: { y: { beginAtZero: true } }, plugins: { tooltip: { callbacks: { label: function(ctx){ var v = ctx.parsed.y || 0; return (ctx.dataset.label? ctx.dataset.label+': ' : '') + fmtUSD.format(v); } } } } }
+        });
+      }
+      if (charts && byId('chartScatter')) {
+        var ds = (charts.scatter || []).map(function(p, i){ return { x: p.x||0, y: p.y||0, label: p.label||'', backgroundColor: palette[i % palette.length] }; });
+        new Chart(byId('chartScatter'), {
+          type: 'scatter',
+          data: { datasets: [{ label: 'Vendedor', data: ds, parsing: false, showLine: false, pointRadius: 4 }] },
+          options: { responsive: true, scales: { x: { title: { display: true, text: 'Vendas (Qtd)' } }, y: { title: { display: true, text: 'Atendimentos (Qtd)' } } }, plugins: { tooltip: { callbacks: { label: function(ctx){ var p=ctx.raw||{}; return (p.label? (p.label+': '):'')+ '('+p.x+','+p.y+')'; } } } } }
+        });
+      }
+    })();
+  </script>
+<?php endif; ?>
