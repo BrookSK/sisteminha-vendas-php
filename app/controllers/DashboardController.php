@@ -280,10 +280,14 @@ class DashboardController extends Controller
             foreach ($simAdd as $row) {
                 $desc = trim((string)($row['descricao'] ?? ''));
                 if ($desc === '') continue;
-                if (isset($row['remove']) && (int)$row['remove'] === 1) { continue; }
                 $tipoN = (string)($row['valor_tipo'] ?? 'fixed');
                 if (!in_array($tipoN, ['percent','fixed','fixed_brl'], true)) { $tipoN = 'fixed'; }
                 $valN = $parseNumber($row['valor'] ?? 0);
+                // If user marked as removed, keep it in the form (checked), but exclude from simulated totals/charts
+                if (isset($row['remove']) && (int)$row['remove'] === 1) {
+                    $addedOut[] = ['descricao'=>$desc,'valor_tipo'=>$tipoN,'valor'=>$valN,'remove'=>1];
+                    continue;
+                }
                 $valBaseN = 0.0; // base has no such cost
                 if ($tipoN === 'percent') { $valSimN = $teamBruto * ($valN/100.0); }
                 elseif ($tipoN === 'fixed_brl') { $valSimN = ($rate > 0) ? ($valN / $rate) : 0.0; }
