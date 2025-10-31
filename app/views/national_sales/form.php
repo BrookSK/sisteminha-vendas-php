@@ -113,10 +113,19 @@
       </div>
     </div>
 
-    <div class="d-flex gap-2 mt-3">
+    <div class="d-flex gap-2 mt-3 align-items-center flex-wrap">
       <a href="/admin/national-sales" class="btn btn-outline-secondary">Cancelar</a>
       <button type="submit" class="btn btn-primary">Salvar</button>
+      <?php $role = (string)(\Core\Auth::user()['role'] ?? 'seller'); $isEdit = !empty($sale) && !empty($sale['id']); ?>
+      <?php if ($isEdit && in_array($role, ['admin','manager'], true)): ?>
+        <form method="post" action="/admin/national-sales/delete" onsubmit="return confirm('Excluir esta venda? Esta ação não pode ser desfeita.');" class="ms-auto">
+          <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrf()) ?>">
+          <input type="hidden" name="id" value="<?= (int)$sale['id'] ?>">
+          <button type="submit" class="btn btn-outline-danger">Excluir venda</button>
+        </form>
+      <?php endif; ?>
     </div>
+
   </form>
 </div>
 

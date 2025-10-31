@@ -77,7 +77,8 @@ class ApprovalsController extends Controller
                 $sid = $sale->create($payload, $createdBy, (string)($me['name'] ?? $me['email'] ?? ''));
                 (new Purchase())->upsertFromIntl($sid);
                 $apprModel->approve($id, (int)($me['id'] ?? 0));
-                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Venda Internacional aprovada', 'Sua venda internacional foi aprovada.', 'approval', 'approved', [$createdBy]);
+                $msg = 'Sua venda internacional foi aprovada. ID #' . (int)$sid . '. Acesse: /admin/international-sales/edit?id=' . (int)$sid;
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Venda Internacional aprovada', $msg, 'approval', 'approved', [$createdBy]);
             } elseif (($appr['action'] ?? '') === 'update') {
                 $sid = (int)($payload['id'] ?? 0);
                 $data = (array)($payload['data'] ?? []);
@@ -114,7 +115,8 @@ class ApprovalsController extends Controller
                 $sid = $sale->create($payload, $createdBy);
                 (new Purchase())->upsertFromNat($sid);
                 $apprModel->approve($id, (int)($me['id'] ?? 0));
-                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Venda Nacional aprovada', 'Sua venda nacional foi aprovada.', 'approval', 'approved', [$createdBy]);
+                $msg = 'Sua venda nacional foi aprovada. ID #' . (int)$sid . '. Acesse: /admin/national-sales/edit?id=' . (int)$sid;
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Venda Nacional aprovada', $msg, 'approval', 'approved', [$createdBy]);
             } elseif (($appr['action'] ?? '') === 'update') {
                 $sid = (int)($payload['id'] ?? 0);
                 $data = (array)($payload['data'] ?? []);
