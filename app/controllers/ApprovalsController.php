@@ -111,7 +111,18 @@ class ApprovalsController extends Controller
                 (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Edição de Venda Nacional aprovada', 'Sua edição de venda nacional foi aprovada.', 'approval', 'approved', [$createdBy]);
             } elseif (($appr['action'] ?? '') === 'delete') {
                 $sid = (int)($payload['id'] ?? (int)($appr['entity_id'] ?? 0));
-                if ($sid > 0) { $sale->delete($sid); }
+                if ($sid <= 0) {
+                    $this->flash('danger', 'Não foi possível identificar a venda nacional para exclusão.');
+                } else {
+                    $existed = (bool)$sale->find($sid);
+                    if ($existed) { $sale->delete($sid); }
+                    $stillThere = (bool)$sale->find($sid);
+                    if ($existed && $stillThere) {
+                        $this->flash('danger', 'Falha ao excluir a venda nacional #'.$sid.'.');
+                    } else {
+                        $this->flash('success', 'Venda nacional #'.$sid.' excluída.');
+                    }
+                }
                 $apprModel->approve($id, (int)($me['id'] ?? 0));
                 (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Exclusão de Venda Nacional aprovada', 'Sua solicitação de exclusão foi aprovada e a venda foi removida.', 'approval', 'approved', [$createdBy]);
             }
