@@ -31,11 +31,11 @@ class User extends Model
         return (int)$this->db->lastInsertId();
     }
 
-    public function createWithRole(string $name, string $email, string $password, string $role, int $ativo = 1, ?int $supervisorUserId = null): int
+    public function createWithRole(string $name, string $email, string $password, string $role, int $ativo = 1, ?int $supervisorUserId = null, ?string $whatsapp = null): int
     {
         $hash = password_hash($password, PASSWORD_BCRYPT);
-        $stmt = $this->db->prepare('INSERT INTO usuarios (name, email, password_hash, role, ativo, supervisor_user_id, created_at) VALUES (:name, :email, :hash, :role, :ativo, :supervisor_user_id, NOW())');
-        $stmt->execute([':name' => $name, ':email' => $email, ':hash' => $hash, ':role' => $role, ':ativo' => $ativo, ':supervisor_user_id' => $supervisorUserId]);
+        $stmt = $this->db->prepare('INSERT INTO usuarios (name, email, password_hash, role, ativo, supervisor_user_id, whatsapp, created_at) VALUES (:name, :email, :hash, :role, :ativo, :supervisor_user_id, :whatsapp, NOW())');
+        $stmt->execute([':name' => $name, ':email' => $email, ':hash' => $hash, ':role' => $role, ':ativo' => $ativo, ':supervisor_user_id' => $supervisorUserId, ':whatsapp' => $whatsapp]);
         return (int)$this->db->lastInsertId();
     }
 
@@ -86,15 +86,15 @@ class User extends Model
         return (int)($row['c'] ?? 0);
     }
 
-    public function updateUser(int $id, string $name, string $email, ?string $password, string $role, int $ativo, ?int $supervisorUserId = null): void
+    public function updateUser(int $id, string $name, string $email, ?string $password, string $role, int $ativo, ?int $supervisorUserId = null, ?string $whatsapp = null): void
     {
         if ($password !== null && $password !== '') {
             $hash = password_hash($password, PASSWORD_BCRYPT);
-            $stmt = $this->db->prepare('UPDATE usuarios SET name=:name, email=:email, password_hash=:hash, role=:role, ativo=:ativo, supervisor_user_id=:supervisor WHERE id=:id');
-            $stmt->execute([':name'=>$name, ':email'=>$email, ':hash'=>$hash, ':role'=>$role, ':ativo'=>$ativo, ':supervisor'=>$supervisorUserId, ':id'=>$id]);
+            $stmt = $this->db->prepare('UPDATE usuarios SET name=:name, email=:email, password_hash=:hash, role=:role, ativo=:ativo, supervisor_user_id=:supervisor, whatsapp=:whatsapp WHERE id=:id');
+            $stmt->execute([':name'=>$name, ':email'=>$email, ':hash'=>$hash, ':role'=>$role, ':ativo'=>$ativo, ':supervisor'=>$supervisorUserId, ':whatsapp'=>$whatsapp, ':id'=>$id]);
         } else {
-            $stmt = $this->db->prepare('UPDATE usuarios SET name=:name, email=:email, role=:role, ativo=:ativo, supervisor_user_id=:supervisor WHERE id=:id');
-            $stmt->execute([':name'=>$name, ':email'=>$email, ':role'=>$role, ':ativo'=>$ativo, ':supervisor'=>$supervisorUserId, ':id'=>$id]);
+            $stmt = $this->db->prepare('UPDATE usuarios SET name=:name, email=:email, role=:role, ativo=:ativo, supervisor_user_id=:supervisor, whatsapp=:whatsapp WHERE id=:id');
+            $stmt->execute([':name'=>$name, ':email'=>$email, ':role'=>$role, ':ativo'=>$ativo, ':supervisor'=>$supervisorUserId, ':whatsapp'=>$whatsapp, ':id'=>$id]);
         }
     }
 
@@ -115,10 +115,10 @@ class User extends Model
         $stmt->execute([':id' => $id]);
     }
 
-    public function updateProfile(int $id, string $name, string $email): void
+    public function updateProfile(int $id, string $name, string $email, ?string $whatsapp = null): void
     {
-        $stmt = $this->db->prepare('UPDATE usuarios SET name=:name, email=:email WHERE id=:id');
-        $stmt->execute([':name'=>$name, ':email'=>$email, ':id'=>$id]);
+        $stmt = $this->db->prepare('UPDATE usuarios SET name=:name, email=:email, whatsapp=:whatsapp WHERE id=:id');
+        $stmt->execute([':name'=>$name, ':email'=>$email, ':whatsapp'=>$whatsapp, ':id'=>$id]);
     }
 
     public function verifyPassword(int $id, string $currentPassword): bool

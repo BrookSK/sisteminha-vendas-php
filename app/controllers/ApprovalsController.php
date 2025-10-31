@@ -9,6 +9,7 @@ use Models\Notification;
 use Models\InternationalSale;
 use Models\NationalSale;
 use Models\Purchase;
+use Models\User;
 
 class ApprovalsController extends Controller
 {
@@ -17,9 +18,19 @@ class ApprovalsController extends Controller
         $this->requireRole(['manager','admin']);
         $me = Auth::user();
         $rows = (new Approval())->listPendingForReviewer((int)($me['id'] ?? 0), 100, 0);
+        // map creator ids to names for display
+        $creatorIds = array_values(array_unique(array_map(function($r){ return (int)($r['created_by'] ?? 0); }, $rows)));
+        $creatorsMap = [];
+        if ($creatorIds) {
+            $u = new User();
+            foreach ($u->allBasic() as $ub) {
+                $creatorsMap[(int)$ub['id']] = (string)($ub['name'] ?? $ub['email'] ?? ('#'.$ub['id']));
+            }
+        }
         $this->render('approvals/index', [
             'title' => 'Aprovações Pendentes',
             'items' => $rows,
+            'creatorsMap' => $creatorsMap,
             '_csrf' => Auth::csrf(),
         ]);
     }
@@ -74,6 +85,11 @@ class ApprovalsController extends Controller
                 }
                 $apprModel->approve($id, (int)($me['id'] ?? 0));
                 (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Edição de Venda Internacional aprovada', 'Sua edição de venda internacional foi aprovada.', 'approval', 'approved', [$createdBy]);
+            } elseif (($appr['action'] ?? '') === 'delete') {
+                $sid = (int)($payload['id'] ?? 0);
+                if ($sid > 0) { $sale->delete($sid); }
+                $apprModel->approve($id, (int)($me['id'] ?? 0));
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Exclusão de Venda Internacional aprovada', 'Sua solicitação de exclusão foi aprovada e a venda foi removida.', 'approval', 'approved', [$createdBy]);
             }
         } elseif ($etype === 'nat_sale') {
             $sale = new NationalSale();
@@ -91,6 +107,11 @@ class ApprovalsController extends Controller
                 }
                 $apprModel->approve($id, (int)($me['id'] ?? 0));
                 (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Edição de Venda Nacional aprovada', 'Sua edição de venda nacional foi aprovada.', 'approval', 'approved', [$createdBy]);
+            } elseif (($appr['action'] ?? '') === 'delete') {
+                $sid = (int)($payload['id'] ?? 0);
+                if ($sid > 0) { $sale->delete($sid); }
+                $apprModel->approve($id, (int)($me['id'] ?? 0));
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Exclusão de Venda Nacional aprovada', 'Sua solicitação de exclusão foi aprovada e a venda foi removida.', 'approval', 'approved', [$createdBy]);
             }
         } else {
             $apprModel->approve($id, (int)($me['id'] ?? 0));
