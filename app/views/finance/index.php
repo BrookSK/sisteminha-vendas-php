@@ -344,8 +344,8 @@
       }
       $brutoAlvo = $currGross + $vAns;
     ?>
-    <div class="fs-6 mb-1">📈 Previsão exata de ponto de equilíbrio: US$ <?= number_format((float)$brutoAlvo, 2) ?></div>
-    <div class="text-muted">💰 Venda necessária para caixa ≥ 0: US$ <?= number_format((float)$vAns, 2) ?></div>
+    <div class="fs-6 mb-1">📈 Previsão média de ponto de equilíbrio: US$ <?= number_format((float)$brutoAlvo, 2) ?></div>
+    <div class="text-muted">💰 Venda média necessária para caixa ≥ 0: US$ <?= number_format((float)$vAns, 2) ?></div>
   </div>
 </div>
 
