@@ -46,8 +46,10 @@ class ApprovalsController extends Controller
         if (!$appr || ($appr['status'] ?? '') !== 'pending') return $this->redirect('/admin/approvals');
         // Authorization: admin/manager OR assigned reviewer
         $role = (string)($me['role'] ?? 'seller');
-        $isReviewer = ((int)($appr['reviewer_id'] ?? 0) === (int)($me['id'] ?? 0));
-        if (!in_array($role, ['admin','manager'], true) && !$isReviewer) {
+        $assignedReviewerId = (int)($appr['reviewer_id'] ?? 0);
+        $isReviewer = ($assignedReviewerId === (int)($me['id'] ?? 0));
+        $unassigned = ($assignedReviewerId === 0);
+        if (!in_array($role, ['admin','manager'], true) && !$isReviewer && !$unassigned) {
             http_response_code(403);
             return $this->render('errors/403', [ 'title' => 'Acesso negado', 'required_roles' => ['admin','manager','assigned reviewer'], 'user' => $me ]);
         }
