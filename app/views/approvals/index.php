@@ -22,7 +22,8 @@
         <tr>
           <td><?= htmlspecialchars($it['entity_type']) ?></td>
           <td><?= htmlspecialchars($it['action']) ?></td>
-          <td>#<?= (int)($it['created_by'] ?? 0) ?></td>
+          <?php $uid = (int)($it['created_by'] ?? 0); $creatorName = $creatorsMap[$uid] ?? ('#'.$uid); ?>
+          <td><?= htmlspecialchars($creatorName) ?></td>
           <td><?= htmlspecialchars($it['created_at'] ?? '') ?></td>
           <td class="text-end">
             <form method="post" action="/admin/approvals/approve" class="d-inline">

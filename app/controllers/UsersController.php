@@ -55,6 +55,7 @@ class UsersController extends Controller
         $password = (string)($_POST['password'] ?? '');
         $role = trim($_POST['role'] ?? 'seller');
         $ativo = (int)($_POST['ativo'] ?? 0) === 1 ? 1 : 0;
+        $whatsapp = trim($_POST['whatsapp'] ?? '');
         if (!in_array($role, ['seller','organic','trainee','manager','admin'], true)) { $role = 'seller'; }
         if ($name === '' || $email === '' || $password === '') {
             return $this->render('users/form', [
@@ -74,7 +75,7 @@ class UsersController extends Controller
                 $sid = (int)($_POST['supervisor_user_id'] ?? 0);
                 if ($sid > 0) { $supervisorId = $sid; }
             }
-            $u->createWithRole($name, $email, $password, $role, $ativo, $supervisorId);
+            $u->createWithRole($name, $email, $password, $role, $ativo, $supervisorId, ($whatsapp !== '' ? $whatsapp : null));
             return $this->redirect('/admin/users');
         } catch (\Throwable $e) {
             return $this->render('users/form', [
@@ -118,6 +119,7 @@ class UsersController extends Controller
         $password = (string)($_POST['password'] ?? '');
         $role = trim($_POST['role'] ?? 'seller');
         $ativo = (int)($_POST['ativo'] ?? 0) === 1 ? 1 : 0;
+        $whatsapp = trim($_POST['whatsapp'] ?? '');
         if (!in_array($role, ['seller','organic','trainee','manager','admin'], true)) { $role = 'seller'; }
         if ($name === '' || $email === '') {
             return $this->render('users/form', [
@@ -136,7 +138,7 @@ class UsersController extends Controller
                 $sid = (int)($_POST['supervisor_user_id'] ?? 0);
                 if ($sid > 0) { $supervisorId = $sid; }
             }
-            $u->updateUser($id, $name, $email, ($password === '' ? null : $password), $role, $ativo, $supervisorId);
+            $u->updateUser($id, $name, $email, ($password === '' ? null : $password), $role, $ativo, $supervisorId, ($whatsapp !== '' ? $whatsapp : null));
             return $this->redirect('/admin/users');
         } catch (\Throwable $e) {
             return $this->render('users/form', [

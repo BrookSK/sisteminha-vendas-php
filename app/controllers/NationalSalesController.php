@@ -106,7 +106,8 @@ class NationalSalesController extends Controller
             $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
             $apprId = (new Approval())->createPending('nat_sale', 'create', $data, (int)($me['id'] ?? 0), $supervisorId, null);
             if ($supervisorId) {
-                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Nacional)', 'Uma nova venda nacional foi enviada por um trainee e aguarda sua aprovação. [approval-id:'.$apprId.']', 'approval', 'new', [$supervisorId]);
+                $traineeName = (string)($meFull['name'] ?? $me['name'] ?? $me['email'] ?? 'Trainee');
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Nacional)', 'Uma nova venda nacional foi enviada por ' . $traineeName . ' e aguarda sua aprovação. [approval-id:' . $apprId . ']', 'approval', 'new', [$supervisorId]);
             }
             $this->flash('info', 'Venda enviada para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
             return $this->redirect('/admin/national-sales');
@@ -118,7 +119,7 @@ class NationalSalesController extends Controller
 
     public function edit()
     {
-        $this->requireRole(['seller','manager','admin','organic']);
+        $this->requireRole(['seller','trainee','manager','admin','organic']);
         $id = (int)($_GET['id'] ?? 0);
         $model = new NationalSale();
         $row = $model->find($id);
@@ -139,7 +140,7 @@ class NationalSalesController extends Controller
 
     public function update()
     {
-        $this->requireRole(['seller','manager','admin','organic']);
+        $this->requireRole(['seller','trainee','manager','admin','organic']);
         $this->csrfCheck();
         $id = (int)($_GET['id'] ?? 0);
         $data = $this->collect($_POST);
@@ -160,7 +161,8 @@ class NationalSalesController extends Controller
             $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
             $apprId = (new Approval())->createPending('nat_sale', 'update', ['id'=>$id,'data'=>$data], (int)($me['id'] ?? 0), $supervisorId, $id);
             if ($supervisorId) {
-                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Nacional) - Edição', 'Uma edição de venda nacional foi enviada por um trainee e aguarda sua aprovação. [approval-id:'.$apprId.']', 'approval', 'new', [$supervisorId]);
+                $traineeName = (string)($meFull['name'] ?? $me['name'] ?? $me['email'] ?? 'Trainee');
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Nacional) - Edição', 'Uma edição de venda nacional foi enviada por ' . $traineeName . ' e aguarda sua aprovação. [approval-id:' . $apprId . ']', 'approval', 'new', [$supervisorId]);
             }
             $this->flash('info', 'Edição enviada para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
             return $this->redirect('/admin/national-sales');
@@ -172,13 +174,13 @@ class NationalSalesController extends Controller
 
     public function duplicate()
     {
-        $this->requireRole(['seller','manager','admin','organic']);
+        $this->requireRole(['seller','trainee','manager','admin','organic']);
         $id = (int)($_GET['id'] ?? 0);
         $model = new \Models\NationalSale();
         $row = $model->find($id);
         if (!$row) return $this->redirect('/admin/national-sales');
         $me = Auth::user();
-        if (($me['role'] ?? 'seller') === 'seller' && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
+        if (in_array(($me['role'] ?? 'seller'), ['seller','trainee'], true) && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
             return $this->redirect('/admin/national-sales');
         }
         // Não persiste, apenas redireciona para o formulário novo com prefill
@@ -201,7 +203,7 @@ class NationalSalesController extends Controller
 
     public function delete()
     {
-        $this->requireRole(['seller','manager','admin']);
+        $this->requireRole(['seller','trainee','manager','admin']);
         $this->csrfCheck();
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) return $this->redirect('/admin/national-sales');
@@ -209,7 +211,18 @@ class NationalSalesController extends Controller
         $row = $model->find($id);
         if (!$row) return $this->redirect('/admin/national-sales');
         $me = Auth::user();
-        if (($me['role'] ?? 'seller') === 'seller' && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
+        if (in_array(($me['role'] ?? 'seller'), ['seller','trainee'], true) && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
+            return $this->redirect('/admin/national-sales');
+        }
+        if (($me['role'] ?? 'seller') === 'trainee') {
+            $meFull = (new User())->findById((int)($me['id'] ?? 0));
+            $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
+            $apprId = (new Approval())->createPending('nat_sale', 'delete', ['id'=>$id], (int)($me['id'] ?? 0), $supervisorId, $id);
+            if ($supervisorId) {
+                $traineeName = (string)($meFull['name'] ?? $me['name'] ?? $me['email'] ?? 'Trainee');
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Nacional) - Exclusão', 'Uma exclusão de venda nacional foi solicitada por ' . $traineeName . ' e aguarda sua aprovação. [approval-id:' . $apprId . ']', 'approval', 'new', [$supervisorId]);
+            }
+            $this->flash('info','Exclusão enviada para aprovação. Uma notificação foi enviada ao seu supervisor.');
             return $this->redirect('/admin/national-sales');
         }
         $model->delete($id);
