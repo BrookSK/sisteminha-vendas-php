@@ -74,11 +74,22 @@ class ApprovalsController extends Controller
         } elseif ($etype === 'intl_sale') {
             $sale = new InternationalSale();
             if (($appr['action'] ?? '') === 'create') {
-                $sid = $sale->create($payload, $createdBy, (string)($me['name'] ?? $me['email'] ?? ''));
-                (new Purchase())->upsertFromIntl($sid);
-                $apprModel->approve($id, (int)($me['id'] ?? 0));
-                $msg = 'Sua venda internacional foi aprovada. ID #' . (int)$sid . '. Acesse: /admin/international-sales/edit?id=' . (int)$sid;
-                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Venda Internacional aprovada', $msg, 'approval', 'approved', [$createdBy]);
+                try {
+                    $sid = $sale->create($payload, $createdBy, (string)($me['name'] ?? $me['email'] ?? ''));
+                } catch (\Throwable $e) {
+                    $this->flash('danger', 'Falha ao criar a venda internacional no banco. Verifique os dados do cliente e tente novamente.');
+                    return $this->redirect('/admin/approvals');
+                }
+                $ok = $sid > 0 && (bool)(new InternationalSale())->find((int)$sid);
+                if ($ok) {
+                    (new Purchase())->upsertFromIntl($sid);
+                    $apprModel->approve($id, (int)($me['id'] ?? 0));
+                    $msg = 'Sua venda internacional foi aprovada. ID #' . (int)$sid . '. Acesse: /admin/international-sales/edit?id=' . (int)$sid;
+                    (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Venda Internacional aprovada', $msg, 'approval', 'approved', [$createdBy]);
+                } else {
+                    $this->flash('danger', 'A venda internacional não foi criada.');
+                    return $this->redirect('/admin/approvals');
+                }
             } elseif (($appr['action'] ?? '') === 'update') {
                 $sid = (int)($payload['id'] ?? 0);
                 $data = (array)($payload['data'] ?? []);
@@ -112,11 +123,22 @@ class ApprovalsController extends Controller
         } elseif ($etype === 'nat_sale') {
             $sale = new NationalSale();
             if (($appr['action'] ?? '') === 'create') {
-                $sid = $sale->create($payload, $createdBy);
-                (new Purchase())->upsertFromNat($sid);
-                $apprModel->approve($id, (int)($me['id'] ?? 0));
-                $msg = 'Sua venda nacional foi aprovada. ID #' . (int)$sid . '. Acesse: /admin/national-sales/edit?id=' . (int)$sid;
-                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Venda Nacional aprovada', $msg, 'approval', 'approved', [$createdBy]);
+                try {
+                    $sid = $sale->create($payload, $createdBy);
+                } catch (\Throwable $e) {
+                    $this->flash('danger', 'Falha ao criar a venda nacional no banco. Verifique os dados do cliente e tente novamente.');
+                    return $this->redirect('/admin/approvals');
+                }
+                $ok = $sid > 0 && (bool)(new NationalSale())->find((int)$sid);
+                if ($ok) {
+                    (new Purchase())->upsertFromNat($sid);
+                    $apprModel->approve($id, (int)($me['id'] ?? 0));
+                    $msg = 'Sua venda nacional foi aprovada. ID #' . (int)$sid . '. Acesse: /admin/national-sales/edit?id=' . (int)$sid;
+                    (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Venda Nacional aprovada', $msg, 'approval', 'approved', [$createdBy]);
+                } else {
+                    $this->flash('danger', 'A venda nacional não foi criada.');
+                    return $this->redirect('/admin/approvals');
+                }
             } elseif (($appr['action'] ?? '') === 'update') {
                 $sid = (int)($payload['id'] ?? 0);
                 $data = (array)($payload['data'] ?? []);
