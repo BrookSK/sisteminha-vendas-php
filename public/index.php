@@ -267,6 +267,13 @@ $router->group('/admin', function($r) {
     $r->get('/settings/dns', 'Controllers\\DnsSettingsController@index');
     $r->post('/settings/dns/save', 'Controllers\\DnsSettingsController@save');
 
+    // Backups (admin)
+    $r->get('/backups', 'Controllers\\BackupsController@index');
+    $r->post('/backups/run', 'Controllers\\BackupsController@run');
+    $r->post('/backups/delete', 'Controllers\\BackupsController@delete');
+    $r->post('/backups/restore', 'Controllers\\BackupsController@restore');
+    $r->post('/backups/save-settings', 'Controllers\\BackupsController@saveSettings');
+
     // Áreas Técnicas (admin)
     $r->get('/documentation-areas', 'Controllers\\DocumentationAreasController@index');
     $r->post('/documentation-areas/create', 'Controllers\\DocumentationAreasController@create');
@@ -344,6 +351,9 @@ $router->group('/admin', function($r) {
 $router->post('/webhooks/containers', 'Controllers\\WebhooksController@containers');
 $router->post('/webhooks/sales', 'Controllers\\WebhooksController@sales');
 $router->post('/webhooks/demands', 'Controllers\\WebhooksController@demands');
+
+// Public cron endpoint for backups (token required)
+$router->get('/backups/cron-run', 'Controllers\\BackupsController@cronRun');
 
 // API Calculator public endpoint (token via Authorization: Bearer <token>)
 $router->post('/api/calc-net', 'Controllers\\ApiCalcController@compute');
