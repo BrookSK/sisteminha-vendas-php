@@ -287,29 +287,65 @@
   </div>
   <div class="card-body">
     <?php
-      $projTotalCommissions = 0.0;
-      foreach (($comm['items'] ?? []) as $it) {
-        $brutoVend = (float)($it['bruto_total'] ?? 0);
-        $liqVend = (float)($it['liquido_apurado'] ?? 0);
-        if ($liqVend < 0) { $liqVend = 0.0; }
-        $perc = ($brutoVend <= 30000.0) ? 0.15 : 0.25;
-        $projTotalCommissions += ($liqVend * $perc);
-      }
-      $taxaMediaComissao = ($currGross > 0.0) ? ($projTotalCommissions / $currGross) : 0.0;
-      $retencaoLiquida = 1.0 - $pctSettings - $pctExplicit - $taxaMediaComissao;
       $caixaAtual = (float)($team['company_cash_usd'] ?? 0);
-      $vExtra = 0.0;
-      if ($retencaoLiquida > 0.0 && $caixaAtual < 0.0) {
-        $vExtra = abs($caixaAtual) / $retencaoLiquida;
+      $sellers = [];
+      $totalBrutoAtual = 0.0;
+      $totalComAtual = 0.0;
+      foreach (($comm['items'] ?? []) as $it) {
+        $b = (float)($it['bruto_total'] ?? 0);
+        $l = (float)($it['liquido_apurado'] ?? 0);
+        if ($l < 0) { $l = 0.0; }
+        $p = ($b <= 30000.0) ? 0.15 : 0.25;
+        $totalComAtual += ($l * $p);
+        $totalBrutoAtual += $b;
+        $ratio = ($b > 0.0) ? ($l / $b) : 0.0;
+        $sellers[] = ['b'=>$b,'l'=>$l,'r'=>$ratio];
       }
-      $brutoAlvo = $currGross + $vExtra;
+      $pctAdmin = (float)$pctSettings;
+      $pctPerc = (float)$pctExplicit;
+      $tol = 1.0;
+      $vMin = 0.0;
+      $vMax = max(1000.0, abs($caixaAtual) * 3.0);
+      $vAns = 0.0;
+      $simulate = function(float $v) use ($sellers, $totalBrutoAtual, $totalComAtual, $pctAdmin, $pctPerc, $caixaAtual): float {
+        $n = count($sellers);
+        if ($n === 0) { return $caixaAtual + $v * (1.0 - $pctAdmin - $pctPerc); }
+        $extraCom = 0.0;
+        $extraLiqTotal = 0.0;
+        $newComTotal = 0.0;
+        $currComTotal = 0.0;
+        foreach ($sellers as $s) {
+          $share = ($totalBrutoAtual > 0.0) ? ($v * ($s['b'] / $totalBrutoAtual)) : ($v / $n);
+          $newB = $s['b'] + $share;
+          $extraL = $share * ($s['r']);
+          $newL = $s['l'] + $extraL;
+          $currPerc = ($s['b'] <= 30000.0) ? 0.15 : 0.25;
+          $newPerc = ($newB <= 30000.0) ? 0.15 : 0.25;
+          $currCom = $s['l'] * $currPerc;
+          $newCom = $newL * $newPerc;
+          $currComTotal += $currCom;
+          $newComTotal += $newCom;
+          $extraLiqTotal += $extraL;
+        }
+        $deltaCom = $newComTotal - $currComTotal;
+        $costAdminExtra = $v * $pctAdmin;
+        $costPercExtra = $v * $pctPerc;
+        return $caixaAtual + $extraLiqTotal - $costAdminExtra - $costPercExtra - $deltaCom;
+      };
+      if ($caixaAtual >= 0.0) { $vAns = 0.0; }
+      else {
+        for ($i=0; $i<42; $i++) {
+          $vTest = ($vMin + $vMax) / 2.0;
+          $cashSim = $simulate($vTest);
+          if (abs($cashSim) <= $tol) { $vAns = $vTest; break; }
+          if ($cashSim > 0) { $vAns = $vTest; $vMax = $vTest; }
+          else { $vMin = $vTest; $vAns = $vTest; }
+        }
+      }
+      $brutoAlvo = $currGross + $vAns;
     ?>
-    <?php if ($retencaoLiquida <= 0.0): ?>
-      <div class="text-danger small">A retenção líquida é ≤ 0%. Ajuste percentuais de custos ou comissões para projetar o ponto de equilíbrio.</div>
-    <?php else: ?>
-      <div class="fs-6 mb-1">📈 Previsão de ponto de equilíbrio: US$ <?= number_format((float)$brutoAlvo, 2) ?></div>
-      <div class="text-muted">💰 É necessário vender aproximadamente US$ <?= number_format((float)$vExtra, 2) ?> a mais para o caixa ficar positivo.</div>
-    <?php endif; ?>
+    <div class="fs-6 mb-1">📈 Previsão exata de ponto de equilíbrio: US$ <?= number_format((float)$brutoAlvo, 2) ?></div>
+    <div class="text-muted">💰 Venda necessária para caixa ≥ 0: US$ <?= number_format((float)$vAns, 2) ?></div>
   </div>
 </div>
 
