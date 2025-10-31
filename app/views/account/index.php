@@ -19,6 +19,11 @@
               <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($user['email'] ?? '') ?>" required>
             </div>
             <div class="mb-3">
+              <label class="form-label">WhatsApp (opcional)</label>
+              <input type="text" name="whatsapp" class="form-control" placeholder="Ex: 5599999999999" value="<?= htmlspecialchars($user['whatsapp'] ?? '') ?>">
+              <div class="form-text">Somente números com DDI (ex: 55...).</div>
+            </div>
+            <div class="mb-3">
               <label class="form-label">Permissão</label>
               <?php $role = (string)($user['role'] ?? '');
                     $roleMap = ['seller'=>'Vendedor','trainee'=>'Trainee','organic'=>'Orgânico','manager'=>'Gerente','admin'=>'Admin'];
@@ -65,6 +70,28 @@
       </div>
     </div>
   </div>
+
+  <?php if (($user['role'] ?? '') === 'trainee' && !empty($supervisor)): ?>
+  <div class="row g-4 mt-1">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">Seu Supervisor</div>
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <div><strong><?= htmlspecialchars($supervisor['name'] ?? ($supervisor['email'] ?? '')) ?></strong></div>
+            <div class="text-muted">Email: <?= htmlspecialchars($supervisor['email'] ?? '') ?></div>
+            <?php if (!empty($supervisor['whatsapp'])): ?>
+              <div class="text-muted">WhatsApp: <?= htmlspecialchars($supervisor['whatsapp']) ?></div>
+            <?php endif; ?>
+          </div>
+          <?php if (!empty($supervisor['whatsapp'])): ?>
+            <a class="btn btn-success" target="_blank" rel="noopener" href="https://wa.me/<?= urlencode(preg_replace('/\D+/', '', (string)$supervisor['whatsapp'])) ?>?text=Ol%C3%A1%20Supervisor!">Falar no WhatsApp</a>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
 </div>
 <script>
 function validatePwd(){

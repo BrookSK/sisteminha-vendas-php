@@ -8,6 +8,10 @@
 
   <form method="post" action="<?= htmlspecialchars($action) ?>" id="intl-sale-form">
     <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrf()) ?>">
+    <?php $role = (string)(\Core\Auth::user()['role'] ?? 'seller'); $isEdit = !empty($sale) && !empty($sale['id']); ?>
+    <?php if ($isEdit): ?>
+      <input type="hidden" name="id" value="<?= (int)$sale['id'] ?>">
+    <?php endif; ?>
 
     <div class="row g-3">
       <div class="col-md-3">
@@ -112,9 +116,12 @@
       </div>
     </div>
 
-    <div class="d-flex gap-2 mt-3">
+    <div class="d-flex gap-2 mt-3 align-items-center flex-wrap">
       <a href="/admin/international-sales" class="btn btn-outline-secondary">Cancelar</a>
       <button type="submit" class="btn btn-primary">Salvar</button>
+      <?php if ($isEdit && in_array($role, ['admin','manager'], true)): ?>
+        <button type="submit" class="btn btn-outline-danger ms-auto" formmethod="post" formaction="/admin/international-sales/delete" onclick="return confirm('Excluir esta venda? Esta ação não pode ser desfeita.');">Excluir venda</button>
+      <?php endif; ?>
     </div>
   </form>
 </div>

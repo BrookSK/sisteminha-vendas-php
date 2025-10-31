@@ -226,6 +226,7 @@ use Core\Auth;
                 <?php if ($role === 'admin'): ?>
                   <li><a class="dropdown-item" href="/admin/api-calc">API de Cálculo</a></li>
                   <li><a class="dropdown-item" href="/admin/api-calc/logs">Logs da API de Cálculo</a></li>
+                  <li><a class="dropdown-item" href="/admin/backups">Backups</a></li>
                   <li><a class="dropdown-item" href="/admin/logs">Logs</a></li>
                   <li><a class="dropdown-item" href="/admin/settings/dns">Configurações DNS</a></li>
                   <li><hr class="dropdown-divider"></li>

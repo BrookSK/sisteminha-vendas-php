@@ -286,38 +286,66 @@
     <span>Previsão para Cobrir Custos <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Estimativa do bruto necessário para zerar o resultado após custos (fixos + percentuais sobre o bruto).">?</span></span>
   </div>
   <div class="card-body">
-    <?php if ($pctTotalEff >= 1.0): ?>
-      <div class="text-danger small">Percentual efetivo (custos + comissões) ≥ 100%. Não é possível atingir ponto de equilíbrio.</div>
-    <?php else: ?>
-      <div class="row g-3">
-        <div class="col-md-4">
-          <div class="p-2 border rounded h-100">
-            <div class="text-muted small">Bruto Necessário (break-even)</div>
-            <div class="fw-bold">$ <?= number_format((float)$beGross, 2) ?></div>
-            <div class="small text-muted">R$ <?= number_format((float)$beBrl, 2) ?></div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="p-2 border rounded h-100">
-            <div class="text-muted small">Fórmula</div>
-            <div class="small">G = Fixos ÷ (1 − (Custos% + Comissões%))</div>
-            <div class="small text-muted">Fixos: $ <?= number_format($fixedUsd,2) ?> | Custos%: <?= number_format($pctCosts*100,2) ?>% | Comissões%: <?= number_format($commPct*100,2) ?>%</div>
-            <div class="small text-muted">Falta ≈ Déficit atual ÷ (1 − (Custos% + Comissões%))</div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="p-2 border rounded h-100">
-            <div class="text-muted small">Falta para atingir (aprox.)</div>
-            <div class="fw-bold <?= ($gapUsd ?? 0) > 0 ? '' : 'text-success' ?>">$ <?= number_format((float)$gapUsd, 2) ?></div>
-            <div class="small text-muted">R$ <?= number_format((float)$gapBrl, 2) ?></div>
-            <?php $retEff = max(0.0, 1.0 - $pctTotalEff); $companyCash = (float)($team['company_cash_usd'] ?? 0); $deficitNow = $companyCash < 0 ? -$companyCash : 0.0; $deficitNowBrl = $deficitNow * (float)($rate ?? 0); ?>
-            <div class="small text-muted mt-1">Déficit atual: $ <?= number_format($deficitNow, 2) ?></div>
-            <div class="small text-muted">Déficit atual (BRL): R$ <?= number_format($deficitNowBrl, 2) ?></div>
-            <div class="small text-muted">Retenção efetiva: <?= number_format($retEff*100, 2) ?>%</div>
-          </div>
-        </div>
-      </div>
-    <?php endif; ?>
+    <?php
+      $caixaAtual = (float)($team['company_cash_usd'] ?? 0);
+      $sellers = [];
+      $totalBrutoAtual = 0.0;
+      $totalComAtual = 0.0;
+      foreach (($comm['items'] ?? []) as $it) {
+        $b = (float)($it['bruto_total'] ?? 0);
+        $l = (float)($it['liquido_apurado'] ?? 0);
+        if ($l < 0) { $l = 0.0; }
+        $p = ($b <= 30000.0) ? 0.15 : 0.25;
+        $totalComAtual += ($l * $p);
+        $totalBrutoAtual += $b;
+        $ratio = ($b > 0.0) ? ($l / $b) : 0.0;
+        $sellers[] = ['b'=>$b,'l'=>$l,'r'=>$ratio];
+      }
+      $pctAdmin = (float)$pctSettings;
+      $pctPerc = (float)$pctExplicit;
+      $tol = 1.0;
+      $vMin = 0.0;
+      $vMax = max(1000.0, abs($caixaAtual) * 3.0);
+      $vAns = 0.0;
+      $simulate = function(float $v) use ($sellers, $totalBrutoAtual, $totalComAtual, $pctAdmin, $pctPerc, $caixaAtual): float {
+        $n = count($sellers);
+        if ($n === 0) { return $caixaAtual + $v * (1.0 - $pctAdmin - $pctPerc); }
+        $extraCom = 0.0;
+        $extraLiqTotal = 0.0;
+        $newComTotal = 0.0;
+        $currComTotal = 0.0;
+        foreach ($sellers as $s) {
+          $share = ($totalBrutoAtual > 0.0) ? ($v * ($s['b'] / $totalBrutoAtual)) : ($v / $n);
+          $newB = $s['b'] + $share;
+          $extraL = $share * ($s['r']);
+          $newL = $s['l'] + $extraL;
+          $currPerc = ($s['b'] <= 30000.0) ? 0.15 : 0.25;
+          $newPerc = ($newB <= 30000.0) ? 0.15 : 0.25;
+          $currCom = $s['l'] * $currPerc;
+          $newCom = $newL * $newPerc;
+          $currComTotal += $currCom;
+          $newComTotal += $newCom;
+          $extraLiqTotal += $extraL;
+        }
+        $deltaCom = $newComTotal - $currComTotal;
+        $costAdminExtra = $v * $pctAdmin;
+        $costPercExtra = $v * $pctPerc;
+        return $caixaAtual + $extraLiqTotal - $costAdminExtra - $costPercExtra - $deltaCom;
+      };
+      if ($caixaAtual >= 0.0) { $vAns = 0.0; }
+      else {
+        for ($i=0; $i<42; $i++) {
+          $vTest = ($vMin + $vMax) / 2.0;
+          $cashSim = $simulate($vTest);
+          if (abs($cashSim) <= $tol) { $vAns = $vTest; break; }
+          if ($cashSim > 0) { $vAns = $vTest; $vMax = $vTest; }
+          else { $vMin = $vTest; $vAns = $vTest; }
+        }
+      }
+      $brutoAlvo = $currGross + $vAns;
+    ?>
+    <div class="fs-6 mb-1">📈 Previsão média de ponto de equilíbrio: US$ <?= number_format((float)$brutoAlvo, 2) ?></div>
+    <div class="text-muted">💰 Venda média necessária para caixa ≥ 0: US$ <?= number_format((float)$vAns, 2) ?></div>
   </div>
 </div>
 

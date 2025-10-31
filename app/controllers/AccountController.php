@@ -11,9 +11,18 @@ class AccountController extends Controller
     {
         $this->requireRole(['seller','trainee','organic','manager','admin']);
         $user = Auth::user();
+        $supervisor = null;
+        try {
+            $uModel = new User();
+            $meFull = $uModel->findById((int)($user['id'] ?? 0));
+            if (($meFull['role'] ?? '') === 'trainee' && (int)($meFull['supervisor_user_id'] ?? 0) > 0) {
+                $supervisor = $uModel->findById((int)$meFull['supervisor_user_id']);
+            }
+        } catch (\Throwable $e) {}
         $this->render('account/index', [
             'title' => 'Minha Conta',
             'user' => $user,
+            'supervisor' => $supervisor,
             '_csrf' => Auth::csrf(),
         ]);
     }
@@ -25,8 +34,9 @@ class AccountController extends Controller
         $u = Auth::user();
         $name = trim($_POST['name'] ?? '');
         $email = trim($_POST['email'] ?? '');
+        $whatsapp = trim($_POST['whatsapp'] ?? '');
         if ($name !== '' && $email !== '') {
-            (new User())->updateProfile((int)$u['id'], $name, $email);
+            (new User())->updateProfile((int)$u['id'], $name, $email, ($whatsapp !== '' ? $whatsapp : null));
             // refresh session
             $fresh = (new User())->findById((int)$u['id']);
             Auth::loginAs($fresh);

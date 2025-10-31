@@ -106,20 +106,39 @@ class Commission extends Model
         $teamBruto = 0.0;
         $teamLiquido = 0.0;
         $activeCount = 0; // ativos para bônus (mantido)
-        $activeCostSplit = 0; // ativos para rateio igualitário de custos (seller/trainee/manager)
-        foreach ($agg as $row) {
+        $activeCostSplit = 0; // legado: contagem anterior (mantido para compatibilidade de saída)
+        // Novos acumuladores para a nova regra de custos
+        $perUserBruto = [];
+        $perUserRole = [];
+        $perUserActive = [];
+        $activeNonTraineeIds = []; // roles seller/manager
+        $activeTraineeIds = [];
+        $totalVendasEquipe = 0.0; // soma de bruto dos ativos elegíveis (seller/manager/trainee)
+        foreach ($agg as $uidLoop => $row) {
             // Conta vendedores/trainees/gerentes ativos como elegíveis para rateio do bônus
             $role = $row['user']['role'] ?? 'seller';
             if ((int)($row['user']['ativo'] ?? 0) === 1 && in_array($role, ['seller','trainee','manager'], true)) {
                 $activeCount++;
             }
-            // Conta vendedores, trainees e gerentes ativos para o rateio igualitário de custos
+            // Contagem antiga (igualitária) mantida para compatibilidade em campos de saída
             if ((int)($row['user']['ativo'] ?? 0) === 1 && in_array($role, ['seller','trainee','manager'], true)) {
                 $activeCostSplit++;
             }
             // Bruto da equipe inclui todos (inclusive 'organic') para efeito de meta e custo global
             $teamBruto += (float)$row['bruto_total'];
             $teamLiquido += (float)$row['liquido_total'];
+
+            // Guardar informações por usuário para cálculo de rateio de custos
+            $uidI = (int)$uidLoop;
+            $isActiveEligible = ((int)($row['user']['ativo'] ?? 0) === 1) && in_array($role, ['seller','trainee','manager'], true);
+            $perUserBruto[$uidI] = (float)$row['bruto_total'];
+            $perUserRole[$uidI] = $role;
+            $perUserActive[$uidI] = $isActiveEligible;
+            if ($isActiveEligible) {
+                $totalVendasEquipe += (float)$row['bruto_total'];
+                if ($role === 'trainee') { $activeTraineeIds[] = $uidI; }
+                if (in_array($role, ['seller','manager'], true)) { $activeNonTraineeIds[] = $uidI; }
+            }
         }
         // Global cost allocation from Settings (applied on team gross)
         try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
@@ -153,8 +172,22 @@ class Commission extends Model
         $teamBrutoBRL = $teamBruto * $usdRate;
         $metaEquipeBRL = 50000.0 * $usdRate; // 50k USD em BRL
 
-        // Cota igualitária de custo por vendedor/gerente ativo (seller/trainee/manager)
-        $equalCostShare = ($activeCostSplit > 0) ? ($teamCost / $activeCostSplit) : 0.0;
+        // Nova regra de rateio de custos:
+        // 1) Trainees pagam parte proporcional às suas vendas individuais sobre o total da equipe
+        // 2) Parte restante é dividida igualmente entre gerentes e vendedores
+        $traineeAllocatedMap = [];
+        $sumTraineeAllocated = 0.0;
+        if ($totalVendasEquipe > 0.0 && !empty($activeTraineeIds)) {
+            foreach ($activeTraineeIds as $tid) {
+                $parte = ($perUserBruto[$tid] / $totalVendasEquipe) * $teamCost;
+                // trainee sem vendas terá parte = 0 naturalmente
+                $traineeAllocatedMap[$tid] = $parte;
+                $sumTraineeAllocated += $parte;
+            }
+        }
+        $remainingAfterTrainees = max(0.0, $teamCost - $sumTraineeAllocated);
+        $countNonTrainee = count($activeNonTraineeIds);
+        $equalCostShare = ($countNonTrainee > 0) ? ($remainingAfterTrainees / $countNonTrainee) : 0.0;
 
         $sumRateadoUsd = 0.0; // soma dos líquidos rateados (USD)
         $sumCommissionsUsd = 0.0; // soma das comissões (final) em USD
@@ -164,10 +197,16 @@ class Commission extends Model
         foreach ($agg as $uid => $row) {
             $liquido = (float)$row['liquido_total'];
             $bruto = (float)$row['bruto_total'];
-            // Rateio igualitário de custos somente para seller/trainee/manager ativos; demais não recebem alocação
+            // Alocação conforme nova regra
             $role = $row['user']['role'] ?? '';
             $isCostEligibleActive = in_array($role, ['seller','trainee','manager'], true) && ((int)($row['user']['ativo'] ?? 0) === 1);
-            $allocatedCost = $isCostEligibleActive ? $equalCostShare : 0.0;
+            if ($isCostEligibleActive && $role === 'trainee') {
+                $allocatedCost = (float)($traineeAllocatedMap[(int)$uid] ?? 0.0);
+            } elseif ($isCostEligibleActive && in_array($role, ['seller','manager'], true)) {
+                $allocatedCost = $equalCostShare;
+            } else {
+                $allocatedCost = 0.0;
+            }
             // permitir líquido negativo após rateio para refletir início do mês negativo
             $liquidoAfterCost = ($liquido - $allocatedCost);
             // Convert to BRL for rule thresholds and amounts

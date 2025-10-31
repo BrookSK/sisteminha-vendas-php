@@ -20,6 +20,12 @@
     </div>
 
     <div class="mb-3">
+      <label class="form-label">WhatsApp (opcional)</label>
+      <input type="text" class="form-control" name="whatsapp" placeholder="Ex: 5599999999999" value="<?= htmlspecialchars($user['whatsapp'] ?? '') ?>">
+      <div class="form-text">Somente números com DDI (ex: 55...).</div>
+    </div>
+
+    <div class="mb-3">
       <label class="form-label">Senha <?= $user ? '(deixe em branco para manter)' : '' ?></label>
       <div class="input-group">
         <input type="password" class="form-control" name="password" id="user_password" <?= $user ? '' : 'required' ?>>

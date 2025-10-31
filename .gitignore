@@ -1,1 +1,4 @@
 config.php
+
+# Backups (generated)
+storage/backups/
