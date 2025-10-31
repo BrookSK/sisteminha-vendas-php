@@ -15,7 +15,7 @@ class ApprovalsController extends Controller
 {
     public function index()
     {
-        $this->requireRole(['manager','admin']);
+        $this->requireRole(['seller','manager','admin']);
         $me = Auth::user();
         $rows = (new Approval())->listPendingForReviewer((int)($me['id'] ?? 0), 100, 0);
         // map creator ids to names for display
