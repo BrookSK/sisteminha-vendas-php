@@ -216,13 +216,16 @@ class NationalSalesController extends Controller
         }
         if (($me['role'] ?? 'seller') === 'trainee') {
             $meFull = (new User())->findById((int)($me['id'] ?? 0));
-            $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
-            $apprId = (new Approval())->createPending('nat_sale', 'delete', ['id'=>$id], (int)($me['id'] ?? 0), $supervisorId, $id);
-            if ($supervisorId) {
-                $traineeName = (string)($meFull['name'] ?? $me['name'] ?? $me['email'] ?? 'Trainee');
-                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Aprovação de Venda (Nacional) - Exclusão', 'Uma exclusão de venda nacional foi solicitada por ' . $traineeName . ' e aguarda sua aprovação. [approval-id:' . $apprId . ']', 'approval', 'new', [$supervisorId]);
+            $traineeName = (string)($meFull['name'] ?? $me['name'] ?? $me['email'] ?? 'Trainee');
+            // Notificar todos admins para excluir diretamente
+            $admins = (new User())->listByRoles(['admin']);
+            $adminIds = array_map(function($u){ return (int)$u['id']; }, $admins);
+            if (!empty($adminIds)) {
+                $title = 'Ação Necessária: Excluir Venda (Nacional)';
+                $msg = 'Solicitação de exclusão enviada por ' . $traineeName . '. Venda nacional #' . $id . '. Acesse o cadastro da venda e exclua diretamente: /admin/national-sales/edit?id=' . $id;
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), $title, $msg, 'approval', 'new', $adminIds);
             }
-            $this->flash('info','Exclusão enviada para aprovação. Uma notificação foi enviada ao seu supervisor.');
+            $this->flash('info','Sua solicitação foi enviada. Um administrador irá excluir a venda.');
             return $this->redirect('/admin/national-sales');
         }
         $model->delete($id);
