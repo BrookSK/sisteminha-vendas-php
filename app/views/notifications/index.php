@@ -107,6 +107,20 @@
                   <button class="btn btn-sm btn-outline-success" type="submit">Marcar como lida</button>
                 </form>
               <?php endif; ?>
+              <?php
+                // Extra: detectar venda por texto quando não há approval vinculado
+                if (!$apprId) {
+                  $mNat = null; $mInt = null;
+                  if (preg_match('/Venda\s+nacional\s+#(\d+)/i', $rawMsg, $mm)) { $mNat = (int)$mm[1]; }
+                  if (preg_match('/Venda\s+internacional\s+#(\d+)/i', $rawMsg, $mi)) { $mInt = (int)$mi[1]; }
+                  if ($mNat) {
+                    echo '<a class="btn btn-sm btn-outline-primary" href="/admin/national-sales/edit?id='.(int)$mNat.'">Editar Venda (Nac) #'.(int)$mNat.'</a>';
+                  }
+                  if ($mInt) {
+                    echo '<a class="btn btn-sm btn-outline-primary" href="/admin/international-sales/edit?id='.(int)$mInt.'">Editar Venda (Int) #'.(int)$mInt.'</a>';
+                  }
+                }
+              ?>
               <?php if ($apprId): ?>
                 <?php if ($etype === 'client' && $eid > 0): ?>
                   <a class="btn btn-sm btn-outline-primary" href="/admin/clients/edit?id=<?= (int)$eid ?>">Editar Cliente #<?= (int)$eid ?></a>
