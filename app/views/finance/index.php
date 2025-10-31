@@ -286,37 +286,29 @@
     <span>Previsão para Cobrir Custos <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Estimativa do bruto necessário para zerar o resultado após custos (fixos + percentuais sobre o bruto).">?</span></span>
   </div>
   <div class="card-body">
-    <?php if ($pctTotalEff >= 1.0): ?>
-      <div class="text-danger small">Percentual efetivo (custos + comissões) ≥ 100%. Não é possível atingir ponto de equilíbrio.</div>
+    <?php
+      $projTotalCommissions = 0.0;
+      foreach (($comm['items'] ?? []) as $it) {
+        $brutoVend = (float)($it['bruto_total'] ?? 0);
+        $liqVend = (float)($it['liquido_apurado'] ?? 0);
+        if ($liqVend < 0) { $liqVend = 0.0; }
+        $perc = ($brutoVend <= 30000.0) ? 0.15 : 0.25;
+        $projTotalCommissions += ($liqVend * $perc);
+      }
+      $taxaMediaComissao = ($currGross > 0.0) ? ($projTotalCommissions / $currGross) : 0.0;
+      $retencaoLiquida = 1.0 - $pctSettings - $pctExplicit - $taxaMediaComissao;
+      $caixaAtual = (float)($team['company_cash_usd'] ?? 0);
+      $vExtra = 0.0;
+      if ($retencaoLiquida > 0.0 && $caixaAtual < 0.0) {
+        $vExtra = abs($caixaAtual) / $retencaoLiquida;
+      }
+      $brutoAlvo = $currGross + $vExtra;
+    ?>
+    <?php if ($retencaoLiquida <= 0.0): ?>
+      <div class="text-danger small">A retenção líquida é ≤ 0%. Ajuste percentuais de custos ou comissões para projetar o ponto de equilíbrio.</div>
     <?php else: ?>
-      <div class="row g-3">
-        <div class="col-md-4">
-          <div class="p-2 border rounded h-100">
-            <div class="text-muted small">Bruto Necessário (break-even)</div>
-            <div class="fw-bold">$ <?= number_format((float)$beGross, 2) ?></div>
-            <div class="small text-muted">R$ <?= number_format((float)$beBrl, 2) ?></div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="p-2 border rounded h-100">
-            <div class="text-muted small">Fórmula</div>
-            <div class="small">G = Fixos ÷ (1 − (Custos% + Comissões%))</div>
-            <div class="small text-muted">Fixos: $ <?= number_format($fixedUsd,2) ?> | Custos%: <?= number_format($pctCosts*100,2) ?>% | Comissões%: <?= number_format($commPct*100,2) ?>%</div>
-            <div class="small text-muted">Falta ≈ Déficit atual ÷ (1 − (Custos% + Comissões%))</div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="p-2 border rounded h-100">
-            <div class="text-muted small">Falta para atingir (aprox.)</div>
-            <div class="fw-bold <?= ($gapUsd ?? 0) > 0 ? '' : 'text-success' ?>">$ <?= number_format((float)$gapUsd, 2) ?></div>
-            <div class="small text-muted">R$ <?= number_format((float)$gapBrl, 2) ?></div>
-            <?php $retEff = max(0.0, 1.0 - $pctTotalEff); $companyCash = (float)($team['company_cash_usd'] ?? 0); $deficitNow = $companyCash < 0 ? -$companyCash : 0.0; $deficitNowBrl = $deficitNow * (float)($rate ?? 0); ?>
-            <div class="small text-muted mt-1">Déficit atual: $ <?= number_format($deficitNow, 2) ?></div>
-            <div class="small text-muted">Déficit atual (BRL): R$ <?= number_format($deficitNowBrl, 2) ?></div>
-            <div class="small text-muted">Retenção efetiva: <?= number_format($retEff*100, 2) ?>%</div>
-          </div>
-        </div>
-      </div>
+      <div class="fs-6 mb-1">📈 Previsão de ponto de equilíbrio: US$ <?= number_format((float)$brutoAlvo, 2) ?></div>
+      <div class="text-muted">💰 É necessário vender aproximadamente US$ <?= number_format((float)$vExtra, 2) ?> a mais para o caixa ficar positivo.</div>
     <?php endif; ?>
   </div>
 </div>
