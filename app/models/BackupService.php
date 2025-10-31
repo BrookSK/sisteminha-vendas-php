@@ -146,9 +146,23 @@ class BackupService
     private function findBinary(string $name): ?string
     {
         $paths = explode(PATH_SEPARATOR, getenv('PATH') ?: '');
+        $allowed = [];
+        $ob = ini_get('open_basedir');
+        if ($ob && trim($ob) !== '') {
+            $allowed = array_filter(array_map('trim', explode(PATH_SEPARATOR, $ob)), fn($d) => $d !== '');
+        }
         foreach ($paths as $p) {
-            $cand = rtrim($p, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $name . (stripos(PHP_OS, 'WIN') === 0 ? '.exe' : '');
-            if (is_file($cand) && is_executable($cand)) return $cand;
+            $p = rtrim($p, DIRECTORY_SEPARATOR);
+            if ($p === '') continue;
+            if (!empty($allowed)) {
+                $ok = false;
+                foreach ($allowed as $base) {
+                    if (str_starts_with($p . DIRECTORY_SEPARATOR, rtrim($base, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) { $ok = true; break; }
+                }
+                if (!$ok) continue; // skip paths not allowed by open_basedir
+            }
+            $cand = $p . DIRECTORY_SEPARATOR . $name . (stripos(PHP_OS, 'WIN') === 0 ? '.exe' : '');
+            if (@is_file($cand) && @is_executable($cand)) return $cand;
         }
         return null;
     }
