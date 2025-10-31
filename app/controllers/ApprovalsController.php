@@ -74,6 +74,9 @@ class ApprovalsController extends Controller
         } elseif ($etype === 'intl_sale') {
             $sale = new InternationalSale();
             if (($appr['action'] ?? '') === 'create') {
+                if (is_array($payload)) {
+                    $payload['data_lancamento'] = date('Y-m-d');
+                }
                 try {
                     $sid = $sale->create($payload, $createdBy, (string)($me['name'] ?? $me['email'] ?? ''));
                 } catch (\Throwable $e) {
