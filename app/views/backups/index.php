@@ -30,8 +30,8 @@ $csrf = Auth::csrf();
           </div>
           <div>
             <label class="form-label">Token do CRON (para agendamento externo)</label>
-            <input type="text" name="backup_cron_token" class="form-control" placeholder="defina um token seguro" value="<?= htmlspecialchars($cron_token ?? '') ?>">
-            <div class="form-text">Use este token na URL abaixo para rodar o backup automático via agendamento do servidor.</div>
+            <input type="text" name="backup_cron_token" class="form-control" placeholder="defina um token seguro" value="<?= htmlspecialchars($cron_token ?? '') ?>" minlength="8">
+            <div class="form-text">Mínimo de 8 caracteres. Use este token na URL abaixo para rodar o backup automático via agendamento do servidor.</div>
           </div>
           <div class="text-end">
             <button type="submit" class="btn btn-primary">Salvar</button>
