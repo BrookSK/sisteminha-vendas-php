@@ -89,9 +89,24 @@ class ApprovalsController extends Controller
                 (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Edição de Venda Internacional aprovada', 'Sua edição de venda internacional foi aprovada.', 'approval', 'approved', [$createdBy]);
             } elseif (($appr['action'] ?? '') === 'delete') {
                 $sid = (int)($payload['id'] ?? (int)($appr['entity_id'] ?? 0));
-                if ($sid > 0) { $sale->delete($sid); }
-                $apprModel->approve($id, (int)($me['id'] ?? 0));
-                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Exclusão de Venda Internacional aprovada', 'Sua solicitação de exclusão foi aprovada e a venda foi removida.', 'approval', 'approved', [$createdBy]);
+                if ($sid <= 0) {
+                    $this->flash('danger', 'Não foi possível identificar a venda internacional para exclusão.');
+                    return $this->redirect('/admin/approvals');
+                }
+                $existed = (new InternationalSale())->find($sid) ? true : false;
+                $ok = false;
+                if ($existed) {
+                    try { $sale->delete($sid); $ok = true; } catch (\Throwable $e) { $ok = false; }
+                }
+                $still = (new InternationalSale())->find($sid) ? true : false;
+                if ($existed && !$still && $ok) {
+                    $apprModel->approve($id, (int)($me['id'] ?? 0));
+                    (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Exclusão de Venda Internacional aprovada', 'Sua solicitação de exclusão foi aprovada e a venda foi removida.', 'approval', 'approved', [$createdBy]);
+                    $this->flash('success', 'Venda internacional #'.$sid.' excluída.');
+                } else {
+                    $this->flash('danger', 'Falha ao excluir a venda internacional #'.$sid.'.');
+                }
+                return $this->redirect('/admin/approvals');
             }
         } elseif ($etype === 'nat_sale') {
             $sale = new NationalSale();
@@ -113,18 +128,22 @@ class ApprovalsController extends Controller
                 $sid = (int)($payload['id'] ?? (int)($appr['entity_id'] ?? 0));
                 if ($sid <= 0) {
                     $this->flash('danger', 'Não foi possível identificar a venda nacional para exclusão.');
-                } else {
-                    $existed = (bool)$sale->find($sid);
-                    if ($existed) { $sale->delete($sid); }
-                    $stillThere = (bool)$sale->find($sid);
-                    if ($existed && $stillThere) {
-                        $this->flash('danger', 'Falha ao excluir a venda nacional #'.$sid.'.');
-                    } else {
-                        $this->flash('success', 'Venda nacional #'.$sid.' excluída.');
-                    }
+                    return $this->redirect('/admin/approvals');
                 }
-                $apprModel->approve($id, (int)($me['id'] ?? 0));
-                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Exclusão de Venda Nacional aprovada', 'Sua solicitação de exclusão foi aprovada e a venda foi removida.', 'approval', 'approved', [$createdBy]);
+                $existed = (bool)$sale->find($sid);
+                $ok = false;
+                if ($existed) {
+                    try { $sale->delete($sid); $ok = true; } catch (\Throwable $e) { $ok = false; }
+                }
+                $stillThere = (bool)$sale->find($sid);
+                if ($existed && !$stillThere && $ok) {
+                    $apprModel->approve($id, (int)($me['id'] ?? 0));
+                    (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Exclusão de Venda Nacional aprovada', 'Sua solicitação de exclusão foi aprovada e a venda foi removida.', 'approval', 'approved', [$createdBy]);
+                    $this->flash('success', 'Venda nacional #'.$sid.' excluída.');
+                } else {
+                    $this->flash('danger', 'Falha ao excluir a venda nacional #'.$sid.'.');
+                }
+                return $this->redirect('/admin/approvals');
             }
         } else {
             $apprModel->approve($id, (int)($me['id'] ?? 0));
