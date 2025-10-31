@@ -230,7 +230,7 @@ class InternationalSalesController extends Controller
 
     public function data()
     {
-        $this->requireRole(['seller','manager','admin','organic']);
+        $this->requireRole(['seller','trainee','manager','admin','organic']);
         $sellerId = isset($_GET['seller_id']) && $_GET['seller_id'] !== '' ? (int)$_GET['seller_id'] : null;
         $ym = $_GET['ym'] ?? null;
         $q = isset($_GET['q']) ? (string)$_GET['q'] : null;
