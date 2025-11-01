@@ -318,4 +318,66 @@ class Report extends Model
         $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
         return (float)($row['v'] ?? 0);
     }
+
+    /**
+     * Top clients for a seller within [from, to] (dates). Aggregates legacy + international + national.
+     * Returns array of rows: [cliente_id, cliente_nome, total_vendas, total_bruto_usd, total_liquido_usd]
+     */
+    public function topClientsForSeller(int $sellerId, string $from, string $to, int $limit = 5): array
+    {
+        $lim = max(1, (int)$limit);
+        $sql = "(
+            SELECT v.cliente_id AS cid, c.nome AS cliente_nome,
+                   COUNT(*) AS total_vendas,
+                   COALESCE(SUM(v.bruto_usd),0) AS total_bruto_usd,
+                   COALESCE(SUM(v.liquido_usd),0) AS total_liquido_usd
+            FROM vendas v
+            LEFT JOIN clientes c ON c.id = v.cliente_id
+            WHERE v.usuario_id = :sid1 AND v.created_at BETWEEN :f1 AND :t1
+            GROUP BY v.cliente_id, c.nome
+        )
+        UNION ALL
+        (
+            SELECT vi.cliente_id AS cid, c.nome AS cliente_nome,
+                   COUNT(*) AS total_vendas,
+                   COALESCE(SUM(vi.total_bruto_usd),0) AS total_bruto_usd,
+                   COALESCE(SUM(vi.total_liquido_usd),0) AS total_liquido_usd
+            FROM vendas_internacionais vi
+            LEFT JOIN clientes c ON c.id = vi.cliente_id
+            WHERE vi.vendedor_id = :sid2 AND vi.data_lancamento BETWEEN :f2 AND :t2
+            GROUP BY vi.cliente_id, c.nome
+        )
+        UNION ALL
+        (
+            SELECT vn.cliente_id AS cid, c.nome AS cliente_nome,
+                   COUNT(*) AS total_vendas,
+                   COALESCE(SUM(vn.total_bruto_usd),0) AS total_bruto_usd,
+                   COALESCE(SUM(vn.total_liquido_usd),0) AS total_liquido_usd
+            FROM vendas_nacionais vn
+            LEFT JOIN clientes c ON c.id = vn.cliente_id
+            WHERE vn.vendedor_id = :sid3 AND vn.data_lancamento BETWEEN :f3 AND :t3
+            GROUP BY vn.cliente_id, c.nome
+        )";
+        // Wrap to aggregate by client across sources
+        $outer = "SELECT cid AS cliente_id, cliente_nome,
+                         SUM(total_vendas) AS total_vendas,
+                         SUM(total_bruto_usd) AS total_bruto_usd,
+                         SUM(total_liquido_usd) AS total_liquido_usd
+                  FROM ( $sql ) x
+                  GROUP BY cid, cliente_nome
+                  ORDER BY total_vendas DESC, total_liquido_usd DESC
+                  LIMIT $lim";
+        $stmt = $this->db->prepare($outer);
+        $stmt->bindValue(':sid1', $sellerId, PDO::PARAM_INT);
+        $stmt->bindValue(':f1', $from.' 00:00:00');
+        $stmt->bindValue(':t1', $to.' 23:59:59');
+        $stmt->bindValue(':sid2', $sellerId, PDO::PARAM_INT);
+        $stmt->bindValue(':f2', $from);
+        $stmt->bindValue(':t2', $to);
+        $stmt->bindValue(':sid3', $sellerId, PDO::PARAM_INT);
+        $stmt->bindValue(':f3', $from);
+        $stmt->bindValue(':t3', $to);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
 }
