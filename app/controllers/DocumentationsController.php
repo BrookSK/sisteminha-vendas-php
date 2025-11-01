@@ -24,6 +24,7 @@ class DocumentationsController extends Controller
             'status' => trim($_GET['status'] ?? ''),
             'area_id' => ($_GET['area_id'] ?? '') !== '' ? (int)$_GET['area_id'] : null,
             'project_id' => ($_GET['project_id'] ?? '') !== '' ? (int)$_GET['project_id'] : null,
+            'published' => (isset($_GET['published']) && $_GET['published'] !== '') ? (int)$_GET['published'] : '',
             'q' => trim($_GET['q'] ?? ''),
         ];
         $page = max(1, (int)($_GET['page'] ?? 1));

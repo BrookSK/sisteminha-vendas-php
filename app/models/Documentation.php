@@ -27,6 +27,7 @@ class Documentation extends Model
         if (!empty($filters['status'])) { $wheres[] = 'd.status = ?'; $params[] = $filters['status']; }
         if (!empty($filters['area_id'])) { $wheres[] = 'd.area_id = ?'; $params[] = (int)$filters['area_id']; }
         if (!empty($filters['project_id'])) { $wheres[] = 'd.project_id = ?'; $params[] = (int)$filters['project_id']; }
+        if (array_key_exists('published', $filters) && $filters['published'] !== null && $filters['published'] !== '') { $wheres[] = 'd.published = ?'; $params[] = (int)$filters['published']; }
         if (!empty($filters['q'])) { $wheres[] = 'd.title LIKE ?'; $params[] = '%'.$filters['q'].'%'; }
         $sql = 'SELECT COUNT(1) FROM documentations d';
         if (!empty($wheres)) { $sql .= ' WHERE ' . implode(' AND ', $wheres); }
@@ -68,6 +69,8 @@ class Documentation extends Model
         if (!empty($filters['area_id'])) { $wheres[] = 'd.area_id = ?'; $params[] = (int)$filters['area_id']; }
         // project
         if (!empty($filters['project_id'])) { $wheres[] = 'd.project_id = ?'; $params[] = (int)$filters['project_id']; }
+        // published
+        if (array_key_exists('published', $filters) && $filters['published'] !== null && $filters['published'] !== '') { $wheres[] = 'd.published = ?'; $params[] = (int)$filters['published']; }
         // title search
         if (!empty($filters['q'])) { $wheres[] = 'd.title LIKE ?'; $params[] = '%'.$filters['q'].'%'; }
 
