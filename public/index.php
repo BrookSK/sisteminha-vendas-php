@@ -344,7 +344,7 @@ $router->group('/admin', function($r) {
     // Webhooks guide (admin)
     $r->get('/webhooks/guide', 'Controllers\\WebhooksController@guide');
 
-    $r->get('/admin/performance', 'Controllers\\PerformanceController@index');
+    $r->get('/performance', 'Controllers\\PerformanceController@index');
 
 }, function() {
     return \Core\Auth::check();
