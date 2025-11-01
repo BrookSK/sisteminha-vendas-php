@@ -50,6 +50,7 @@ use Core\Auth;
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="menuComissoesSeller" role="button" data-bs-toggle="dropdown" aria-expanded="false">Comissões</a>
               <ul class="dropdown-menu" aria-labelledby="menuComissoesSeller">
+                <li><a class="dropdown-item" href="/admin/performance">Meu Desempenho</a></li>
                 <li><a class="dropdown-item" href="/admin/commissions/me">Minhas Comissões</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/settings/calculations-simple">Entenda os Cálculos</a></li>
@@ -86,6 +87,7 @@ use Core\Auth;
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="menuComissoesTrainee" role="button" data-bs-toggle="dropdown" aria-expanded="false">Comissões</a>
               <ul class="dropdown-menu" aria-labelledby="menuComissoesTrainee">
+                <li><a class="dropdown-item" href="/admin/performance">Meu Desempenho</a></li>
                 <li><a class="dropdown-item" href="/admin/commissions/me">Minhas Comissões</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/settings/calculations-simple">Entenda os Cálculos</a></li>
@@ -187,6 +189,9 @@ use Core\Auth;
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="menuComissoes" role="button" data-bs-toggle="dropdown" aria-expanded="false">Comissões</a>
               <ul class="dropdown-menu" aria-labelledby="menuComissoes">
+                <?php if ($role !== 'admin'): ?>
+                <li><a class="dropdown-item" href="/admin/performance">Meu Desempenho</a></li>
+                <?php endif; ?>
                 <li><a class="dropdown-item" href="/admin/commissions/me">Minhas Comissões</a></li>
                 <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/commissions">Comissões Empresa</a></li>
