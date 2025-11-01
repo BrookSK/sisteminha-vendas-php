@@ -32,6 +32,9 @@
         </h2>
         <div id="<?= $collapseId ?>" class="accordion-collapse collapse" aria-labelledby="<?= $headingId ?>" data-bs-parent="#accPerf">
           <div class="accordion-body">
+            <div class="d-flex justify-content-end mb-2">
+              <a class="btn btn-sm btn-outline-secondary" href="/admin/performance/export-seller.pdf?usuario_id=<?= (int)$uid ?>&from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>">Exportar PDF</a>
+            </div>
             <?php include __DIR__ . '/partials_user_blocks.php'; ?>
           </div>
         </div>
@@ -40,5 +43,8 @@
   </div>
 <?php else: ?>
   <?php $d = current($dataByUser) ?: []; ?>
+  <div class="d-flex justify-content-end mb-2">
+    <a class="btn btn-sm btn-outline-secondary" href="/admin/performance/export-seller.pdf?usuario_id=<?= (int)($d['user']['id'] ?? 0) ?>&from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>">Exportar PDF</a>
+  </div>
   <?php include __DIR__ . '/partials_user_blocks.php'; ?>
 <?php endif; ?>
