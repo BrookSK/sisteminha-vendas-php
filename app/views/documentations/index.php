@@ -26,6 +26,15 @@ $csrf = Auth::csrf();
           <?php endforeach; ?>
         </select>
       </div>
+      <div class="col-md-2">
+        <label class="form-label">Publicado?</label>
+        <?php $selP = (string)($filters['published'] ?? ''); ?>
+        <select name="published" class="form-select">
+          <option value="" <?= ($selP==='')?'selected':'' ?>>Todos</option>
+          <option value="1" <?= ($selP==='1')?'selected':'' ?>>Sim</option>
+          <option value="0" <?= ($selP==='0')?'selected':'' ?>>Não</option>
+        </select>
+      </div>
       <div class="col-md-3 position-relative">
         <label class="form-label">Projeto</label>
         <input type="hidden" name="project_id" id="projectIdField" value="<?= htmlspecialchars((string)($filters['project_id'] ?? '')) ?>">
