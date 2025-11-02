@@ -14,11 +14,26 @@ class Commission extends Model
 {
     const TEAM_GOAL_USD = 50000.0;
 
+    /** Default period label (YYYY-MM) for UI/controllers respecting 10th-9th cycle. */
+    public static function defaultPeriod(): string
+    {
+        $day = (int)date('d');
+        if ($day <= 9) {
+            return date('Y-m', strtotime('first day of last month'));
+        }
+        return date('Y-m');
+    }
+
     /** Returns [from, to] for a given period string YYYY-MM. */
     public function monthRange(string $ym): array
     {
-        $from = date('Y-m-01 00:00:00', strtotime($ym . '-01'));
-        $to = date('Y-m-t 23:59:59', strtotime($ym . '-01'));
+        // Custom commission cycle: from the 10th of the given month to the 9th of the next month
+        $startBase = strtotime($ym . '-10');
+        // Start at 10th 00:00:00 of the given month
+        $from = date('Y-m-10 00:00:00', $startBase);
+        // End at 9th 23:59:59 of the next month
+        $endBase = strtotime('+1 month', $startBase);
+        $to = date('Y-m-09 23:59:59', $endBase);
         return [$from, $to];
     }
 
