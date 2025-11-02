@@ -4,16 +4,16 @@
     <h3 class="m-0">Comissões (Admin)</h3>
     <form method="post" action="/admin/commissions/recalc" class="d-inline">
       <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
-      <input type="month" name="period" value="<?= htmlspecialchars($_GET['period'] ?? date('Y-m')) ?>" class="form-control d-inline" style="width:auto; display:inline-block">
+      <input type="month" name="period" value="<?= htmlspecialchars($period ?? ($_GET['period'] ?? date('Y-m'))) ?>" class="form-control d-inline" style="width:auto; display:inline-block">
       <button class="btn btn-primary ms-2" type="submit">Recalcular Comissões</button>
     </form>
-    <a class="btn btn-outline-secondary" href="/admin/commissions/export?period=<?= urlencode($_GET['period'] ?? date('Y-m')) ?>">Exportar CSV</a>
+    <a class="btn btn-outline-secondary" href="/admin/commissions/export?period=<?= urlencode($period ?? ($_GET['period'] ?? date('Y-m'))) ?>">Exportar CSV</a>
   </div>
 
   <form class="row g-2 mb-3" method="get" action="/admin/commissions">
     <div class="col-auto">
       <label class="form-label">Mensal</label>
-      <input type="month" name="period" value="<?= htmlspecialchars($_GET['period'] ?? date('Y-m')) ?>" class="form-control">
+      <input type="month" name="period" value="<?= htmlspecialchars($period ?? ($_GET['period'] ?? date('Y-m'))) ?>" class="form-control">
     </div>
     <div class="col-auto align-self-end">
       <button class="btn btn-outline-secondary" type="submit">Filtrar</button>

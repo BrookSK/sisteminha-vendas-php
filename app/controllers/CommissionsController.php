@@ -11,7 +11,7 @@ class CommissionsController extends Controller
     public function index()
     {
         $this->requireRole(['admin']);
-        $period = trim($_GET['period'] ?? date('Y-m'));
+        $period = trim($_GET['period'] ?? Commission::defaultPeriod());
         $from = $_GET['from'] ?? null;
         $to = $_GET['to'] ?? null;
 
@@ -76,7 +76,7 @@ class CommissionsController extends Controller
     {
         $this->requireRole(['admin']);
         $this->csrfCheck();
-        $period = trim($_POST['period'] ?? date('Y-m'));
+        $period = trim($_POST['period'] ?? Commission::defaultPeriod());
         (new Commission())->recalcMonthly($period);
         $this->redirect('/admin/commissions?period='.$period);
     }
@@ -86,7 +86,7 @@ class CommissionsController extends Controller
     {
         $this->requireRole(['seller','trainee','manager','admin']);
         $u = Auth::user();
-        $period = trim($_GET['period'] ?? date('Y-m'));
+        $period = trim($_GET['period'] ?? Commission::defaultPeriod());
         $model = new Commission();
         [$from, $to] = $model->monthRange($period);
         $calc = $model->computeRange($from, $to);
@@ -114,7 +114,7 @@ class CommissionsController extends Controller
     public function exportCsv()
     {
         $this->requireRole(['admin']);
-        $period = trim($_GET['period'] ?? date('Y-m'));
+        $period = trim($_GET['period'] ?? Commission::defaultPeriod());
         $from = $_GET['from'] ?? null;
         $to = $_GET['to'] ?? null;
         $model = new Commission();
@@ -175,7 +175,7 @@ class CommissionsController extends Controller
             }
         }
         $u = Auth::user();
-        $period = trim($_GET['period'] ?? date('Y-m'));
+        $period = trim($_GET['period'] ?? Commission::defaultPeriod());
         $model = new Commission();
         [$from, $to] = $model->monthRange($period);
         $calc = $model->computeRange($from, $to);

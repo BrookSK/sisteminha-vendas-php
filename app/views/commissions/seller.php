@@ -5,7 +5,7 @@
   <form class="row g-2 mb-3" method="get" action="/admin/commissions/me">
     <div class="col-auto">
       <label class="form-label">Período</label>
-      <input type="month" name="period" value="<?= htmlspecialchars($_GET['period'] ?? date('Y-m')) ?>" class="form-control">
+      <input type="month" name="period" value="<?= htmlspecialchars($period ?? ($_GET['period'] ?? date('Y-m'))) ?>" class="form-control">
     </div>
     <div class="col-auto align-self-end">
       <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
