@@ -27,6 +27,7 @@ class Auth
             'email' => $user['email'],
             'name' => $user['name'] ?? 'User',
             'role' => $user['role'] ?? 'seller',
+            'whatsapp' => $user['whatsapp'] ?? null,
         ];
     }
 
