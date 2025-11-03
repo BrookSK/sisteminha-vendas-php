@@ -71,6 +71,19 @@ class ApprovalsController extends Controller
                 $apprModel->approve($id, (int)($me['id'] ?? 0));
                 (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Edição de cliente aprovada', 'Sua edição de cliente foi aprovada.', 'approval', 'approved', [$createdBy]);
             }
+        } elseif ($etype === 'documentation') {
+            $docModel = new \Models\Documentation();
+            if (($appr['action'] ?? '') === 'update') {
+                $docId = (int)($payload['id'] ?? (int)($appr['entity_id'] ?? 0));
+                $data = (array)($payload['data'] ?? []);
+                if ($docId > 0) {
+                    $docModel->updateRow($docId, $data, (int)($me['id'] ?? 0));
+                }
+                $apprModel->approve($id, (int)($me['id'] ?? 0));
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Edição de documentação aprovada', 'Sua edição de documentação foi aprovada.', 'approval', 'approved', [$createdBy]);
+                $this->flash('success', 'Edição de documentação aprovada e aplicada.');
+                return $this->redirect('/admin/documentations/view?id=' . (int)$docId);
+            }
         } elseif ($etype === 'intl_sale') {
             $sale = new InternationalSale();
             if (($appr['action'] ?? '') === 'create') {
