@@ -7,6 +7,9 @@ use Models\Documentation;
 use Models\DocumentationArea;
 use Models\DocumentationEmailPermission;
 use Models\DocumentationComment;
+use Models\Approval;
+use Models\Notification;
+use Models\User;
 
 class DocumentationsController extends Controller
 {
@@ -140,6 +143,17 @@ class DocumentationsController extends Controller
             'content' => $_POST['content'] ?? null,
         ];
         if ($d['title'] === '') {
+            return $this->redirect('/admin/documentations');
+        }
+        $role = (string)($u['role'] ?? 'seller');
+        if ($role === 'trainee') {
+            $meFull = (new User())->findById((int)($u['id'] ?? 0));
+            $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
+            $apprId = (new Approval())->createPending('documentation', 'update', ['id'=>$id,'data'=>$d], (int)($u['id'] ?? 0), $supervisorId, $id);
+            if ($supervisorId) {
+                (new Notification())->createWithUsers((int)($u['id'] ?? 0), 'Aprovação de Documentação (edição)', 'Uma edição de documentação foi enviada por um trainee e aguarda sua aprovação. [approval-id:'.$apprId.']', 'approval', 'new', [$supervisorId]);
+            }
+            $this->flash('info', 'Edição enviada para aprovação. Uma notificação foi enviada ao seu supervisor e está pendente de aprovação.');
             return $this->redirect('/admin/documentations');
         }
         (new Documentation())->updateRow($id, $d, $u['id'] ?? null);

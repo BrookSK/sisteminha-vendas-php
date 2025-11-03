@@ -1,4 +1,5 @@
 <?php use Core\Auth; ?>
+<?php $role = (string)((Auth::user()['role'] ?? 'seller')); ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h5 class="mb-0">Clientes</h5>
   <a href="/admin/clients/new" class="btn btn-primary">Novo Cliente</a>
@@ -72,7 +73,7 @@
             <td class="text-end">
               <a class="btn btn-sm btn-outline-primary" href="/admin/clients/edit?id=<?= (int)$c['id'] ?>">Editar</a>
               <?php $isPlaceholder = (trim($c['nome'] ?? '') === '[REMOVIDO]') || (strtolower(trim($c['email'] ?? '')) === 'removed@system.local'); ?>
-              <?php if (!$isPlaceholder): ?>
+              <?php if ($role !== 'trainee' && !$isPlaceholder): ?>
                 <form method="post" action="/admin/clients/delete" class="d-inline" onsubmit="return confirm('Excluir este cliente?');">
                   <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrf()) ?>">
                   <input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
