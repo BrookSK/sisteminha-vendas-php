@@ -268,6 +268,7 @@ class Commission extends Model
                 'comissao_individual' => round($indUSD, 2),
                 'bonus' => round($bonusUSD, 2),
                 'comissao_final' => round($finalUSD, 2),
+                'percent_individual' => $perc,
                 // BRL fields for UI/reporting
                 'bruto_total_brl' => round($bruto_brl, 2),
                 'liquido_total_brl' => round($liquido * $usdRate, 2),

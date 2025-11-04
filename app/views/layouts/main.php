@@ -44,6 +44,7 @@ use Core\Auth;
                 <li><a class="dropdown-item" href="/admin/national-sales">Nacionais</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/sales-simulator">Simulador de Cálculo</a></li>
+                <li><a class="dropdown-item" href="/admin/message-templates">Mensagens Padrão</a></li>
               </ul>
             </li>
             <!-- Comissões (seller) -->
@@ -81,6 +82,7 @@ use Core\Auth;
                 <li><a class="dropdown-item" href="/admin/national-sales">Nacionais</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/sales-simulator">Simulador de Cálculo</a></li>
+                <li><a class="dropdown-item" href="/admin/message-templates">Mensagens Padrão</a></li>
               </ul>
             </li>
             <!-- Comissões (trainee) -->
@@ -118,6 +120,7 @@ use Core\Auth;
                 <li><a class="dropdown-item" href="/admin/national-sales">Nacionais</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/sales-simulator">Simulador de Cálculo</a></li>
+                <li><a class="dropdown-item" href="/admin/message-templates">Mensagens Padrão</a></li>
               </ul>
             </li>
             <!-- Metas (orgânico) -->
@@ -171,6 +174,7 @@ use Core\Auth;
                 <li><a class="dropdown-item" href="/admin/national-sales">Nacionais</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/sales-simulator">Simulador de Cálculo</a></li>
+                <li><a class="dropdown-item" href="/admin/message-templates">Mensagens Padrão</a></li>
               </ul>
             </li>
 
