@@ -45,9 +45,6 @@
           <small class="text-muted">Progresso: <?= round($pct,1) ?>%</small>
           <?php $falta = max(0, ($goal - (float)($team['team_bruto_total'] ?? 0))); ?>
           <small class="text-muted ms-2">Falta: US$ <?= number_format($falta, 2) ?></small>
-          <?php if (isset($team['team_cost_rate'])): ?>
-            <span class="badge text-bg-warning ms-2">Custo Global: <?= number_format((float)$team['team_cost_rate']*100, 2) ?>%</span>
-          <?php endif; ?>
           <?php if (isset($team['equal_cost_share_per_active_seller'])): ?>
             <span class="badge text-bg-info ms-2">Cota igualitária (por vendedor ativo): US$ <?= number_format((float)$team['equal_cost_share_per_active_seller'], 2) ?></span>
           <?php endif; ?>
