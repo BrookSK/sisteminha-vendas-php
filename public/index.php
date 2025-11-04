@@ -315,6 +315,9 @@ $router->group('/admin', function($r) {
     $r->get('/national-sales/export', 'Controllers\\NationalSalesController@exportCsv');
     $r->get('/national-sales/data', 'Controllers\\NationalSalesController@data');
 
+    // Mensagens Padrão
+    $r->get('/message-templates', 'Controllers\\MessageTemplatesController@index');
+
     // Minha Conta
     $r->get('/account', 'Controllers\\AccountController@index');
     $r->post('/account/update-profile', 'Controllers\\AccountController@updateProfile');
