@@ -22,14 +22,20 @@ $templates = $templates ?? [];
           <option value="o">Masculino (o)</option>
         </select>
       </div>
-      <div class="col-md-8 d-flex align-items-end">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="includeSimulatorNotice">
-          <label class="form-check-label" for="includeSimulatorNotice">
-            Incluir aviso de orçamento de produto (Simulador de Cálculo)
-          </label>
-        </div>
-      </div>
+      <div class="col-md-8 d-flex align-items-end"></div>
+    </div>
+    <div id="simulatorNotice" class="alert alert-info d-none">
+      <div class="fw-bold mb-1">Orçamento de produto</div>
+      <div class="mb-1">Para orçamento de produto, utilize a tela do Simulador de Cálculo:</div>
+      <div class="mb-2"><a href="/admin/sales-simulator" class="link-primary">/admin/sales-simulator</a></div>
+      <div class="mb-1">Preencha:</div>
+      <ul class="mb-1">
+        <li>Nome do produto, valor em dólar (US$) e peso em quilo (kg).</li>
+        <li>Se houver frete até a nossa sede, ative a opção e informe o valor do frete em dólar (US$).</li>
+        <li>Adicione ou remova produtos conforme necessário.</li>
+        <li>Ative ou desative o envio para o Brasil para calcular impostos.</li>
+      </ul>
+      <div class="mb-0">Depois clique em <span class="fw-semibold">Calcular</span> e, em seguida, em <span class="fw-semibold">Gerar mensagem para o cliente</span>.</div>
     </div>
     <div id="fields" class="row g-3 mb-3"></div>
     <div class="d-flex gap-2 mb-2">
@@ -49,7 +55,7 @@ $templates = $templates ?? [];
   const btnGen = document.getElementById('generate');
   const btnCopy = document.getElementById('copy');
   const elArticle = document.getElementById('article');
-  const chkSimNotice = document.getElementById('includeSimulatorNotice');
+  const simNotice = document.getElementById('simulatorNotice');
 
   const categories = Object.keys(data);
   categories.forEach((c,i)=>{
@@ -66,6 +72,7 @@ $templates = $templates ?? [];
       opt.value = t.id; opt.textContent = t.titulo; elTpl.appendChild(opt);
     });
     loadFields();
+    updateNotice();
   }
 
   function currentTemplate(){
@@ -93,6 +100,15 @@ $templates = $templates ?? [];
       group.appendChild(label); group.appendChild(input); col.appendChild(group);
       elFields.appendChild(col);
     });
+    updateNotice();
+  }
+
+  function updateNotice(){
+    const cat = elCat.value || '';
+    const isProduct = (cat === 'Produtos específicos');
+    if (simNotice) {
+      simNotice.classList.toggle('d-none', !isProduct);
+    }
   }
 
   function generate(){
@@ -110,24 +126,6 @@ $templates = $templates ?? [];
     // Gênero do atendente => [Artigo]
     const art = (elArticle && elArticle.value) ? elArticle.value : 'a';
     text = text.replace(/\[Artigo\]/g, art);
-
-    // Aviso do Simulador de Cálculo (quando marcado)
-    if (chkSimNotice && chkSimNotice.checked) {
-      const sim = [
-        'Se for orçamento de produto, faça na tela do Simulador de Cálculo: /admin/sales-simulator',
-        '',
-        'Preencha as informações do(s) produto(s):',
-        '- Nome do produto, valor em dólar (US$) e peso em quilo (kg).',
-        '- Se houver frete até a nossa sede, ative a opção e informe o valor do frete em dólar (US$).',
-        '- Você pode adicionar ou remover produtos.',
-        '- Você pode ativar ou desativar o envio para o Brasil (para calcular impostos).',
-        '',
-        'Depois:',
-        '1) Clique em Calcular para gerar os valores.',
-        '2) Clique em Gerar mensagem para o cliente para montar o orçamento.'
-      ].join('\n');
-      text = (text ? (text + '\n\n' + sim) : sim);
-    }
     elOut.value = text;
   }
 
