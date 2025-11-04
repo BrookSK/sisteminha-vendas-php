@@ -24,20 +24,13 @@ class CommissionsController extends Controller
             $team = $calc['team'];
         } else {
             [$rangeFrom, $rangeTo] = $model->monthRange($period);
-            // Prefer persisted summary for speed; compute team info on the fly
+            // Always recalculate and persist latest monthly data so the view is up-to-date
+            $model->recalcMonthly($period);
+            // Load persisted items for table display
             $items = $model->loadMonthly($period);
-            if (!$items) {
-                $calc = $model->computeRange($rangeFrom, $rangeTo);
-                $items = $calc['items'];
-                $team = $calc['team'];
-            } else {
-                // Derive team data from persisted items
-                $teamBruto = 0.0; $active = 0;
-                foreach ($items as $it) { $teamBruto += (float)$it['bruto_total']; if ((int)($it['ativo'] ?? 0) === 1) $active++; }
-                $apply = $teamBruto >= Commission::TEAM_GOAL_USD;
-                $rate = ($apply && $active>0) ? (0.05/$active) : 0.0;
-                $team = ['team_bruto_total'=>round($teamBruto,2), 'apply_bonus'=>$apply, 'active_count'=>$active, 'bonus_rate'=>$rate];
-            }
+            // Compute team metrics from live calculation for accuracy
+            $calc = $model->computeRange($rangeFrom, $rangeTo);
+            $team = $calc['team'];
         }
 
         // Build chart datasets (bar for individual final commissions)
