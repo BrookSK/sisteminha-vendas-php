@@ -52,7 +52,7 @@
         <div><strong>Comissão Individual:</strong> US$ <?= number_format($mine['comissao_individual'] ?? 0, 2) ?></div>
         <div><strong>Bônus de Equipe:</strong> US$ <?= number_format($mine['bonus'] ?? 0, 2) ?></div>
         <?php if (isset($mine['percent_individual'])): ?>
-          <div class="text-muted small">Percentual do vendedor: <?= number_format(((float)$mine['percent_individual'])*100, 0) ?>%</div>
+          <div class="text-muted small">Percentual do vendedor: <?= number_format(((float)$mine['percent_individual'])*100, 0) ?>%<?php if (isset($team['bonus_rate'])): ?>  •  Bônus: <?= number_format(((float)$team['bonus_rate'])*100, 2) ?>%<?php endif; ?></div>
         <?php endif; ?>
         <?php if (isset($mine['comissao_individual_brl'])): ?>
           <div class="mt-2 text-muted small">BRL: Comissão Individual R$ <?= number_format((float)$mine['comissao_individual_brl'], 2) ?>, Bônus R$ <?= number_format((float)($mine['bonus_brl'] ?? 0), 2) ?></div>
