@@ -16,7 +16,7 @@ class MessageTemplatesController extends Controller
                 [
                     'id' => 'saudacao_simples',
                     'titulo' => 'Padrão 1 — Saudação simples',
-                    'texto' => 'Oi [Nome], tudo bem? Aqui é a [Nome do Usuario do sistema] do time da Braziliana. Como eu posso te ajudar?',
+                    'texto' => 'Oi [Nome], tudo bem? Aqui é [Artigo] [Nome do Usuario do sistema] do time da Braziliana. Como eu posso te ajudar?',
                     'campos' => [
                         ['chave' => 'Nome', 'rotulo' => 'Nome do cliente'],
                         ['chave' => 'Nome do Usuario do sistema', 'rotulo' => 'Seu nome'],
@@ -89,7 +89,7 @@ class MessageTemplatesController extends Controller
                 [
                     'id' => 'sem_planos_fixos',
                     'titulo' => 'Nova política (sem planos fixos)',
-                    'texto' => 'Oi [Nome], bom dia, tudo bem?\nAqui é a [Nome do Usuario do sistema] do time da Braziliana.\nNós passamos por uma transição: não temos mais planos de assinatura.\nAgora a Braziliana trabalha com um valor fixo de US$39 por quilo de caixa enviada pro Brasil.\nMuito mais simples! 💪',
+                    'texto' => 'Oi [Nome], bom dia, tudo bem?\nAqui é [Artigo] [Nome do Usuario do sistema] do time da Braziliana.\nNós passamos por uma transição: não temos mais planos de assinatura.\nAgora a Braziliana trabalha com um valor fixo de US$39 por quilo de caixa enviada pro Brasil.\nMuito mais simples! 💪',
                     'campos' => [
                         ['chave' => 'Nome', 'rotulo' => 'Nome do cliente'],
                         ['chave' => 'Nome do Usuario do sistema', 'rotulo' => 'Seu nome'],

@@ -14,6 +14,15 @@ $templates = $templates ?? [];
         <select id="template" class="form-select"></select>
       </div>
     </div>
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <label class="form-label">Gênero do atendente</label>
+        <select id="article" class="form-select">
+          <option value="a">Feminino (a)</option>
+          <option value="o">Masculino (o)</option>
+        </select>
+      </div>
+    </div>
     <div id="fields" class="row g-3 mb-3"></div>
     <div class="d-flex gap-2 mb-2">
       <button id="generate" class="btn btn-primary">Gerar mensagem</button>
@@ -31,6 +40,7 @@ $templates = $templates ?? [];
   const elOut = document.getElementById('output');
   const btnGen = document.getElementById('generate');
   const btnCopy = document.getElementById('copy');
+  const elArticle = document.getElementById('article');
 
   const categories = Object.keys(data);
   categories.forEach((c,i)=>{
@@ -79,6 +89,8 @@ $templates = $templates ?? [];
   function generate(){
     const tpl = currentTemplate(); if (!tpl) return;
     let text = String(tpl.texto||'');
+    // Converte sequências literais \n, \r\n, \r em quebras reais
+    text = text.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r/g, '\n');
     const inputs = elFields.querySelectorAll('input[data-key]');
     inputs.forEach(inp=>{
       const key = inp.getAttribute('data-key')||''; const val = inp.value||'';
@@ -86,11 +98,16 @@ $templates = $templates ?? [];
       const pattern = new RegExp('\\[' + key.replace(/[.*+?^${}()|\\\\]/g, '\\$&') + '\\]', 'g');
       text = text.replace(pattern, val);
     });
+    // Gênero do atendente => [Artigo]
+    const art = (elArticle && elArticle.value) ? elArticle.value : 'a';
+    text = text.replace(/\[Artigo\]/g, art);
     elOut.value = text;
   }
 
   function copy(){
-    const v = elOut.value||''; if (!v) return;
+    let v = elOut.value||''; if (!v) return;
+    // Usa CRLF no clipboard para melhor compatibilidade em alguns apps no Windows
+    v = v.replace(/\n/g, '\r\n');
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(v).then(()=>{
         btnCopy.classList.remove('btn-outline-secondary');
