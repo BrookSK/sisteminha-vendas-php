@@ -132,7 +132,11 @@ class Commission extends Model
         foreach ($agg as $uidLoop => $row) {
             // Conta vendedores/trainees/gerentes ativos como elegíveis para rateio do bônus
             $role = $row['user']['role'] ?? 'seller';
-            if ((int)($row['user']['ativo'] ?? 0) === 1 && in_array($role, ['seller','trainee','manager'], true)) {
+            $hasSale = ((float)($row['bruto_total'] ?? 0) > 0.0);
+            if ((int)($row['user']['ativo'] ?? 0) === 1 && (
+                in_array($role, ['seller','manager'], true) ||
+                ($role === 'trainee' && $hasSale)
+            )) {
                 $activeCount++;
             }
             // Contagem antiga (igualitária) mantida para compatibilidade em campos de saída
