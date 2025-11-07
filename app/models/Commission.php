@@ -128,6 +128,7 @@ class Commission extends Model
         $perUserActive = [];
         $activeNonTraineeIds = []; // roles seller/manager
         $activeTraineeIds = [];
+        $activeCostPayerIds = [];
         $totalVendasEquipe = 0.0; // soma de bruto dos ativos elegíveis (seller/manager/trainee)
         foreach ($agg as $uidLoop => $row) {
             // Conta vendedores/trainees/gerentes ativos como elegíveis para rateio do bônus
@@ -157,6 +158,8 @@ class Commission extends Model
                 $totalVendasEquipe += (float)$row['bruto_total'];
                 if ($role === 'trainee') { $activeTraineeIds[] = $uidI; }
                 if (in_array($role, ['seller','manager'], true)) { $activeNonTraineeIds[] = $uidI; }
+                // Todos os ativos (seller/manager/trainee) pagam o custo global igualmente
+                $activeCostPayerIds[] = $uidI;
             }
         }
         // Global cost allocation from Settings (applied on team gross)
@@ -191,22 +194,14 @@ class Commission extends Model
         $teamBrutoBRL = $teamBruto * $usdRate;
         $metaEquipeBRL = 50000.0 * $usdRate; // 50k USD em BRL
 
-        // Nova regra de rateio de custos:
-        // 1) Trainees pagam parte proporcional às suas vendas individuais sobre o total da equipe
-        // 2) Parte restante é dividida igualmente entre gerentes e vendedores
-        $traineeAllocatedMap = [];
-        $sumTraineeAllocated = 0.0;
-        if ($totalVendasEquipe > 0.0 && !empty($activeTraineeIds)) {
-            foreach ($activeTraineeIds as $tid) {
-                $parte = ($perUserBruto[$tid] / $totalVendasEquipe) * $teamCost;
-                // trainee sem vendas terá parte = 0 naturalmente
-                $traineeAllocatedMap[$tid] = $parte;
-                $sumTraineeAllocated += $parte;
-            }
-        }
-        $remainingAfterTrainees = max(0.0, $teamCost - $sumTraineeAllocated);
+        // Nova regra de rateio de custos (atualizada):
+        // - Parte de configuração (imposto 15%): dividida igualmente entre todos os ativos (inclui trainee)
+        // - Custos explícitos (fixos + percentuais): divididos apenas entre vendedores/gerentes ativos
+        $explicitTotal = $fixedUsd + $teamCostPercent;
+        $countPayers = count($activeCostPayerIds);
+        $settingsShare = ($countPayers > 0) ? ($teamCostSettings / $countPayers) : 0.0;
         $countNonTrainee = count($activeNonTraineeIds);
-        $equalCostShare = ($countNonTrainee > 0) ? ($remainingAfterTrainees / $countNonTrainee) : 0.0;
+        $explicitShare = ($countNonTrainee > 0) ? ($explicitTotal / $countNonTrainee) : 0.0;
 
         $sumRateadoUsd = 0.0; // soma dos líquidos rateados (USD)
         $sumCommissionsUsd = 0.0; // soma das comissões (final) em USD
@@ -219,10 +214,12 @@ class Commission extends Model
             // Alocação conforme nova regra
             $role = $row['user']['role'] ?? '';
             $isCostEligibleActive = in_array($role, ['seller','trainee','manager'], true) && ((int)($row['user']['ativo'] ?? 0) === 1);
-            if ($isCostEligibleActive && $role === 'trainee') {
-                $allocatedCost = (float)($traineeAllocatedMap[(int)$uid] ?? 0.0);
-            } elseif ($isCostEligibleActive && in_array($role, ['seller','manager'], true)) {
-                $allocatedCost = $equalCostShare;
+            if ($isCostEligibleActive) {
+                if ($role === 'trainee') {
+                    $allocatedCost = $settingsShare;
+                } else {
+                    $allocatedCost = $settingsShare + $explicitShare;
+                }
             } else {
                 $allocatedCost = 0.0;
             }
@@ -298,7 +295,8 @@ class Commission extends Model
                 // Effective total cost rate including settings, fixed and percent custos
                 'team_cost_rate' => ($teamBruto > 0 ? ($teamCost / $teamBruto) : 0.0),
                 'team_cost_total' => round($teamCost, 2),
-                'equal_cost_share_per_active_seller' => round($equalCostShare, 2),
+                'equal_cost_share_per_active_seller' => round($settingsShare, 2),
+                'explicit_cost_share_per_non_trainee' => round($explicitShare, 2),
                 'team_cost_settings_rate' => $costRate,
                 'team_cost_fixed_usd' => round($fixedUsd, 2),
                 'team_cost_percent_rate' => $percentSum / 100.0,
