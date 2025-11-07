@@ -435,11 +435,20 @@
   <div class="col-md-4">
     <div class="p-2 border rounded h-100">
       <div class="d-flex justify-content-between align-items-center">
-        <div class="text-muted small">Cota Igualitária por Elegível <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Parcela de custos rateada igualmente entre vendedores elegíveis.">?</span></div>
+        <div class="text-muted small">Imposto (15%) por não-trainee ativo <span class="badge rounded-pill text-bg-info" data-bs-toggle="tooltip" title="Parcela restante do imposto (settings) dividida igualmente entre vendedores/gerentes ativos.">?</span></div>
         <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalCotaIgualitaria">Como é calculado</button>
       </div>
       <div class="fw-bold">$ <?= number_format((float)($team['equal_cost_share_per_active_seller'] ?? 0), 2) ?></div>
-      <div class="small text-muted">Elegíveis p/ rateio: <?= (int)($team['active_cost_split_count'] ?? 0) ?></div>
+      <div class="small text-muted">Não-trainees ativos: <?= (int)($team['non_trainee_active_count'] ?? 0) ?></div>
+      <?php if (isset($team['explicit_cost_share_per_non_trainee'])): ?>
+        <div class="small text-muted">Custo explícito por não-trainee: $ <?= number_format((float)$team['explicit_cost_share_per_non_trainee'], 2) ?></div>
+      <?php endif; ?>
+      <?php 
+        $shareSettings = (float)($team['equal_cost_share_per_active_seller'] ?? 0);
+        $shareExplicit = (float)($team['explicit_cost_share_per_non_trainee'] ?? 0);
+        $shareTotalPerNonTrainee = $shareSettings + $shareExplicit;
+      ?>
+      <div class="small fw-semibold">Total por não-trainee: $ <?= number_format($shareTotalPerNonTrainee, 2) ?></div>
     </div>
   </div>
   <div class="col-md-4">
