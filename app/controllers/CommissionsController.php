@@ -4,6 +4,7 @@ namespace Controllers;
 use Core\Controller;
 use Core\Auth;
 use Models\Commission;
+use Models\Setting;
 
 class CommissionsController extends Controller
 {
@@ -16,6 +17,10 @@ class CommissionsController extends Controller
         $to = $_GET['to'] ?? null;
 
         $model = new Commission();
+        // Retrieve USD->BRL rate for view conversions when monthly rows don't include BRL fields
+        try { $setRate = new Setting(); } catch (\Throwable $e) { $setRate = null; }
+        $usdRate = $setRate ? (float)$setRate->get('usd_rate', '5.83') : 5.83;
+        if ($usdRate <= 0) { $usdRate = 5.83; }
         if ($from && $to) {
             $rangeFrom = $from . ' 00:00:00';
             $rangeTo = $to . ' 23:59:59';
@@ -57,6 +62,7 @@ class CommissionsController extends Controller
             'items' => $items,
             'team' => $team ?? null,
             'goal' => Commission::TEAM_GOAL_USD,
+            'usdRate' => $usdRate,
             'chartLabels' => $chartLabels,
             'chartData' => $chartData,
             'historyLabels' => $historyLabels,
