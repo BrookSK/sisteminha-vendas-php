@@ -46,7 +46,10 @@
           <?php $falta = max(0, ($goal - (float)($team['team_bruto_total'] ?? 0))); ?>
           <small class="text-muted ms-2">Falta: US$ <?= number_format($falta, 2) ?></small>
           <?php if (isset($team['equal_cost_share_per_active_seller'])): ?>
-            <span class="badge text-bg-info ms-2">Cota igualitária (por vendedor ativo): US$ <?= number_format((float)$team['equal_cost_share_per_active_seller'], 2) ?></span>
+            <span class="badge text-bg-info ms-2">Imposto (15%) por não-trainee ativo: US$ <?= number_format((float)$team['equal_cost_share_per_active_seller'], 2) ?></span>
+          <?php endif; ?>
+          <?php if (isset($team['explicit_cost_share_per_non_trainee'])): ?>
+            <span class="badge text-bg-warning ms-2">Custo explícito por não-trainee: US$ <?= number_format((float)$team['explicit_cost_share_per_non_trainee'], 2) ?></span>
           <?php endif; ?>
           <?php if (isset($team['company_cash_usd'])): ?>
             <span class="badge text-bg-success ms-2">Caixa Empresa: US$ <?= number_format((float)$team['company_cash_usd'], 2) ?></span>
