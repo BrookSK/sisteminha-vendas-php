@@ -195,12 +195,23 @@ class Commission extends Model
         $metaEquipeBRL = 50000.0 * $usdRate; // 50k USD em BRL
 
         // Nova regra de rateio de custos (atualizada):
-        // - Parte de configuração (imposto 15%): dividida igualmente entre todos os ativos (inclui trainee)
-        // - Custos explícitos (fixos + percentuais): divididos apenas entre vendedores/gerentes ativos
+        // - Imposto (configuração 15%): trainee paga somente sobre sua própria venda (bruto * cost_rate).
+        //   O restante do imposto é dividido igualmente entre vendedores/gerentes ativos.
+        // - Custos explícitos (fixos + percentuais): divididos apenas entre vendedores/gerentes ativos.
         $explicitTotal = $fixedUsd + $teamCostPercent;
-        $countPayers = count($activeCostPayerIds);
-        $settingsShare = ($countPayers > 0) ? ($teamCostSettings / $countPayers) : 0.0;
         $countNonTrainee = count($activeNonTraineeIds);
+        // Mapa de imposto por trainee (custo global sobre venda própria)
+        $traineeSettingsMap = [];
+        $traineeSettingsSum = 0.0;
+        foreach ($activeTraineeIds as $tid) {
+            $val = ($perUserBruto[$tid] ?? 0.0) * $costRate;
+            $traineeSettingsMap[$tid] = $val;
+            $traineeSettingsSum += $val;
+        }
+        // Parte restante do imposto é rateada igualmente entre não-trainees ativos
+        $remainingSettings = max(0.0, $teamCostSettings - $traineeSettingsSum);
+        $settingsShareNonTrainee = ($countNonTrainee > 0) ? ($remainingSettings / $countNonTrainee) : 0.0;
+        // Custos explícitos só entre não-trainees
         $explicitShare = ($countNonTrainee > 0) ? ($explicitTotal / $countNonTrainee) : 0.0;
 
         $sumRateadoUsd = 0.0; // soma dos líquidos rateados (USD)
@@ -216,9 +227,9 @@ class Commission extends Model
             $isCostEligibleActive = in_array($role, ['seller','trainee','manager'], true) && ((int)($row['user']['ativo'] ?? 0) === 1);
             if ($isCostEligibleActive) {
                 if ($role === 'trainee') {
-                    $allocatedCost = $settingsShare;
+                    $allocatedCost = (float)($traineeSettingsMap[(int)$uid] ?? 0.0);
                 } else {
-                    $allocatedCost = $settingsShare + $explicitShare;
+                    $allocatedCost = $settingsShareNonTrainee + $explicitShare;
                 }
             } else {
                 $allocatedCost = 0.0;
@@ -295,7 +306,7 @@ class Commission extends Model
                 // Effective total cost rate including settings, fixed and percent custos
                 'team_cost_rate' => ($teamBruto > 0 ? ($teamCost / $teamBruto) : 0.0),
                 'team_cost_total' => round($teamCost, 2),
-                'equal_cost_share_per_active_seller' => round($settingsShare, 2),
+                'equal_cost_share_per_active_seller' => round($settingsShareNonTrainee, 2),
                 'explicit_cost_share_per_non_trainee' => round($explicitShare, 2),
                 'team_cost_settings_rate' => $costRate,
                 'team_cost_fixed_usd' => round($fixedUsd, 2),
