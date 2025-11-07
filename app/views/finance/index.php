@@ -443,6 +443,12 @@
       <?php if (isset($team['explicit_cost_share_per_non_trainee'])): ?>
         <div class="small text-muted">Custo explícito por não-trainee: $ <?= number_format((float)$team['explicit_cost_share_per_non_trainee'], 2) ?></div>
       <?php endif; ?>
+      <?php 
+        $shareSettings = (float)($team['equal_cost_share_per_active_seller'] ?? 0);
+        $shareExplicit = (float)($team['explicit_cost_share_per_non_trainee'] ?? 0);
+        $shareTotalPerNonTrainee = $shareSettings + $shareExplicit;
+      ?>
+      <div class="small fw-semibold">Total por não-trainee: $ <?= number_format($shareTotalPerNonTrainee, 2) ?></div>
     </div>
   </div>
   <div class="col-md-4">
