@@ -316,6 +316,7 @@ class Commission extends Model
                 'apply_bonus' => ($teamBrutoBRL >= $metaEquipeBRL),
                 'active_count' => $activeCount,
                 'active_cost_split_count' => $activeCostSplit,
+                'non_trainee_active_count' => $countNonTrainee,
                 'bonus_rate' => $bonusRate,
                 'team_bruto_total_brl' => round($teamBrutoBRL, 2),
                 'meta_equipe_brl' => round($metaEquipeBRL, 2),
