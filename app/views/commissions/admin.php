@@ -75,10 +75,10 @@
           <th class="text-end">Comissão Individual (USD)</th>
           <th class="text-end">Bônus (USD)</th>
           <th class="text-end">Comissão Final (USD)</th>
+          <th class="text-end">Comissão Final (BRL)</th>
           <?php if (isset($items[0]['comissao_individual_brl'])): ?>
             <th class="text-end">Comissão Individual (BRL)</th>
             <th class="text-end">Bônus (BRL)</th>
-            <th class="text-end">Comissão Final (BRL)</th>
           <?php endif; ?>
         </tr>
       </thead>
@@ -103,10 +103,15 @@
           <td class="text-end"><?= number_format((float)($it['comissao_individual'] ?? 0), 2) ?></td>
           <td class="text-end"><?= number_format((float)($it['bonus'] ?? 0), 2) ?></td>
           <td class="text-end fw-bold"><?= number_format((float)($it['comissao_final'] ?? 0), 2) ?></td>
+          <?php 
+            $finalBrl = isset($it['comissao_final_brl'])
+              ? (float)$it['comissao_final_brl']
+              : ((float)($it['comissao_final'] ?? 0) * (float)($usdRate ?? 0));
+          ?>
+          <td class="text-end fw-bold"><?= number_format((float)$finalBrl, 2) ?></td>
           <?php if (isset($it['comissao_individual_brl'])): ?>
             <td class="text-end"><?= number_format((float)$it['comissao_individual_brl'], 2) ?></td>
             <td class="text-end"><?= number_format((float)$it['bonus_brl'], 2) ?></td>
-            <td class="text-end fw-bold"><?= number_format((float)$it['comissao_final_brl'], 2) ?></td>
           <?php endif; ?>
         </tr>
       <?php endforeach; ?>
