@@ -72,6 +72,47 @@ class Cost extends Model
         $stmt->execute([':id' => $id]);
     }
 
+    /** Find a cost row by id. */
+    public function find(int $id): ?array
+    {
+        $st = $this->db->prepare('SELECT * FROM custos WHERE id = :id');
+        $st->execute([':id'=>$id]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /** Compute base description removing installment suffix like " (Parcela X/Y)". */
+    private static function baseDesc(string $desc): string
+    {
+        return (string)preg_replace('/\s*\(Parcela\s+\d+\/\d+\)\s*$/u', '', $desc);
+    }
+
+    /** Delete series rows from a given date forward, matching same categoria and description pattern. */
+    public function deleteSeriesFutureFrom(array $row, string $fromDate): int
+    {
+        $cat = $row['categoria'] ?? '';
+        $desc = (string)($row['descricao'] ?? '');
+        $base = self::baseDesc($desc);
+        // Match exact base description or installment-suffixed versions
+        $sql = "DELETE FROM custos WHERE categoria = :cat AND data >= :d AND (descricao = :base OR descricao LIKE CONCAT(:base, ' (%'))";
+        $st = $this->db->prepare($sql);
+        $st->execute([':cat'=>$cat, ':d'=>$fromDate, ':base'=>$base]);
+        return $st->rowCount();
+    }
+
+    /** Try to find the active master recurrence row corresponding to this row, by categoria+base descricao. */
+    public function findActiveMasterFor(array $row): ?array
+    {
+        $cat = $row['categoria'] ?? '';
+        $desc = (string)($row['descricao'] ?? '');
+        $base = self::baseDesc($desc);
+        $sql = "SELECT * FROM custos WHERE recorrente_ativo = 1 AND recorrente_tipo <> 'none' AND categoria = :cat AND descricao = :base ORDER BY id ASC LIMIT 1";
+        $st = $this->db->prepare($sql);
+        $st->execute([':cat'=>$cat, ':base'=>$base]);
+        $master = $st->fetch(PDO::FETCH_ASSOC);
+        return $master ?: null;
+    }
+
     /** Update a cost entry core data. */
     public function updateFull(int $id, array $payload): void
     {
