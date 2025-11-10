@@ -47,7 +47,26 @@ class CostsController extends Controller
         $cat = trim($_POST['categoria'] ?? 'geral');
         $desc = trim($_POST['descricao'] ?? '');
         $valType = $_POST['valor_tipo'] ?? 'usd';
-        $norm = function($v){ if ($v===null) return null; if (is_string($v)) { $v = str_replace(['.',' ,',' '],['','.',''], $v); $v = str_replace(',','.', $v); } return (float)$v; };
+        $norm = function($v){
+            if ($v === null) return null;
+            if (is_string($v)) {
+                $v = trim($v);
+                if ($v === '') return 0.0;
+                $hasComma = strpos($v, ',') !== false;
+                $hasDot = strpos($v, '.') !== false;
+                if ($hasComma && $hasDot) {
+                    // Brazilian format: thousands '.' and decimal ','
+                    $v = str_replace('.', '', $v);
+                    $v = str_replace(',', '.', $v);
+                } elseif ($hasComma) {
+                    // Only comma present: treat as decimal comma
+                    $v = str_replace(',', '.', $v);
+                } else {
+                    // Only dot or none: already machine format
+                }
+            }
+            return (float)$v;
+        };
         $inputUsd = $norm($_POST['valor_usd'] ?? 0);
         $inputBrl = $norm($_POST['valor_brl'] ?? 0);
         $inputPct = isset($_POST['valor_percent']) ? $norm($_POST['valor_percent']) : null;
@@ -159,7 +178,26 @@ class CostsController extends Controller
         $cat = trim($_POST['categoria'] ?? 'geral');
         $desc = trim($_POST['descricao'] ?? '');
         $valType = $_POST['valor_tipo'] ?? 'usd';
-        $norm = function($v){ if ($v===null) return null; if (is_string($v)) { $v = str_replace(['.',' ,',' '],["",".",""], $v); $v = str_replace(',', '.', $v); } return (float)$v; };
+        $norm = function($v){
+            if ($v === null) return null;
+            if (is_string($v)) {
+                $v = trim($v);
+                if ($v === '') return 0.0;
+                $hasComma = strpos($v, ',') !== false;
+                $hasDot = strpos($v, '.') !== false;
+                if ($hasComma && $hasDot) {
+                    // Brazilian format: thousands '.' and decimal ','
+                    $v = str_replace('.', '', $v);
+                    $v = str_replace(',', '.', $v);
+                } elseif ($hasComma) {
+                    // Only comma present: treat as decimal comma
+                    $v = str_replace(',', '.', $v);
+                } else {
+                    // Only dot or none: already in machine format
+                }
+            }
+            return (float)$v;
+        };
         $inputUsd = $norm($_POST['valor_usd'] ?? 0);
         $inputBrl = $norm($_POST['valor_brl'] ?? 0);
         $inputPct = isset($_POST['valor_percent']) ? $norm($_POST['valor_percent']) : null;
