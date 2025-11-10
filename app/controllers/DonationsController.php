@@ -19,17 +19,20 @@ class DonationsController extends Controller
         $page = max(1, (int)($_GET['page'] ?? 1));
         $limit = 30; $offset = ($page - 1) * $limit;
 
+        // Default to current 10->09 operational period if no explicit filter
+        if (!$from || !$to) {
+            try { $set = new Setting(); [$defFrom,$defTo] = $set->currentPeriod(); }
+            catch (\Throwable $e) { $defFrom = date('Y-m-01'); $defTo = date('Y-m-t'); }
+            if (!$from) $from = $defFrom; if (!$to) $to = $defTo;
+        }
+
         $don = new Donation();
         $items = $don->list($limit, $offset, $from ?: null, $to ?: null, $q ?: null);
         $tot = $don->totals();
 
         // Lucro final da empresa no período e orçamento disponível para doações
         $report = new Report();
-        // Se não houver período definido, considerar mês atual por padrão
-        if (!$from || !$to) {
-            $from = $from ?: date('Y-m-01');
-            $to = $to ?: date('Y-m-t');
-        }
+        // from/to já definidos acima para o período atual (10->09) quando ausentes
         $summary = $report->summary($from, $to, null);
         $rate = 0.0;
         try { $set = new Setting(); $rate = (float)$set->get('usd_rate', '5.83'); } catch (\Throwable $e) { $rate = 5.83; }
@@ -114,9 +117,13 @@ class DonationsController extends Controller
         $from = $_GET['from'] ?? null;
         $to = $_GET['to'] ?? null;
         $q = trim($_GET['q'] ?? '');
+        if (!$from || !$to) {
+            try { $set = new Setting(); [$from,$to] = $set->currentPeriod(); }
+            catch (\Throwable $e) { $from = date('Y-m-01'); $to = date('Y-m-t'); }
+        }
         $items = (new Donation())->list(10000, 0, $from ?: null, $to ?: null, $q ?: null);
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="doacoes.csv"');
+        header('Content-Disposition: attachment; filename="doacoes_'.urlencode($from).'_'.urlencode($to).'.csv"');
         $out = fopen('php://output', 'w');
         fputcsv($out, ['ID','Data','Instituicao','CNPJ','Categoria','Valor BRL','Status']);
         foreach ($items as $d) {
