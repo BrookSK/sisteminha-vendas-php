@@ -2,28 +2,6 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h5 class="mb-0">Custos</h5>
 </div>
-
-<script>
-(function(){
-  // Intercept delete submits to ask scope
-  document.addEventListener('submit', function(ev){
-    const form = ev.target;
-    if (!form.classList || !form.classList.contains('form-cost-delete')) return;
-    ev.preventDefault();
-    let scope = 'one';
-    const all = window.confirm('Excluir toda a recorrência (este e os seguintes)?\nOK = toda a recorrência\nCancelar = somente este');
-    if (all) {
-      scope = 'series_future';
-    } else {
-      const sureOne = window.confirm('Excluir somente este custo?');
-      if (!sureOne) return; // user canceled
-    }
-    const inp = form.querySelector('input[name="scope"]');
-    if (inp) inp.value = scope;
-    form.submit();
-  });
-})();
-</script>
 <?php if ((Core\Auth::user()['role'] ?? 'seller') === 'admin'): ?>
 <!-- Edit Modal -->
 <div class="modal" id="editCostModal" tabindex="-1" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4);">
@@ -328,10 +306,9 @@
               data-percent="<?= htmlspecialchars((string)($c['valor_percent'] ?? '0')) ?>"
             >Editar</button>
             <?php endif; ?>
-            <form method="post" action="/admin/costs/delete" class="d-inline form-cost-delete">
+            <form method="post" action="/admin/costs/delete" class="d-inline" onsubmit="return confirm('Excluir este custo?');">
               <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrf()) ?>">
               <input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
-              <input type="hidden" name="scope" value="one">
               <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
             </form>
           </td>
