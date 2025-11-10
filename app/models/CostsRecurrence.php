@@ -40,8 +40,21 @@ class CostsRecurrence extends Model
                 $num = ($parcelaAtual ?? 0) + 1;
                 $suffix = ' (Parcela ' . $num . '/' . ($parcelasTotal ?: $num) . ')';
                 $descOut = ($desc === '' ? '' : ($desc . '')) . $suffix;
-                // Create the parcela cost row
-                $cost->create($nextDate, $r['categoria'], $descOut, (float)$r['valor_usd']);
+                // Create the parcela cost row preserving original value type/fields
+                $cost->createFull([
+                    'data' => $nextDate,
+                    'categoria' => $r['categoria'],
+                    'descricao' => $descOut,
+                    'valor_usd' => (float)$r['valor_usd'],
+                    'valor_tipo' => $r['valor_tipo'] ?? 'usd',
+                    'valor_brl' => (($r['valor_tipo'] ?? 'usd') === 'brl') ? (float)($r['valor_brl'] ?? 0) : null,
+                    'valor_percent' => (($r['valor_tipo'] ?? 'usd') === 'percent') ? (float)($r['valor_percent'] ?? 0) : null,
+                    'recorrente_tipo' => 'none',
+                    'recorrente_ativo' => 0,
+                    'recorrente_proxima_data' => null,
+                    'parcelas_total' => null,
+                    'parcela_atual' => null,
+                ]);
                 $generated++;
                 // Update master: increment parcela_atual and schedule next or deactivate
                 $done = $parcelasTotal !== null && $num >= $parcelasTotal;
@@ -52,8 +65,21 @@ class CostsRecurrence extends Model
                 ];
                 $cost->updateRecurrence((int)$r['id'], $fields);
             } else {
-                // weekly/monthly/yearly: clone cost row for nextDate
-                $cost->create($nextDate, $r['categoria'], $desc, (float)$r['valor_usd']);
+                // weekly/monthly/yearly: clone cost row for nextDate, preserving original value type/fields
+                $cost->createFull([
+                    'data' => $nextDate,
+                    'categoria' => $r['categoria'],
+                    'descricao' => $desc,
+                    'valor_usd' => (float)$r['valor_usd'],
+                    'valor_tipo' => $r['valor_tipo'] ?? 'usd',
+                    'valor_brl' => (($r['valor_tipo'] ?? 'usd') === 'brl') ? (float)($r['valor_brl'] ?? 0) : null,
+                    'valor_percent' => (($r['valor_tipo'] ?? 'usd') === 'percent') ? (float)($r['valor_percent'] ?? 0) : null,
+                    'recorrente_tipo' => 'none',
+                    'recorrente_ativo' => 0,
+                    'recorrente_proxima_data' => null,
+                    'parcelas_total' => null,
+                    'parcela_atual' => null,
+                ]);
                 $generated++;
                 // Schedule next occurrence
                 if ($type === 'weekly') {
