@@ -289,7 +289,8 @@
             <?php elseif ($tipo === 'brl'): ?>
               R$ <?= number_format((float)($c['valor_brl'] ?? 0), 2, ',', '.') ?>
             <?php else: ?>
-              $ <?= number_format((float)($c['valor_usd'] ?? 0), 2) ?>
+              <?php $usdVal = (float)($c['valor_usd'] ?? 0); $rate = isset($usd_rate) ? (float)$usd_rate : 5.83; $brlEq = $usdVal * ($rate > 0 ? $rate : 5.83); ?>
+              $ <?= number_format($usdVal, 2) ?> <small class="text-muted">(≈ R$ <?= number_format($brlEq, 2, ',', '.') ?>)</small>
             <?php endif; ?>
           </td>
           <td class="text-end">

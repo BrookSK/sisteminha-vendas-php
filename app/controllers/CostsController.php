@@ -31,11 +31,14 @@ class CostsController extends Controller
         }
         $cost = new Cost();
         $items = $cost->list(100, 0, $from ?: null, $to ?: null);
+        try { $usdRate = (float)((new Setting())->get('usd_rate', '5.83')); } catch (\Throwable $e) { $usdRate = 5.83; }
+        if ($usdRate <= 0) { $usdRate = 5.83; }
         $this->render('costs/index', [
             'title' => 'Custos',
             'items' => $items,
             'from' => $from,
             'to' => $to,
+            'usd_rate' => $usdRate,
         ]);
     }
 
@@ -167,9 +170,26 @@ class CostsController extends Controller
         $this->requireRole(['admin']);
         $this->csrfCheck();
         $id = (int)($_POST['id'] ?? 0);
+        $scope = $_POST['scope'] ?? 'one'; // 'one' | 'series_future'
         if ($id > 0) {
-            (new Cost())->delete($id);
-            (new Log())->add(Auth::user()['id'] ?? null, 'custos', 'delete', $id, null);
+            $m = new Cost();
+            $row = $m->find($id);
+            if ($row && $scope === 'series_future') {
+                // delete this and following occurrences in the same series
+                $deleted = $m->deleteSeriesFutureFrom($row, $row['data']);
+                // deactivate master recurrence if found
+                $master = $m->findActiveMasterFor($row);
+                if ($master) {
+                    $m->updateRecurrence((int)$master['id'], [
+                        'recorrente_ativo' => 0,
+                        'recorrente_proxima_data' => null,
+                    ]);
+                }
+                (new Log())->add(Auth::user()['id'] ?? null, 'custos', 'delete_series', $id, json_encode(['deleted'=>$deleted]));
+            } else {
+                $m->delete($id);
+                (new Log())->add(Auth::user()['id'] ?? null, 'custos', 'delete', $id, null);
+            }
         }
         $ref = $_SERVER['HTTP_REFERER'] ?? '';
         $go = '/admin/costs';
