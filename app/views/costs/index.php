@@ -44,9 +44,35 @@
               <label class="form-label">Valor (BRL)</label>
               <input type="number" step="0.01" min="0" class="form-control" name="valor_brl" id="ec_brl" value="0">
             </div>
-            <div class="col-md-4 d-none" id="ec_box_percent">
+            <div class="col-md-4" id="ec_box_percent">
               <label class="form-label">Valor (%)</label>
               <input type="number" step="0.01" min="0" max="100" class="form-control" name="valor_percent" id="ec_percent" value="0">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Recorrência</label>
+              <select class="form-select" name="recorrente_tipo" id="ec_recorrente_tipo">
+                <option value="none">Sem recorrência</option>
+                <option value="weekly">Semanal</option>
+                <option value="monthly">Mensal</option>
+                <option value="yearly">Anual</option>
+                <option value="installments">Parcelado / Dívida</option>
+              </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" name="recorrente_ativo" value="1" id="ec_recorrente_ativo">
+                <label class="form-check-label" for="ec_recorrente_ativo">Gerar automaticamente</label>
+              </div>
+            </div>
+            <div class="col-md-4 d-none" id="ec_parcelas_container">
+              <label class="form-label">Qtd Parcelas</label>
+              <input type="number" class="form-control" min="1" name="parcelas_total" id="ec_parcelas_total" value="1">
+            </div>
+            <div class="col-md-6 d-none" id="ec_align_period_container">
+              <div class="form-check mt-4">
+                <input class="form-check-input" type="checkbox" name="align_period" value="1" id="ec_align_period">
+                <label class="form-check-label" for="ec_align_period">Alinhar ao período (10→09)</label>
+              </div>
             </div>
           </div>
         </div>
@@ -97,6 +123,16 @@
         }
         tipoSel.onchange = togg;
         togg();
+        // Recurrence toggles (edit)
+        const recSel = document.getElementById('ec_recorrente_tipo');
+        const parcelasBox = document.getElementById('ec_parcelas_container');
+        const alignBox = document.getElementById('ec_align_period_container');
+        function toggRecEdit(){
+          const rt = recSel ? recSel.value : 'none';
+          if (parcelasBox) parcelasBox.classList.toggle('d-none', rt !== 'installments');
+          if (alignBox) alignBox.classList.toggle('d-none', !(rt === 'monthly' || rt === 'installments'));
+        }
+        if (recSel) { recSel.addEventListener('change', toggRecEdit); toggRecEdit(); }
         openM();
       });
       if (modal) modal.addEventListener('click', function(e){ if (e.target===modal) closeM(); });
@@ -164,6 +200,13 @@
         <label class="form-label">Qtd Parcelas</label>
         <input type="number" class="form-control" min="1" name="parcelas_total" value="1">
       </div>
+      <div class="col-md-4 d-none" id="align_period_container">
+        <label class="form-label">&nbsp;</label>
+        <div class="form-check mt-2">
+          <input class="form-check-input" type="checkbox" name="align_period" value="1" id="align_period">
+          <label class="form-check-label" for="align_period">Alinhar ao período (10→09)</label>
+        </div>
+      </div>
       <div class="col-12 d-grid">
         <button class="btn btn-primary" type="submit">Adicionar Custo</button>
       </div>
@@ -172,7 +215,12 @@
       (function(){
         const recTipo = document.getElementById('recorrente_tipo');
         const pc = document.getElementById('parcelas_container');
-        function toggRec(){ pc.classList.toggle('d-none', !recTipo || recTipo.value !== 'installments'); }
+        const alignC = document.getElementById('align_period_container');
+        function toggRec(){
+          const v = recTipo ? recTipo.value : 'none';
+          pc.classList.toggle('d-none', v !== 'installments');
+          if (alignC) alignC.classList.toggle('d-none', !(v === 'monthly' || v === 'installments'));
+        }
         if (recTipo) { recTipo.addEventListener('change', toggRec); toggRec(); }
 
         const tipoValor = document.getElementById('valor_tipo');

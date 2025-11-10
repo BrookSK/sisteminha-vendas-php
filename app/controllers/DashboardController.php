@@ -128,7 +128,8 @@ class DashboardController extends Controller
                 $uid = (int)($r['usuario_id'] ?? 0);
                 if (!$uid) continue;
                 if (!isset($attMap[$uid])) $attMap[$uid] = 0;
-                $attMap[$uid] += (int)($r['total_concluidos'] ?? 0);
+                // Use total_atendimentos to refletir quantidade total de atendimentos realizados no período
+                $attMap[$uid] += (int)($r['total_atendimentos'] ?? 0);
             }
             $scatter = [];
             foreach ($bySeller as $row) {
