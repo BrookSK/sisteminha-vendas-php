@@ -170,26 +170,9 @@ class CostsController extends Controller
         $this->requireRole(['admin']);
         $this->csrfCheck();
         $id = (int)($_POST['id'] ?? 0);
-        $scope = $_POST['scope'] ?? 'one'; // 'one' | 'series_future'
         if ($id > 0) {
-            $m = new Cost();
-            $row = $m->find($id);
-            if ($row && $scope === 'series_future') {
-                // delete this and following occurrences in the same series
-                $deleted = $m->deleteSeriesFutureFrom($row, $row['data']);
-                // deactivate master recurrence if found
-                $master = $m->findActiveMasterFor($row);
-                if ($master) {
-                    $m->updateRecurrence((int)$master['id'], [
-                        'recorrente_ativo' => 0,
-                        'recorrente_proxima_data' => null,
-                    ]);
-                }
-                (new Log())->add(Auth::user()['id'] ?? null, 'custos', 'delete_series', $id, json_encode(['deleted'=>$deleted]));
-            } else {
-                $m->delete($id);
-                (new Log())->add(Auth::user()['id'] ?? null, 'custos', 'delete', $id, null);
-            }
+            (new Cost())->delete($id);
+            (new Log())->add(Auth::user()['id'] ?? null, 'custos', 'delete', $id, null);
         }
         $ref = $_SERVER['HTTP_REFERER'] ?? '';
         $go = '/admin/costs';
