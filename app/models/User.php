@@ -48,14 +48,14 @@ class User extends Model
 
     public function allBasic(): array
     {
-        $stmt = $this->db->query('SELECT id, name, email, role, ativo FROM usuarios ORDER BY name');
+        $stmt = $this->db->query('SELECT id, name, email, role, ativo FROM usuarios WHERE ativo != -1 ORDER BY name');
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     public function paginate(int $limit, int $offset, ?string $q = null): array
     {
         if ($q) {
-            $stmt = $this->db->prepare('SELECT id, name, email, role, ativo FROM usuarios WHERE name LIKE :q1 OR email LIKE :q2 ORDER BY name LIMIT :limit OFFSET :offset');
+            $stmt = $this->db->prepare('SELECT id, name, email, role, ativo FROM usuarios WHERE (name LIKE :q1 OR email LIKE :q2) AND ativo != -1 ORDER BY name LIMIT :limit OFFSET :offset');
             $like = "%$q%";
             $stmt->bindValue(':q1', $like, PDO::PARAM_STR);
             $stmt->bindValue(':q2', $like, PDO::PARAM_STR);
@@ -63,7 +63,7 @@ class User extends Model
             $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
             $stmt->execute();
         } else {
-            $stmt = $this->db->prepare('SELECT id, name, email, role, ativo FROM usuarios ORDER BY name LIMIT :limit OFFSET :offset');
+            $stmt = $this->db->prepare('SELECT id, name, email, role, ativo FROM usuarios WHERE ativo != -1 ORDER BY name LIMIT :limit OFFSET :offset');
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
             $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
             $stmt->execute();
@@ -74,13 +74,13 @@ class User extends Model
     public function countFiltered(?string $q = null): int
     {
         if ($q) {
-            $stmt = $this->db->prepare('SELECT COUNT(*) as c FROM usuarios WHERE name LIKE :q1 OR email LIKE :q2');
+            $stmt = $this->db->prepare('SELECT COUNT(*) as c FROM usuarios WHERE (name LIKE :q1 OR email LIKE :q2) AND ativo != -1');
             $like = "%$q%";
             $stmt->bindValue(':q1', $like, PDO::PARAM_STR);
             $stmt->bindValue(':q2', $like, PDO::PARAM_STR);
             $stmt->execute();
         } else {
-            $stmt = $this->db->query('SELECT COUNT(*) as c FROM usuarios');
+            $stmt = $this->db->query('SELECT COUNT(*) as c FROM usuarios WHERE ativo != -1');
         }
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return (int)($row['c'] ?? 0);
@@ -118,6 +118,13 @@ class User extends Model
     public function deactivate(int $id): void
     {
         $stmt = $this->db->prepare('UPDATE usuarios SET ativo = 0 WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+    }
+
+    public function softDelete(int $id): void
+    {
+        // Use -1 to mark as deleted (hidden in listings), while keeping record for history
+        $stmt = $this->db->prepare('UPDATE usuarios SET ativo = -1 WHERE id = :id');
         $stmt->execute([':id' => $id]);
     }
 

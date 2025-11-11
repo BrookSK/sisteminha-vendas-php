@@ -162,8 +162,8 @@ class UsersController extends Controller
             if ((Auth::user()['id'] ?? 0) === $id) {
                 return $this->redirect('/admin/users');
             }
-            // Soft delete: apenas desativar para preservar histórico (vendas/comissões vinculadas)
-            (new User())->deactivate($id);
+            // Soft delete: marcar como removido (ativo=-1) para ocultar da lista, preservando histórico
+            (new User())->softDelete($id);
         }
         return $this->redirect('/admin/users');
     }
