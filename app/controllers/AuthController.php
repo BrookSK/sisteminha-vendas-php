@@ -48,6 +48,13 @@ class AuthController extends Controller
         }
 
         if ($user && password_verify($password, $user['password_hash'])) {
+            // Block login if user is inactive
+            if ((int)($user['ativo'] ?? 0) !== 1) {
+                return $this->render('auth/login', [
+                    'title' => 'Login',
+                    'error' => 'Usuário inativo. Acesse o administrador para reativar.',
+                ]);
+            }
             // sucesso: limpar tentativas e regenerar session id
             $_SESSION['login_attempts'] = [];
             session_regenerate_id(true);

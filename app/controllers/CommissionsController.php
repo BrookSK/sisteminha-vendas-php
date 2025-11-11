@@ -29,9 +29,12 @@ class CommissionsController extends Controller
             $team = $calc['team'];
         } else {
             [$rangeFrom, $rangeTo] = $model->monthRange($period);
-            // Always recalculate and persist latest monthly data so the view is up-to-date
-            $model->recalcMonthly($period);
-            // Load persisted items for table display
+            // Only recalc if the requested period is the current period
+            $isCurrent = ($period === Commission::defaultPeriod());
+            if ($isCurrent) {
+                $model->recalcMonthly($period);
+            }
+            // Load persisted items for table display (frozen for past periods)
             $items = $model->loadMonthly($period);
             // Compute team metrics from live calculation for accuracy
             $calc = $model->computeRange($rangeFrom, $rangeTo);
@@ -76,7 +79,10 @@ class CommissionsController extends Controller
         $this->requireRole(['admin']);
         $this->csrfCheck();
         $period = trim($_POST['period'] ?? Commission::defaultPeriod());
-        (new Commission())->recalcMonthly($period);
+        // Only allow recalc for current period
+        if ($period === Commission::defaultPeriod()) {
+            (new Commission())->recalcMonthly($period);
+        }
         $this->redirect('/admin/commissions?period='.$period);
     }
 

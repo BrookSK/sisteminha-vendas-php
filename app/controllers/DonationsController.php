@@ -75,6 +75,12 @@ class DonationsController extends Controller
             'data' => $_POST['data'] ?? date('Y-m-d'),
             'categoria' => trim($_POST['categoria'] ?? ''),
         ];
+        // Period lock: only allow creating donations within current period
+        try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
+        if ($set && !$set->isInCurrentPeriodDate((string)$data['data'])) {
+            $this->flash('danger', 'Criação bloqueada: somente é permitido lançar doações dentro do período atual (10 ao 9).');
+            return $this->redirect('/admin/donations');
+        }
         if ($data['instituicao'] === '' || $data['valor_brl'] <= 0) {
             return $this->redirect('/admin/donations');
         }
@@ -88,6 +94,13 @@ class DonationsController extends Controller
         $this->csrfCheck();
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) return $this->redirect('/admin/donations');
+        // Period lock: block updates for donations outside current period
+        $existing = (new Donation())->find($id);
+        try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
+        if ($existing && $set && !$set->isInCurrentPeriodDate((string)($existing['data'] ?? ''))) {
+            $this->flash('danger', 'Edição bloqueada: doações de períodos anteriores (10 ao 9) não podem ser alteradas.');
+            return $this->redirect('/admin/donations');
+        }
         $data = [
             'instituicao' => trim($_POST['instituicao'] ?? ''),
             'cnpj' => trim($_POST['cnpj'] ?? ''),
@@ -106,7 +119,15 @@ class DonationsController extends Controller
         $this->csrfCheck();
         $id = (int)($_POST['id'] ?? 0);
         if ($id > 0) {
-            (new Donation())->cancel($id);
+            // Period lock: block cancellation outside current period
+            $don = new Donation();
+            $row = $don->find($id);
+            try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
+            if ($row && $set && !$set->isInCurrentPeriodDate((string)($row['data'] ?? ''))) {
+                $this->flash('danger', 'Cancelamento bloqueado: doações de períodos anteriores (10 ao 9) não podem ser alteradas.');
+                return $this->redirect('/admin/donations');
+            }
+            $don->cancel($id);
         }
         return $this->redirect('/admin/donations');
     }

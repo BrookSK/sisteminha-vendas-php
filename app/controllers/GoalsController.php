@@ -93,6 +93,12 @@ class GoalsController extends Controller
             if (empty($in['data_inicio'])) $in['data_inicio'] = $from;
             if (empty($in['data_fim'])) $in['data_fim'] = $to;
         }
+        // Period lock: prevent creating goals entirely in past periods (data_fim < current period start)
+        try { [$curFrom,$curTo] = (new Setting())->currentPeriod(); } catch (\Throwable $e) { $curFrom = date('Y-m-10'); $curTo = date('Y-m-09', strtotime('first day of next month')); }
+        if ((string)$in['data_fim'] < (string)$curFrom) {
+            $this->flash('danger', 'Criação bloqueada: não é permitido criar metas inteiramente em períodos já encerrados.');
+            return $this->redirect('/admin/goals');
+        }
         $creatorId = (int)(Auth::user()['id'] ?? 0);
         $id = (new Goal())->create($in, $creatorId);
         // Se tipo individual: atribui automaticamente a todos ativos (seller/trainee/manager)
@@ -119,6 +125,13 @@ class GoalsController extends Controller
         $this->csrfCheck();
         $id = (int)($_POST['id'] ?? 0);
         if ($id<=0) return $this->redirect('/admin/goals');
+        // Period lock: block updating goals whose period ended before current period start
+        try { [$curFrom,$curTo] = (new Setting())->currentPeriod(); } catch (\Throwable $e) { $curFrom = date('Y-m-10'); $curTo = date('Y-m-09', strtotime('first day of next month')); }
+        $gPrev = (new Goal())->find($id);
+        if ($gPrev && (string)($gPrev['data_fim'] ?? '') < (string)$curFrom) {
+            $this->flash('danger', 'Edição bloqueada: metas de períodos encerrados não podem ser alteradas.');
+            return $this->redirect('/admin/goals');
+        }
         $in = [
             'titulo' => trim($_POST['titulo'] ?? ''),
             'descricao' => trim($_POST['descricao'] ?? ''),
@@ -157,7 +170,16 @@ class GoalsController extends Controller
         $this->requireRole(['manager','admin']);
         $this->csrfCheck();
         $id = (int)($_POST['id'] ?? 0);
-        if ($id>0) (new Goal())->deleteRow($id);
+        if ($id>0) {
+            // Period lock: block deleting goals whose period ended before current period start
+            try { [$curFrom,$curTo] = (new Setting())->currentPeriod(); } catch (\Throwable $e) { $curFrom = date('Y-m-10'); $curTo = date('Y-m-09', strtotime('first day of next month')); }
+            $g = (new Goal())->find($id);
+            if ($g && (string)($g['data_fim'] ?? '') < (string)$curFrom) {
+                $this->flash('danger', 'Exclusão bloqueada: metas de períodos encerrados não podem ser excluídas.');
+                return $this->redirect('/admin/goals');
+            }
+            (new Goal())->deleteRow($id);
+        }
         return $this->redirect('/admin/goals');
     }
 
@@ -169,6 +191,13 @@ class GoalsController extends Controller
         $sellerId = (int)($_POST['seller_id'] ?? 0);
         $valor = (float)($_POST['valor_meta'] ?? 0);
         if ($goalId>0 && $sellerId>0) {
+            // Period lock: block assignment changes for goals ended before current period start
+            try { [$curFrom,$curTo] = (new Setting())->currentPeriod(); } catch (\Throwable $e) { $curFrom = date('Y-m-10'); $curTo = date('Y-m-09', strtotime('first day of next month')); }
+            $g = (new Goal())->find($goalId);
+            if ($g && (string)($g['data_fim'] ?? '') < (string)$curFrom) {
+                $this->flash('danger', 'Alteração bloqueada: não é possível alterar atribuições de metas encerradas.');
+                return $this->redirect('/admin/goals');
+            }
             (new GoalAssignment())->upsert($goalId, $sellerId, $valor);
         }
         return $this->redirect('/admin/goals');

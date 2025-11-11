@@ -46,4 +46,27 @@ class Setting extends Model
         }
         return [$fromDate->format('Y-m-d'), $toDate->format('Y-m-d')];
     }
+
+    /** Returns [from, to] datetimes (Y-m-d H:i:s) for the current period boundaries. */
+    public function currentPeriodDateTime(): array
+    {
+        [$from, $to] = $this->currentPeriod();
+        return [$from . ' 00:00:00', $to . ' 23:59:59'];
+    }
+
+    /** Checks if a Y-m-d date string is within the current period (inclusive). */
+    public function isInCurrentPeriodDate(string $dateYmd): bool
+    {
+        if ($dateYmd === '') return false;
+        [$from, $to] = $this->currentPeriod();
+        return ($dateYmd >= $from) && ($dateYmd <= $to);
+    }
+
+    /** Checks if a Y-m-d H:i:s datetime string is within the current period (inclusive). */
+    public function isInCurrentPeriodDateTime(string $dateTime): bool
+    {
+        if ($dateTime === '') return false;
+        [$fromDt, $toDt] = $this->currentPeriodDateTime();
+        return ($dateTime >= $fromDt) && ($dateTime <= $toDt);
+    }
 }

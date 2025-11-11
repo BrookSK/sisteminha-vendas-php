@@ -6,6 +6,14 @@ use PDO;
 
 class Cost extends Model
 {
+    public function find(int $id): ?array
+    {
+        $stmt = $this->db->prepare('SELECT * FROM custos WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
     public function create(string $date, string $category, ?string $desc, float $amountUsd): int
     {
         $stmt = $this->db->prepare('INSERT INTO custos (data, categoria, descricao, valor_usd, created_at) VALUES
