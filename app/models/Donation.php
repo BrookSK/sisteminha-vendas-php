@@ -6,6 +6,14 @@ use PDO;
 
 class Donation extends Model
 {
+    public function find(int $id): ?array
+    {
+        $stmt = $this->db->prepare('SELECT * FROM doacoes WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
     public function create(array $data, ?int $userId): int
     {
         $stmt = $this->db->prepare('INSERT INTO doacoes (instituicao, cnpj, descricao, valor_brl, data, categoria, status, criado_por, created_at)

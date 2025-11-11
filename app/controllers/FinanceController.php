@@ -26,7 +26,31 @@ class FinanceController extends Controller
 
         $report = new Report();
         $comm = new Commission();
-        $commCalc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
+        // Prefer persisted commissions for closed periods (do not recompute)
+        $ymGuess = date('Y-m', strtotime($from));
+        [$rangeFromGuess, $rangeToGuess] = $comm->monthRange($ymGuess);
+        $isExactPeriod = ($from.' 00:00:00' === $rangeFromGuess) && ($to.' 23:59:59' === $rangeToGuess);
+        $isCurrentPeriod = ($ymGuess === Commission::defaultPeriod());
+        if ($isExactPeriod && !$isCurrentPeriod) {
+            $items = $comm->loadMonthly($ymGuess);
+            // Build a minimal commCalc compatible structure based on persisted rows
+            $sumBruto = 0.0; $sumLiquido = 0.0; $sumCom = 0.0;
+            foreach ($items as $it) {
+                $sumBruto += (float)($it['bruto_total'] ?? 0);
+                $sumLiquido += (float)($it['liquido_total'] ?? 0);
+                $sumCom += (float)($it['comissao_final'] ?? 0);
+            }
+            $commCalc = [
+                'items' => $items,
+                'team' => [
+                    'team_bruto_total' => $sumBruto,
+                    'team_liquido_total' => $sumLiquido,
+                    'sum_commissions_usd' => $sumCom,
+                ],
+            ];
+        } else {
+            $commCalc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
+        }
         $costs = $comm->costsInRange($from.' 00:00:00', $to.' 23:59:59');
 
         // Attendance-specific period (defaults to main period)
@@ -106,7 +130,18 @@ class FinanceController extends Controller
         if (!$from || !$to) { [$from,$to] = $setting->currentPeriod(); }
 
         $comm = new Commission();
-        $commCalc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
+        $ymGuess = date('Y-m', strtotime($from));
+        [$rangeFromGuess, $rangeToGuess] = $comm->monthRange($ymGuess);
+        $isExactPeriod = ($from.' 00:00:00' === $rangeFromGuess) && ($to.' 23:59:59' === $rangeToGuess);
+        $isCurrentPeriod = ($ymGuess === Commission::defaultPeriod());
+        if ($isExactPeriod && !$isCurrentPeriod) {
+            $items = $comm->loadMonthly($ymGuess);
+            $sumBruto = 0.0; $sumLiquido = 0.0; $sumCom = 0.0;
+            foreach ($items as $it) { $sumBruto += (float)($it['bruto_total'] ?? 0); $sumLiquido += (float)($it['liquido_total'] ?? 0); $sumCom += (float)($it['comissao_final'] ?? 0); }
+            $commCalc = [ 'items'=>$items, 'team'=>['team_bruto_total'=>$sumBruto,'team_liquido_total'=>$sumLiquido,'sum_commissions_usd'=>$sumCom] ];
+        } else {
+            $commCalc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
+        }
         $costs = $comm->costsInRange($from.' 00:00:00', $to.' 23:59:59');
 
         // Render a minimal HTML using same view content
@@ -140,7 +175,18 @@ class FinanceController extends Controller
         if (!$from || !$to) { [$from,$to] = $setting->currentPeriod(); }
         $rate = (float)$setting->get('usd_rate', '5.83');
         $comm = new Commission();
-        $calc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
+        $ymGuess = date('Y-m', strtotime($from));
+        [$rangeFromGuess, $rangeToGuess] = $comm->monthRange($ymGuess);
+        $isExactPeriod = ($from.' 00:00:00' === $rangeFromGuess) && ($to.' 23:59:59' === $rangeToGuess);
+        $isCurrentPeriod = ($ymGuess === Commission::defaultPeriod());
+        if ($isExactPeriod && !$isCurrentPeriod) {
+            $items = $comm->loadMonthly($ymGuess);
+            $sumBruto = 0.0; $sumLiquido = 0.0; $sumCom = 0.0;
+            foreach ($items as $it) { $sumBruto += (float)($it['bruto_total'] ?? 0); $sumLiquido += (float)($it['liquido_total'] ?? 0); $sumCom += (float)($it['comissao_final'] ?? 0); }
+            $calc = [ 'items'=>$items, 'team'=>['team_bruto_total'=>$sumBruto,'team_liquido_total'=>$sumLiquido,'sum_commissions_usd'=>$sumCom] ];
+        } else {
+            $calc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
+        }
         $teamBruto = (float)($calc['team']['team_bruto_total'] ?? 0);
         $costs = $comm->costsInRange($from.' 00:00:00', $to.' 23:59:59');
         header('Content-Type: text/csv; charset=utf-8');
@@ -243,7 +289,18 @@ class FinanceController extends Controller
         $to = $_GET['to'] ?? null;
         if (!$from || !$to) { [$from,$to] = $setting->currentPeriod(); }
         $comm = new Commission();
-        $calc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
+        $ymGuess = date('Y-m', strtotime($from));
+        [$rangeFromGuess, $rangeToGuess] = $comm->monthRange($ymGuess);
+        $isExactPeriod = ($from.' 00:00:00' === $rangeFromGuess) && ($to.' 23:59:59' === $rangeToGuess);
+        $isCurrentPeriod = ($ymGuess === Commission::defaultPeriod());
+        if ($isExactPeriod && !$isCurrentPeriod) {
+            $items = $comm->loadMonthly($ymGuess);
+            $sumBruto = 0.0; $sumLiquido = 0.0; $sumCom = 0.0;
+            foreach ($items as $it) { $sumBruto += (float)($it['bruto_total'] ?? 0); $sumLiquido += (float)($it['liquido_total'] ?? 0); $sumCom += (float)($it['comissao_final'] ?? 0); }
+            $calc = [ 'items'=>$items, 'team'=>['team_bruto_total'=>$sumBruto,'team_liquido_total'=>$sumLiquido,'sum_commissions_usd'=>$sumCom] ];
+        } else {
+            $calc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
+        }
 
         if (class_exists('PhpOffice\\PhpSpreadsheet\\Spreadsheet')) {
             $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();

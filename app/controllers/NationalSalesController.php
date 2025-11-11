@@ -89,6 +89,13 @@ class NationalSalesController extends Controller
         $this->requireRole(['seller','trainee','manager','admin','organic']);
         $this->csrfCheck();
         $data = $this->collect($_POST);
+        // Period lock: only allow creating within current period (by data_lancamento)
+        try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
+        $launchDate = (string)($data['data_lancamento'] ?? date('Y-m-d'));
+        if ($set && !$set->isInCurrentPeriodDate($launchDate)) {
+            $this->flash('danger', 'Criação bloqueada: somente é permitido lançar vendas dentro do período atual (10 ao 9).');
+            return $this->redirect('/admin/national-sales');
+        }
         $me = Auth::user();
         // Require client selection server-side to avoid FK error
         if (empty($data['cliente_id']) || (int)$data['cliente_id'] <= 0) {
@@ -144,6 +151,17 @@ class NationalSalesController extends Controller
         $this->csrfCheck();
         $id = (int)($_GET['id'] ?? 0);
         $data = $this->collect($_POST);
+        // Period lock: block updates for rows outside current period
+        $model = new NationalSale();
+        $row = $model->find($id);
+        if ($row) {
+            try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
+            $rowDate = (string)($row['data_lancamento'] ?? '');
+            if ($set && !$set->isInCurrentPeriodDate($rowDate)) {
+                $this->flash('danger', 'Edição bloqueada: vendas de períodos anteriores (10 ao 9) não podem ser alteradas.');
+                return $this->redirect('/admin/national-sales');
+            }
+        }
         $me = Auth::user();
         // Require client selection server-side as safeguard
         if (empty($data['cliente_id']) || (int)$data['cliente_id'] <= 0) {
@@ -210,6 +228,12 @@ class NationalSalesController extends Controller
         $model = new NationalSale();
         $row = $model->find($id);
         if (!$row) return $this->redirect('/admin/national-sales');
+        // Period lock: block deletion outside current period
+        try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
+        if ($set && !$set->isInCurrentPeriodDate((string)($row['data_lancamento'] ?? ''))) {
+            $this->flash('danger', 'Exclusão bloqueada: vendas de períodos anteriores (10 ao 9) não podem ser excluídas.');
+            return $this->redirect('/admin/national-sales');
+        }
         $me = Auth::user();
         if (in_array(($me['role'] ?? 'seller'), ['seller','trainee'], true) && (int)$row['vendedor_id'] !== (int)($me['id'] ?? 0)) {
             return $this->redirect('/admin/national-sales');

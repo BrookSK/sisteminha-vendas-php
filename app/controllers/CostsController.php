@@ -47,6 +47,12 @@ class CostsController extends Controller
         $this->requireRole(['admin']);
         $this->csrfCheck();
         $date = $_POST['data'] ?: date('Y-m-d');
+        // Period lock: only allow creating costs within current period
+        try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
+        if ($set && !$set->isInCurrentPeriodDate($date)) {
+            $this->flash('danger', 'Criação bloqueada: somente é permitido lançar custos dentro do período atual (10 ao 9).');
+            return $this->redirect('/admin/costs');
+        }
         $cat = trim($_POST['categoria'] ?? 'geral');
         $desc = trim($_POST['descricao'] ?? '');
         $valType = $_POST['valor_tipo'] ?? 'usd';
@@ -171,7 +177,15 @@ class CostsController extends Controller
         $this->csrfCheck();
         $id = (int)($_POST['id'] ?? 0);
         if ($id > 0) {
-            (new Cost())->delete($id);
+            // Period lock: fetch cost date and block deletion if outside current period
+            $model = new Cost();
+            $row = $model->find($id);
+            try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
+            if ($row && $set && !$set->isInCurrentPeriodDate((string)($row['data'] ?? ''))) {
+                $this->flash('danger', 'Exclusão bloqueada: custos de períodos anteriores (10 ao 9) não podem ser excluídos.');
+                return $this->redirect('/admin/costs');
+            }
+            $model->delete($id);
             (new Log())->add(Auth::user()['id'] ?? null, 'custos', 'delete', $id, null);
         }
         $ref = $_SERVER['HTTP_REFERER'] ?? '';
@@ -190,6 +204,14 @@ class CostsController extends Controller
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) { return $this->redirect('/admin/costs'); }
         $date = $_POST['data'] ?: date('Y-m-d');
+        // Period lock: block updates for costs outside current period
+        $model = new Cost();
+        $existing = $model->find($id);
+        try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
+        if ($existing && $set && !$set->isInCurrentPeriodDate((string)($existing['data'] ?? ''))) {
+            $this->flash('danger', 'Edição bloqueada: custos de períodos anteriores (10 ao 9) não podem ser alterados.');
+            return $this->redirect('/admin/costs');
+        }
         $cat = trim($_POST['categoria'] ?? 'geral');
         $desc = trim($_POST['descricao'] ?? '');
         $valType = $_POST['valor_tipo'] ?? 'usd';
@@ -222,7 +244,7 @@ class CostsController extends Controller
         if ($valType === 'usd') { $val = $inputUsd; }
         elseif ($valType === 'brl') { $val = $rate>0 ? ($inputBrl / $rate) : 0.0; }
         elseif ($valType === 'percent') { $val = 0.0; }
-        (new Cost())->updateFull($id, [
+        $model->updateFull($id, [
             'data' => $date,
             'categoria' => $cat,
             'descricao' => $desc,
@@ -269,7 +291,7 @@ class CostsController extends Controller
                     }
                 }
             }
-            (new Cost())->updateRecurrence($id, [
+            $model->updateRecurrence($id, [
                 'recorrente_tipo' => $recType,
                 'recorrente_ativo' => $recActive,
                 'recorrente_proxima_data' => $recActive ? $next : null,

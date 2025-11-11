@@ -115,6 +115,12 @@ class User extends Model
         $stmt->execute([':id' => $id]);
     }
 
+    public function deactivate(int $id): void
+    {
+        $stmt = $this->db->prepare('UPDATE usuarios SET ativo = 0 WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+    }
+
     public function updateProfile(int $id, string $name, string $email, ?string $whatsapp = null): void
     {
         $stmt = $this->db->prepare('UPDATE usuarios SET name=:name, email=:email, whatsapp=:whatsapp WHERE id=:id');

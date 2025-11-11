@@ -48,6 +48,13 @@ class SalesController extends Controller
         $this->requireRole(['seller','manager','admin']);
         $this->csrfCheck();
         $data = $this->collect($_POST);
+        // Period lock: only allow creating sales within current period
+        try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
+        $createdAt = $data['created_at'] ?: date('Y-m-d H:i:s');
+        if ($set && !$set->isInCurrentPeriodDateTime($createdAt)) {
+            $this->flash('danger', 'Criação bloqueada: somente é permitido lançar vendas dentro do período atual (10 ao 9).');
+            return $this->redirect('/admin/sales');
+        }
         // Validate selected client (handles stale form opened before creating client in another tab)
         if ((int)($data['cliente_id'] ?? 0) <= 0) {
             $this->flash('danger', 'Selecione um cliente. Se cadastrou agora em outra aba, use o botão "Atualizar lista" no campo Cliente e selecione novamente.');
@@ -93,10 +100,19 @@ class SalesController extends Controller
         $this->csrfCheck();
         $id = (int)($_GET['id'] ?? 0);
         $data = $this->collect($_POST);
+        // Period lock: block updates for sales outside current period
+        $sale = new Sale();
+        $row = $sale->find($id);
+        if ($row) {
+            try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
+            if ($set && ! $set->isInCurrentPeriodDateTime((string)($row['created_at'] ?? ''))) {
+                $this->flash('danger', 'Edição bloqueada: vendas de períodos anteriores (10 ao 9) não podem ser alteradas.');
+                return $this->redirect('/admin/sales');
+            }
+        }
         $setting = new Setting();
         $rate = (float)$setting->get('usd_rate', '5.83');
         $emb = (float)$setting->get('embalagem_usd_por_kg', '9.70');
-        $sale = new Sale();
         $sale->update($id, $data, $rate, $emb);
         (new Log())->add(Auth::user()['id'] ?? null, 'venda', 'update', $id, json_encode($data));
         if (!empty($data['produto_link'])) { (new Purchase())->upsertFromSale($id); }
@@ -110,7 +126,17 @@ class SalesController extends Controller
         $this->csrfCheck();
         $id = (int)($_POST['id'] ?? 0);
         if ($id > 0) {
-            (new Sale())->delete($id);
+            // Period lock: block deletion for sales outside current period
+            $s = new Sale();
+            $row = $s->find($id);
+            if ($row) {
+                try { $set = new Setting(); } catch (\Throwable $e) { $set = null; }
+                if ($set && ! $set->isInCurrentPeriodDateTime((string)($row['created_at'] ?? ''))) {
+                    $this->flash('danger', 'Exclusão bloqueada: vendas de períodos anteriores (10 ao 9) não podem ser excluídas.');
+                    return $this->redirect('/admin/sales');
+                }
+            }
+            $s->delete($id);
             (new Log())->add(Auth::user()['id'] ?? null, 'venda', 'delete', $id, null);
             (new Commission())->recalcMonthly(date('Y-m'));
         }
