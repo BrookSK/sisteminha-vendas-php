@@ -340,43 +340,97 @@ class Commission extends Model
         $this->persistMonthlySummary($ym, $calc['team']);
     }
 
-    /** Upsert rows into comissoes for given month. */
+    /** Upsert rows into comissoes for given month with full per-user snapshot. */
     public function persistMonthly(string $ym, array $items): void
     {
-        $sql = 'INSERT INTO comissoes (vendedor_id, periodo, bruto_total, liquido_total, comissao_individual, bonus, comissao_final, created_at, updated_at)
-                VALUES (:vid, :periodo, :bruto, :liquido, :individual, :bonus, :final, NOW(), NOW())
-                ON DUPLICATE KEY UPDATE bruto_total=VALUES(bruto_total), liquido_total=VALUES(liquido_total),
-                    comissao_individual=VALUES(comissao_individual), bonus=VALUES(bonus), comissao_final=VALUES(comissao_final), updated_at=NOW()';
+        $sql = 'INSERT INTO comissoes (
+                    vendedor_id, periodo,
+                    vendedor_name, vendedor_email, vendedor_role, vendedor_ativo,
+                    bruto_total, liquido_total,
+                    allocated_cost, liquido_apurado, percent_individual,
+                    comissao_individual, bonus, comissao_final,
+                    bruto_total_brl, liquido_total_brl, allocated_cost_brl, liquido_apurado_brl,
+                    comissao_individual_brl, bonus_brl, comissao_final_brl,
+                    created_at, updated_at
+                ) VALUES (
+                    :vid, :periodo,
+                    :vname, :vemail, :vrole, :vativo,
+                    :bruto, :liquido,
+                    :allocated_cost, :liquido_apurado, :percent_individual,
+                    :individual, :bonus, :final,
+                    :bruto_brl, :liquido_brl, :allocated_cost_brl, :liquido_apurado_brl,
+                    :individual_brl, :bonus_brl, :final_brl,
+                    NOW(), NOW()
+                )
+                ON DUPLICATE KEY UPDATE
+                    vendedor_name=VALUES(vendedor_name), vendedor_email=VALUES(vendedor_email), vendedor_role=VALUES(vendedor_role), vendedor_ativo=VALUES(vendedor_ativo),
+                    bruto_total=VALUES(bruto_total), liquido_total=VALUES(liquido_total),
+                    allocated_cost=VALUES(allocated_cost), liquido_apurado=VALUES(liquido_apurado), percent_individual=VALUES(percent_individual),
+                    comissao_individual=VALUES(comissao_individual), bonus=VALUES(bonus), comissao_final=VALUES(comissao_final),
+                    bruto_total_brl=VALUES(bruto_total_brl), liquido_total_brl=VALUES(liquido_total_brl), allocated_cost_brl=VALUES(allocated_cost_brl), liquido_apurado_brl=VALUES(liquido_apurado_brl),
+                    comissao_individual_brl=VALUES(comissao_individual_brl), bonus_brl=VALUES(bonus_brl), comissao_final_brl=VALUES(comissao_final_brl),
+                    updated_at=NOW()';
         $stmt = $this->db->prepare($sql);
         foreach ($items as $it) {
+            $u = (array)($it['user'] ?? []);
             $stmt->execute([
                 ':vid' => $it['vendedor_id'],
                 ':periodo' => $ym,
+                ':vname' => $u['name'] ?? null,
+                ':vemail' => $u['email'] ?? null,
+                ':vrole' => $u['role'] ?? null,
+                ':vativo' => isset($u['ativo']) ? (int)$u['ativo'] : null,
                 ':bruto' => $it['bruto_total'],
                 ':liquido' => $it['liquido_total'],
+                ':allocated_cost' => $it['allocated_cost'] ?? 0,
+                ':liquido_apurado' => $it['liquido_apurado'] ?? (($it['liquido_total'] ?? 0) - ($it['allocated_cost'] ?? 0)),
+                ':percent_individual' => $it['percent_individual'] ?? null,
                 ':individual' => $it['comissao_individual'],
                 ':bonus' => $it['bonus'],
                 ':final' => $it['comissao_final'],
+                ':bruto_brl' => $it['bruto_total_brl'] ?? 0,
+                ':liquido_brl' => $it['liquido_total_brl'] ?? 0,
+                ':allocated_cost_brl' => $it['allocated_cost_brl'] ?? 0,
+                ':liquido_apurado_brl' => $it['liquido_apurado_brl'] ?? 0,
+                ':individual_brl' => $it['comissao_individual_brl'] ?? 0,
+                ':bonus_brl' => $it['bonus_brl'] ?? 0,
+                ':final_brl' => $it['comissao_final_brl'] ?? 0,
             ]);
         }
     }
 
-    /** Upsert monthly team summary for a given period. */
+    /** Upsert monthly team summary for a given period, including cost breakdown and counts. */
     public function persistMonthlySummary(string $ym, array $team): void
     {
         $sql = 'INSERT INTO comissoes_resumo (
                     periodo, team_bruto_total, team_liquido_total,
                     company_cash_usd, sum_rateado_usd, sum_commissions_usd,
                     company_cash_brl, sum_rateado_brl, sum_commissions_brl,
-                    usd_rate, team_cost_settings_rate, created_at, updated_at
+                    usd_rate, team_cost_settings_rate, team_cost_total,
+                    equal_cost_share_per_active_seller, explicit_cost_share_per_non_trainee,
+                    team_cost_fixed_usd, team_cost_percent_rate, team_cost_percent_total,
+                    team_remaining_cost_to_cover, apply_bonus, active_count, active_cost_split_count, non_trainee_active_count, bonus_rate,
+                    team_bruto_total_brl, meta_equipe_brl,
+                    created_at, updated_at
                 ) VALUES (
-                    :periodo, :tb, :tl, :ccu, :sru, :scu, :ccb, :srb, :scb, :usd_rate, :cost_rate, NOW(), NOW()
+                    :periodo, :tb, :tl, :ccu, :sru, :scu, :ccb, :srb, :scb,
+                    :usd_rate, :cost_rate, :team_cost_total,
+                    :equal_share, :explicit_share,
+                    :cost_fixed, :cost_percent_rate, :cost_percent_total,
+                    :remaining_to_cover, :apply_bonus, :active_count, :active_cost_split_count, :non_trainee_active_count, :bonus_rate,
+                    :tb_brl, :meta_brl,
+                    NOW(), NOW()
                 )
                 ON DUPLICATE KEY UPDATE
                     team_bruto_total=VALUES(team_bruto_total), team_liquido_total=VALUES(team_liquido_total),
                     company_cash_usd=VALUES(company_cash_usd), sum_rateado_usd=VALUES(sum_rateado_usd), sum_commissions_usd=VALUES(sum_commissions_usd),
                     company_cash_brl=VALUES(company_cash_brl), sum_rateado_brl=VALUES(sum_rateado_brl), sum_commissions_brl=VALUES(sum_commissions_brl),
-                    usd_rate=VALUES(usd_rate), team_cost_settings_rate=VALUES(team_cost_settings_rate), updated_at=NOW()';
+                    usd_rate=VALUES(usd_rate), team_cost_settings_rate=VALUES(team_cost_settings_rate), team_cost_total=VALUES(team_cost_total),
+                    equal_cost_share_per_active_seller=VALUES(equal_cost_share_per_active_seller), explicit_cost_share_per_non_trainee=VALUES(explicit_cost_share_per_non_trainee),
+                    team_cost_fixed_usd=VALUES(team_cost_fixed_usd), team_cost_percent_rate=VALUES(team_cost_percent_rate), team_cost_percent_total=VALUES(team_cost_percent_total),
+                    team_remaining_cost_to_cover=VALUES(team_remaining_cost_to_cover), apply_bonus=VALUES(apply_bonus), active_count=VALUES(active_count), active_cost_split_count=VALUES(active_cost_split_count), non_trainee_active_count=VALUES(non_trainee_active_count), bonus_rate=VALUES(bonus_rate),
+                    team_bruto_total_brl=VALUES(team_bruto_total_brl), meta_equipe_brl=VALUES(meta_equipe_brl),
+                    updated_at=NOW()';
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':periodo' => $ym,
@@ -390,6 +444,20 @@ class Commission extends Model
             ':scb' => (float)($team['sum_commissions_brl'] ?? 0),
             ':usd_rate' => (float)($team['usd_rate'] ?? 0),
             ':cost_rate' => (float)($team['team_cost_settings_rate'] ?? 0),
+            ':team_cost_total' => (float)($team['team_cost_total'] ?? 0),
+            ':equal_share' => (float)($team['equal_cost_share_per_active_seller'] ?? 0),
+            ':explicit_share' => (float)($team['explicit_cost_share_per_non_trainee'] ?? 0),
+            ':cost_fixed' => (float)($team['team_cost_fixed_usd'] ?? 0),
+            ':cost_percent_rate' => (float)($team['team_cost_percent_rate'] ?? 0),
+            ':cost_percent_total' => (float)($team['team_cost_percent_total'] ?? 0),
+            ':remaining_to_cover' => (float)($team['team_remaining_cost_to_cover'] ?? 0),
+            ':apply_bonus' => (int)(($team['apply_bonus'] ?? false) ? 1 : 0),
+            ':active_count' => (int)($team['active_count'] ?? 0),
+            ':active_cost_split_count' => (int)($team['active_cost_split_count'] ?? 0),
+            ':non_trainee_active_count' => (int)($team['non_trainee_active_count'] ?? 0),
+            ':bonus_rate' => (float)($team['bonus_rate'] ?? 0),
+            ':tb_brl' => (float)($team['team_bruto_total_brl'] ?? 0),
+            ':meta_brl' => (float)($team['meta_equipe_brl'] ?? 0),
         ]);
     }
 
@@ -402,16 +470,24 @@ class Commission extends Model
         return $row ?: null;
     }
 
-    /** Load persisted monthly commissions for admin page. */
+    /** Load persisted monthly commissions for admin page using snapshot (no join). */
     public function loadMonthly(string $ym): array
     {
-        $stmt = $this->db->prepare('SELECT c.*, u.name, u.email, u.role, u.ativo
-            FROM comissoes c
-            JOIN usuarios u ON u.id = c.vendedor_id
-            WHERE c.periodo = :p
-            ORDER BY c.comissao_final DESC');
+        $stmt = $this->db->prepare('SELECT * FROM comissoes WHERE periodo = :p ORDER BY comissao_final DESC');
         $stmt->execute([':p' => $ym]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        // Map snapshot fields to keep compatibility with views expecting name and user subarray
+        foreach ($rows as &$r) {
+            $r['name'] = $r['vendedor_name'] ?? ($r['name'] ?? null);
+            $r['user'] = [
+                'name' => $r['vendedor_name'] ?? null,
+                'email' => $r['vendedor_email'] ?? null,
+                'role' => $r['vendedor_role'] ?? null,
+                'ativo' => isset($r['vendedor_ativo']) ? (int)$r['vendedor_ativo'] : null,
+            ];
+        }
+        unset($r);
+        return $rows;
     }
 
     /** Historical monthly rows for a single seller. */
