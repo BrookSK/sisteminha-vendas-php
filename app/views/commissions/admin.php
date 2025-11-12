@@ -2,12 +2,20 @@
 <div class="container py-3">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3 class="m-0">Comissões (Admin)</h3>
-    <form method="post" action="/admin/commissions/recalc" class="d-inline">
-      <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
-      <input type="month" name="period" value="<?= htmlspecialchars($period ?? ($_GET['period'] ?? date('Y-m'))) ?>" class="form-control d-inline" style="width:auto; display:inline-block">
-      <button class="btn btn-primary ms-2" type="submit">Recalcular Comissões</button>
-    </form>
-    <a class="btn btn-outline-secondary" href="/admin/commissions/export?period=<?= urlencode($period ?? ($_GET['period'] ?? date('Y-m'))) ?>">Exportar CSV</a>
+    <?php $selPeriod = $period ?? ($_GET['period'] ?? date('Y-m')); $isCurrent = ($selPeriod === \Models\Commission::defaultPeriod()); ?>
+    <div class="d-flex align-items-center gap-2">
+      <form method="post" action="/admin/commissions/recalc" class="d-inline">
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
+        <input type="month" name="period" value="<?= htmlspecialchars($selPeriod) ?>" class="form-control d-inline" style="width:auto; display:inline-block">
+        <button class="btn btn-primary ms-2" type="submit">Recalcular Comissões</button>
+      </form>
+      <form method="post" action="/admin/commissions/freeze" class="d-inline">
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
+        <input type="hidden" name="period" value="<?= htmlspecialchars($selPeriod) ?>">
+        <button class="btn btn-warning" type="submit" <?= $isCurrent ? 'disabled title="Disponível apenas para períodos passados"' : '' ?>>Congelar período</button>
+      </form>
+      <a class="btn btn-outline-secondary" href="/admin/commissions/export?period=<?= urlencode($selPeriod) ?>">Exportar CSV</a>
+    </div>
   </div>
 
   <form class="row g-2 mb-3" method="get" action="/admin/commissions">

@@ -123,6 +123,27 @@ class CommissionsController extends Controller
         $this->redirect('/admin/commissions?period='.$period);
     }
 
+    // POST: freeze a past period by persisting snapshots and summary
+    public function freeze()
+    {
+        $this->requireRole(['admin']);
+        $this->csrfCheck();
+        $period = trim($_POST['period'] ?? '');
+        if ($period === '') { $period = Commission::defaultPeriod(); }
+        $isCurrent = ($period === Commission::defaultPeriod());
+        // Do not allow freezing the current rolling period
+        if ($isCurrent) {
+            return $this->redirect('/admin/commissions?period='.$period);
+        }
+        $m = new Commission();
+        [$from,$to] = $m->monthRange($period);
+        // Compute once and persist full snapshot and team summary
+        $calc = $m->computeRange($from, $to);
+        $m->persistMonthly($period, $calc['items'] ?? []);
+        $m->persistMonthlySummary($period, $calc['team'] ?? []);
+        return $this->redirect('/admin/commissions?period='.$period);
+    }
+
     // Seller-only page: show own commissions and history
     public function me()
     {
