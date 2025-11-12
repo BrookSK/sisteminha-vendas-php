@@ -326,6 +326,7 @@ class Commission extends Model
                 'company_cash_brl' => round($companyCashBrl, 2),
                 'sum_rateado_brl' => round($sumRateadoBrl, 2),
                 'sum_commissions_brl' => round($sumCommissionsBrl, 2),
+                'usd_rate' => $usdRate,
             ]
         ];
     }
@@ -336,6 +337,7 @@ class Commission extends Model
         [$from, $to] = $this->monthRange($ym);
         $calc = $this->computeRange($from, $to);
         $this->persistMonthly($ym, $calc['items']);
+        $this->persistMonthlySummary($ym, $calc['team']);
     }
 
     /** Upsert rows into comissoes for given month. */
@@ -357,6 +359,47 @@ class Commission extends Model
                 ':final' => $it['comissao_final'],
             ]);
         }
+    }
+
+    /** Upsert monthly team summary for a given period. */
+    public function persistMonthlySummary(string $ym, array $team): void
+    {
+        $sql = 'INSERT INTO comissoes_resumo (
+                    periodo, team_bruto_total, team_liquido_total,
+                    company_cash_usd, sum_rateado_usd, sum_commissions_usd,
+                    company_cash_brl, sum_rateado_brl, sum_commissions_brl,
+                    usd_rate, team_cost_settings_rate, created_at, updated_at
+                ) VALUES (
+                    :periodo, :tb, :tl, :ccu, :sru, :scu, :ccb, :srb, :scb, :usd_rate, :cost_rate, NOW(), NOW()
+                )
+                ON DUPLICATE KEY UPDATE
+                    team_bruto_total=VALUES(team_bruto_total), team_liquido_total=VALUES(team_liquido_total),
+                    company_cash_usd=VALUES(company_cash_usd), sum_rateado_usd=VALUES(sum_rateado_usd), sum_commissions_usd=VALUES(sum_commissions_usd),
+                    company_cash_brl=VALUES(company_cash_brl), sum_rateado_brl=VALUES(sum_rateado_brl), sum_commissions_brl=VALUES(sum_commissions_brl),
+                    usd_rate=VALUES(usd_rate), team_cost_settings_rate=VALUES(team_cost_settings_rate), updated_at=NOW()';
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':periodo' => $ym,
+            ':tb' => (float)($team['team_bruto_total'] ?? 0),
+            ':tl' => (float)($team['team_liquido_total'] ?? 0),
+            ':ccu' => (float)($team['company_cash_usd'] ?? 0),
+            ':sru' => (float)($team['sum_rateado_usd'] ?? 0),
+            ':scu' => (float)($team['sum_commissions_usd'] ?? 0),
+            ':ccb' => (float)($team['company_cash_brl'] ?? 0),
+            ':srb' => (float)($team['sum_rateado_brl'] ?? 0),
+            ':scb' => (float)($team['sum_commissions_brl'] ?? 0),
+            ':usd_rate' => (float)($team['usd_rate'] ?? 0),
+            ':cost_rate' => (float)($team['team_cost_settings_rate'] ?? 0),
+        ]);
+    }
+
+    /** Load persisted monthly summary for a given period. */
+    public function loadMonthlySummary(string $ym): ?array
+    {
+        $stmt = $this->db->prepare('SELECT * FROM comissoes_resumo WHERE periodo = :p LIMIT 1');
+        $stmt->execute([':p' => $ym]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
     }
 
     /** Load persisted monthly commissions for admin page. */

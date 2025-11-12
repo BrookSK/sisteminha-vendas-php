@@ -29,16 +29,36 @@ class CommissionsController extends Controller
             $team = $calc['team'];
         } else {
             [$rangeFrom, $rangeTo] = $model->monthRange($period);
-            // Only recalc if the requested period is the current period
             $isCurrent = ($period === Commission::defaultPeriod());
             if ($isCurrent) {
+                // Current period: allow recalc and compute live
                 $model->recalcMonthly($period);
+                $calc = $model->computeRange($rangeFrom, $rangeTo);
+                $items = $calc['items'];
+                $team = $calc['team'];
+            } else {
+                // Past period: load frozen items and team summary
+                $items = $model->loadMonthly($period);
+                $summary = $model->loadMonthlySummary($period) ?? null;
+                if ($summary) {
+                    $team = [
+                        'team_bruto_total' => (float)($summary['team_bruto_total'] ?? 0),
+                        'team_liquido_total' => (float)($summary['team_liquido_total'] ?? 0),
+                        'sum_commissions_usd' => (float)($summary['sum_commissions_usd'] ?? 0),
+                        'sum_rateado_usd' => (float)($summary['sum_rateado_usd'] ?? 0),
+                        'company_cash_usd' => (float)($summary['company_cash_usd'] ?? 0),
+                        'company_cash_brl' => (float)($summary['company_cash_brl'] ?? 0),
+                        'sum_rateado_brl' => (float)($summary['sum_rateado_brl'] ?? 0),
+                        'sum_commissions_brl' => (float)($summary['sum_commissions_brl'] ?? 0),
+                        'team_cost_settings_rate' => (float)($summary['team_cost_settings_rate'] ?? 0),
+                        'usd_rate' => (float)($summary['usd_rate'] ?? 0),
+                    ];
+                } else {
+                    // Fallback compatibility: compute team live if summary not present yet
+                    $calc = $model->computeRange($rangeFrom, $rangeTo);
+                    $team = $calc['team'];
+                }
             }
-            // Load persisted items for table display (frozen for past periods)
-            $items = $model->loadMonthly($period);
-            // Compute team metrics from live calculation for accuracy
-            $calc = $model->computeRange($rangeFrom, $rangeTo);
-            $team = $calc['team'];
         }
 
         // Build chart datasets (bar for individual final commissions)
