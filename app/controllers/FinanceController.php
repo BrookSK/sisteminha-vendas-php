@@ -46,13 +46,23 @@ class FinanceController extends Controller
                     'company_cash_usd' => (float)($summary['company_cash_usd'] ?? 0),
                 ];
             } else {
-                // No summary yet: expose only safe aggregates, leave company cash null
+                // Derive team metrics from persisted item snapshots (no live recompute)
+                $sumAllocated = 0.0; $sumLiqAp = 0.0; $hasLiqAp = false; $hasAllocated = false;
+                foreach ($items as $it) {
+                    if (isset($it['allocated_cost'])) { $sumAllocated += (float)$it['allocated_cost']; $hasAllocated = true; }
+                    if (isset($it['liquido_apurado'])) { $sumLiqAp += (float)$it['liquido_apurado']; $hasLiqAp = true; }
+                    elseif (isset($it['liquido_total']) && isset($it['allocated_cost'])) { $sumLiqAp += (float)$it['liquido_total'] - (float)$it['allocated_cost']; $hasLiqAp = true; }
+                }
+                $sumRateado = $hasLiqAp ? $sumLiqAp : null;
+                $teamCostTotal = $hasAllocated ? $sumAllocated : null;
+                $companyCash = ($sumRateado !== null) ? ($sumRateado - $sumCom) : null;
                 $team = [
                     'team_bruto_total' => $sumBruto,
                     'team_liquido_total' => $sumLiquido,
                     'sum_commissions_usd' => $sumCom,
-                    'sum_rateado_usd' => null,
-                    'company_cash_usd' => null,
+                    'sum_rateado_usd' => $sumRateado,
+                    'company_cash_usd' => $companyCash,
+                    'team_cost_total' => $teamCostTotal,
                 ];
             }
             $commCalc = [ 'items' => $items, 'team' => $team ];
@@ -111,6 +121,27 @@ class FinanceController extends Controller
             $byRole[$role] += (float)($it['comissao_final'] ?? 0);
         }
 
+        // Build users list for view: for past periods, include snapshots so excluded users still show
+        $usersList = (new User())->allBasic();
+        if ($isExactPeriod && !$isCurrentPeriod) {
+            $byId = [];
+            foreach ($usersList as $u) { $byId[(int)($u['id'] ?? 0)] = $u; }
+            foreach (($commCalc['items'] ?? []) as $it) {
+                $vid = (int)($it['vendedor_id'] ?? 0);
+                $snap = $it['user'] ?? [];
+                if ($vid > 0) {
+                    $byId[$vid] = [
+                        'id' => $vid,
+                        'name' => $snap['name'] ?? ($it['name'] ?? ('#'.$vid)),
+                        'email' => $snap['email'] ?? null,
+                        'role' => $snap['role'] ?? 'seller',
+                        'ativo' => $snap['ativo'] ?? 0,
+                    ];
+                }
+            }
+            $usersList = array_values($byId);
+        }
+
         $this->render('finance/index', [
             'title' => 'Financeiro',
             'rate' => $rate,
@@ -120,7 +151,7 @@ class FinanceController extends Controller
             'comm' => $commCalc,
             'costs' => $costs,
             'byRole' => $byRole,
-            'users' => (new User())->allBasic(),
+            'users' => $usersList,
             'attendanceByUser' => $attendanceByUser,
             'att_from' => $attFrom,
             'att_to' => $attTo,
