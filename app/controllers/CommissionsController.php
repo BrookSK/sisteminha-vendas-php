@@ -37,7 +37,7 @@ class CommissionsController extends Controller
                 $items = $calc['items'];
                 $team = $calc['team'];
             } else {
-                // Past period: load frozen items and team summary
+                // Past period: load frozen items and team summary only (never recompute to avoid history drift)
                 $items = $model->loadMonthly($period);
                 $summary = $model->loadMonthlySummary($period) ?? null;
                 if ($summary) {
@@ -54,9 +54,20 @@ class CommissionsController extends Controller
                         'usd_rate' => (float)($summary['usd_rate'] ?? 0),
                     ];
                 } else {
-                    // Fallback compatibility: compute team live if summary not present yet
-                    $calc = $model->computeRange($rangeFrom, $rangeTo);
-                    $team = $calc['team'];
+                    // Derive only what is safely known from persisted items; leave company cash null to avoid altering history
+                    $sumBruto = 0.0; $sumLiq = 0.0; $sumCom = 0.0;
+                    foreach ($items as $it) {
+                        $sumBruto += (float)($it['bruto_total'] ?? 0);
+                        $sumLiq += (float)($it['liquido_total'] ?? 0);
+                        $sumCom += (float)($it['comissao_final'] ?? 0);
+                    }
+                    $team = [
+                        'team_bruto_total' => $sumBruto,
+                        'team_liquido_total' => $sumLiq,
+                        'sum_commissions_usd' => $sumCom,
+                        'sum_rateado_usd' => null,
+                        'company_cash_usd' => null,
+                    ];
                 }
             }
         }

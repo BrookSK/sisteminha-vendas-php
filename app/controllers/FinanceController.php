@@ -33,30 +33,29 @@ class FinanceController extends Controller
         $isCurrentPeriod = ($ymGuess === Commission::defaultPeriod());
         if ($isExactPeriod && !$isCurrentPeriod) {
             $items = $comm->loadMonthly($ymGuess);
-            $summary = $comm->loadMonthlySummary($ymGuess) ?? [];
-            // Build a commCalc structure using persisted rows and summary (company cash frozen)
+            $summary = $comm->loadMonthlySummary($ymGuess) ?? null;
+            // Build a commCalc structure using persisted rows and summary (no live recompute for past)
             $sumBruto = 0.0; $sumLiquido = 0.0; $sumCom = 0.0;
-            foreach ($items as $it) {
-                $sumBruto += (float)($it['bruto_total'] ?? 0);
-                $sumLiquido += (float)($it['liquido_total'] ?? 0);
-                $sumCom += (float)($it['comissao_final'] ?? 0);
-            }
-            // If summary not persisted yet, compute only the team summary live for compatibility
-            if (!$summary) {
-                $live = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
-                $summary = $live['team'] ?? [];
-            }
-            $commCalc = [
-                'items' => $items,
-                'team' => [
+            foreach ($items as $it) { $sumBruto += (float)($it['bruto_total'] ?? 0); $sumLiquido += (float)($it['liquido_total'] ?? 0); $sumCom += (float)($it['comissao_final'] ?? 0); }
+            if ($summary) {
+                $team = [
                     'team_bruto_total' => (float)($summary['team_bruto_total'] ?? $sumBruto),
                     'team_liquido_total' => (float)($summary['team_liquido_total'] ?? $sumLiquido),
                     'sum_commissions_usd' => (float)($summary['sum_commissions_usd'] ?? $sumCom),
                     'sum_rateado_usd' => (float)($summary['sum_rateado_usd'] ?? 0),
-                    'company_cash_usd' => (float)($summary['company_cash_usd'] ?? (($summary['sum_rateado_usd'] ?? 0) - ($summary['sum_commissions_usd'] ?? $sumCom))),
-                    'team_cost_total' => $summary['team_cost_total'] ?? null,
-                ],
-            ];
+                    'company_cash_usd' => (float)($summary['company_cash_usd'] ?? 0),
+                ];
+            } else {
+                // No summary yet: expose only safe aggregates, leave company cash null
+                $team = [
+                    'team_bruto_total' => $sumBruto,
+                    'team_liquido_total' => $sumLiquido,
+                    'sum_commissions_usd' => $sumCom,
+                    'sum_rateado_usd' => null,
+                    'company_cash_usd' => null,
+                ];
+            }
+            $commCalc = [ 'items' => $items, 'team' => $team ];
         } else {
             $commCalc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
         }
@@ -145,20 +144,27 @@ class FinanceController extends Controller
         $isCurrentPeriod = ($ymGuess === Commission::defaultPeriod());
         if ($isExactPeriod && !$isCurrentPeriod) {
             $items = $comm->loadMonthly($ymGuess);
-            $summary = $comm->loadMonthlySummary($ymGuess) ?? [];
+            $summary = $comm->loadMonthlySummary($ymGuess) ?? null;
             $sumBruto = 0.0; $sumLiquido = 0.0; $sumCom = 0.0;
             foreach ($items as $it) { $sumBruto += (float)($it['bruto_total'] ?? 0); $sumLiquido += (float)($it['liquido_total'] ?? 0); $sumCom += (float)($it['comissao_final'] ?? 0); }
-            if (!$summary) { $live = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59'); $summary = $live['team'] ?? []; }
-            $commCalc = [
-                'items'=>$items,
-                'team'=>[
+            if ($summary) {
+                $team = [
                     'team_bruto_total'=>(float)($summary['team_bruto_total'] ?? $sumBruto),
                     'team_liquido_total'=>(float)($summary['team_liquido_total'] ?? $sumLiquido),
                     'sum_commissions_usd'=>(float)($summary['sum_commissions_usd'] ?? $sumCom),
                     'sum_rateado_usd'=>(float)($summary['sum_rateado_usd'] ?? 0),
-                    'company_cash_usd'=>(float)($summary['company_cash_usd'] ?? (($summary['sum_rateado_usd'] ?? 0) - ($summary['sum_commissions_usd'] ?? $sumCom))),
-                ]
-            ];
+                    'company_cash_usd'=>(float)($summary['company_cash_usd'] ?? 0),
+                ];
+            } else {
+                $team = [
+                    'team_bruto_total'=>$sumBruto,
+                    'team_liquido_total'=>$sumLiquido,
+                    'sum_commissions_usd'=>$sumCom,
+                    'sum_rateado_usd'=>null,
+                    'company_cash_usd'=>null,
+                ];
+            }
+            $commCalc = [ 'items'=>$items, 'team'=>$team ];
         } else {
             $commCalc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
         }
@@ -201,20 +207,27 @@ class FinanceController extends Controller
         $isCurrentPeriod = ($ymGuess === Commission::defaultPeriod());
         if ($isExactPeriod && !$isCurrentPeriod) {
             $items = $comm->loadMonthly($ymGuess);
-            $summary = $comm->loadMonthlySummary($ymGuess) ?? [];
+            $summary = $comm->loadMonthlySummary($ymGuess) ?? null;
             $sumBruto = 0.0; $sumLiquido = 0.0; $sumCom = 0.0;
             foreach ($items as $it) { $sumBruto += (float)($it['bruto_total'] ?? 0); $sumLiquido += (float)($it['liquido_total'] ?? 0); $sumCom += (float)($it['comissao_final'] ?? 0); }
-            if (!$summary) { $live = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59'); $summary = $live['team'] ?? []; }
-            $calc = [
-                'items'=>$items,
-                'team'=>[
+            if ($summary) {
+                $team = [
                     'team_bruto_total'=>(float)($summary['team_bruto_total'] ?? $sumBruto),
                     'team_liquido_total'=>(float)($summary['team_liquido_total'] ?? $sumLiquido),
                     'sum_commissions_usd'=>(float)($summary['sum_commissions_usd'] ?? $sumCom),
                     'sum_rateado_usd'=>(float)($summary['sum_rateado_usd'] ?? 0),
-                    'company_cash_usd'=>(float)($summary['company_cash_usd'] ?? (($summary['sum_rateado_usd'] ?? 0) - ($summary['sum_commissions_usd'] ?? $sumCom))),
-                ]
-            ];
+                    'company_cash_usd'=>(float)($summary['company_cash_usd'] ?? 0),
+                ];
+            } else {
+                $team = [
+                    'team_bruto_total'=>$sumBruto,
+                    'team_liquido_total'=>$sumLiquido,
+                    'sum_commissions_usd'=>$sumCom,
+                    'sum_rateado_usd'=>null,
+                    'company_cash_usd'=>null,
+                ];
+            }
+            $calc = [ 'items'=>$items, 'team'=>$team ];
         } else {
             $calc = $comm->computeRange($from.' 00:00:00', $to.' 23:59:59');
         }
