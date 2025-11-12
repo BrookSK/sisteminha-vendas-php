@@ -473,17 +473,24 @@ class Commission extends Model
     /** Load persisted monthly commissions for admin page using snapshot (no join). */
     public function loadMonthly(string $ym): array
     {
-        $stmt = $this->db->prepare('SELECT * FROM comissoes WHERE periodo = :p ORDER BY comissao_final DESC');
+        // Left join only to provide fallback display fields when snapshot is missing
+        $sql = 'SELECT c.*, u.name AS u_name, u.email AS u_email, u.role AS u_role, u.ativo AS u_ativo
+                FROM comissoes c
+                LEFT JOIN usuarios u ON u.id = c.vendedor_id
+                WHERE c.periodo = :p
+                ORDER BY c.comissao_final DESC';
+        $stmt = $this->db->prepare($sql);
         $stmt->execute([':p' => $ym]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        // Map snapshot fields to keep compatibility with views expecting name and user subarray
         foreach ($rows as &$r) {
-            $r['name'] = $r['vendedor_name'] ?? ($r['name'] ?? null);
+            $snapName = $r['vendedor_name'] ?? null; $snapEmail = $r['vendedor_email'] ?? null; $snapRole = $r['vendedor_role'] ?? null;
+            $snapAtivo = array_key_exists('vendedor_ativo', $r) ? $r['vendedor_ativo'] : null;
+            $r['name'] = $snapName ?: ($r['u_name'] ?? ($r['name'] ?? null));
             $r['user'] = [
-                'name' => $r['vendedor_name'] ?? null,
-                'email' => $r['vendedor_email'] ?? null,
-                'role' => $r['vendedor_role'] ?? null,
-                'ativo' => isset($r['vendedor_ativo']) ? (int)$r['vendedor_ativo'] : null,
+                'name' => $snapName ?: ($r['u_name'] ?? null),
+                'email' => $snapEmail ?: ($r['u_email'] ?? null),
+                'role' => $snapRole ?: ($r['u_role'] ?? null),
+                'ativo' => ($snapAtivo !== null) ? (int)$snapAtivo : (isset($r['u_ativo']) ? (int)$r['u_ativo'] : null),
             ];
         }
         unset($r);
