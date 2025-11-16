@@ -303,6 +303,10 @@ $router->group('/admin', function($r) {
 
     // Simulador de Cálculo
     $r->get('/sales-simulator', 'Controllers\\SalesSimulatorController@index');
+    $r->get('/sales-simulator/budgets', 'Controllers\\SimulatorBudgetsController@index');
+    $r->post('/sales-simulator/budgets/save', 'Controllers\\SimulatorBudgetsController@save');
+    $r->post('/sales-simulator/budgets/duplicate', 'Controllers\\SimulatorBudgetsController@duplicate');
+    $r->post('/sales-simulator/budgets/delete', 'Controllers\\SimulatorBudgetsController@delete');
 
     // Vendas Nacionais
     $r->get('/national-sales', 'Controllers\\NationalSalesController@index');

@@ -1,4 +1,5 @@
-<?php /** @var float $usd_rate */ ?>
+<?php /** @var float $usd_rate */ /** @var array|null $budget_data */ /** @var int $budget_id */ ?>
+<?php use Core\Auth; ?>
 <div class="container py-3">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3 class="m-0">Simulador de Cálculo</h3>
@@ -33,10 +34,11 @@
       </div>
       <div id="produtos" class="vstack gap-3"></div>
     </div>
-    <div class="col-12">
+    <div class="col-12 d-flex flex-wrap gap-2">
       <button class="btn btn-primary" id="btn-calcular">Calcular</button>
       <button class="btn btn-outline-secondary" id="btn-gerar">Gerar mensagem para o cliente</button>
       <button class="btn btn-outline-dark" id="btn-copiar" type="button">Copiar mensagem</button>
+      <button class="btn btn-outline-success ms-auto" type="button" id="btn-salvar-orcamento">Salvar orçamento</button>
     </div>
   </form>
 
@@ -67,10 +69,36 @@
   </div>
 </div>
 
+<!-- Modal Salvar Orçamento -->
+<div class="modal fade" id="modalSalvarOrcamento" tabindex="-1" aria-labelledby="modalSalvarOrcamentoLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalSalvarOrcamentoLabel">Salvar orçamento do simulador</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Nome do orçamento</label>
+          <input type="text" class="form-control" id="orcamento_nome" placeholder="Ex: Orçamento Apple Watch para João">
+        </div>
+        <div class="small text-muted">Os produtos, pesos, fretes e opção de envio para o Brasil serão salvos para você poder reabrir e recalcular depois.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-confirmar-salvar-orcamento">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   function nfUSD(v){ return `$ ${Number(v||0).toFixed(2)}`; }
   function nfBRL(v){ return `R$ ${Number(v||0).toFixed(2)}`; }
+  const initialBudget = <?php echo json_encode($budget_data ?? null, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); ?>;
+  const currentBudgetId = <?php echo (int)($budget_id ?? 0); ?>;
+  const csrfToken = '<?= htmlspecialchars(Auth::csrf()) ?>';
 
   const produtos = document.getElementById('produtos');
   const btnAdd = document.getElementById('btn-add-prod');
@@ -118,7 +146,47 @@
   }
 
   btnAdd.addEventListener('click', ()=>{ produtos.appendChild(makeItem(produtos.children.length)); });
-  produtos.appendChild(makeItem(0));
+
+  function applyItemState(wrap, state){
+    if (!state) return;
+    const nome = wrap.querySelector('.nome_produto');
+    const valor = wrap.querySelector('.valor_produto');
+    const peso = wrap.querySelector('.peso_produto');
+    const pf = wrap.querySelector('.precisa_frete');
+    const frete = wrap.querySelector('.frete_usd');
+    if (nome) nome.value = state.nome || '';
+    if (valor) valor.value = state.valor || 0;
+    if (peso) peso.value = state.peso || 0;
+    if (pf) {
+      pf.checked = !!state.precisa_frete;
+      const fg = wrap.querySelector('.frete_group');
+      if (fg) fg.style.display = pf.checked ? '' : 'none';
+    }
+    if (frete) frete.value = state.frete || 0;
+  }
+
+  function loadInitialBudget(){
+    if (!initialBudget || !Array.isArray(initialBudget.items) || initialBudget.items.length === 0) {
+      produtos.appendChild(makeItem(0));
+      return;
+    }
+    const taxa = document.getElementById('taxa_cambio');
+    if (typeof initialBudget.taxa_cambio === 'number' && taxa) {
+      taxa.value = initialBudget.taxa_cambio;
+    }
+    const envioBrasil = document.getElementById('envio_brasil');
+    if (envioBrasil && typeof initialBudget.envio_brasil !== 'undefined') {
+      envioBrasil.checked = !!initialBudget.envio_brasil;
+    }
+    produtos.innerHTML = '';
+    initialBudget.items.forEach(function(it){
+      const w = makeItem(produtos.children.length);
+      applyItemState(w, it);
+      produtos.appendChild(w);
+    });
+  }
+
+  loadInitialBudget();
 
   document.getElementById('btn-calcular').addEventListener('click', ()=>{
     const taxaCambio = parseFloat(document.getElementById('taxa_cambio').value||0);
@@ -194,6 +262,7 @@
       linhas.push('A estimativa dos impostos de importação, calculados sobre o valor dos produtos em reais, seria:');
       linhas.push(`Imposto de Importação (60%): ${nfBRL(s.impostoImport||0)}`);
       linhas.push(`ICMS (20% sobre (produto + 60%)): ${nfBRL(s.icms||0)}`);
+      linhas.push(`Total de impostos (Imposto de Importação + ICMS): ${nfBRL((s.impostoImport||0) + (s.icms||0))}`);
       linhas.push('⚠️ Lembrando que esses valores de impostos são apenas estimativas.');
       linhas.push('O pagamento dos impostos é feito diretamente à Receita Federal, quando o produto chega à alfândega.');
     }
@@ -206,5 +275,74 @@
     ta.select(); ta.setSelectionRange(0, 99999);
     document.execCommand('copy');
   });
+
+  function collectCurrentState(){
+    const taxaCambio = parseFloat(document.getElementById('taxa_cambio').value||0);
+    const envioBrasil = document.getElementById('envio_brasil').checked;
+    const items = Array.from(produtos.querySelectorAll('.prod-item')).map(function(w){
+      return {
+        nome: (w.querySelector('.nome_produto')?.value || '').trim(),
+        valor: parseFloat(w.querySelector('.valor_produto')?.value||0) || 0,
+        peso: parseFloat(w.querySelector('.peso_produto')?.value||0) || 0,
+        precisa_frete: !!(w.querySelector('.precisa_frete')?.checked),
+        frete: parseFloat(w.querySelector('.frete_usd')?.value||0) || 0,
+      };
+    });
+    return { taxa_cambio: taxaCambio, envio_brasil: envioBrasil, items: items };
+  }
+
+  const modalEl = document.getElementById('modalSalvarOrcamento');
+  let modalInstance = null;
+  if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+    modalInstance = new window.bootstrap.Modal(modalEl);
+  }
+
+  const btnSalvar = document.getElementById('btn-salvar-orcamento');
+  const btnConfirmarSalvar = document.getElementById('btn-confirmar-salvar-orcamento');
+  if (btnSalvar && btnConfirmarSalvar) {
+    btnSalvar.addEventListener('click', function(){
+      const nomeInput = document.getElementById('orcamento_nome');
+      if (nomeInput) {
+        nomeInput.value = nomeInput.value || '';
+      }
+      if (modalInstance) {
+        modalInstance.show();
+      }
+    });
+
+    btnConfirmarSalvar.addEventListener('click', function(){
+      const nomeInput = document.getElementById('orcamento_nome');
+      const nome = (nomeInput?.value || '').trim();
+      if (!nome) {
+        alert('Informe um nome para o orçamento.');
+        return;
+      }
+      const payload = collectCurrentState();
+      fetch('/admin/sales-simulator/budgets/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+        body: new URLSearchParams({
+          _csrf: csrfToken,
+          name: nome,
+          payload: JSON.stringify(payload),
+          id: currentBudgetId > 0 ? String(currentBudgetId) : '',
+        }),
+      }).then(r=>r.json()).then(function(resp){
+        if (!resp || !resp.ok) {
+          alert('Não foi possível salvar o orçamento.');
+          return;
+        }
+        if (modalInstance) modalInstance.hide();
+        alert('Orçamento salvo com sucesso!');
+        if (resp.id && !currentBudgetId) {
+          const url = new URL(window.location.href);
+          url.searchParams.set('budget_id', String(resp.id));
+          window.location.href = url.toString();
+        }
+      }).catch(function(){
+        alert('Erro ao salvar o orçamento.');
+      });
+    });
+  }
 })();
 </script>

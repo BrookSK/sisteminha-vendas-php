@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS simulator_budgets (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  name VARCHAR(200) NOT NULL,
+  data_json LONGTEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL,
+  FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+  INDEX (user_id),
+  INDEX (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
