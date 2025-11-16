@@ -10,6 +10,7 @@ use Models\User;
 use Models\Cost;
 use Models\Attendance;
 use Models\Notification;
+use Models\MonthlySnapshot;
 
 class DashboardController extends Controller
 {
@@ -172,5 +173,64 @@ class DashboardController extends Controller
             'notifications_unread' => $notificationsUnread,
             'admin_data' => $adminData,
         ]);
+    }
+
+    public function freezePreviousPeriod()
+    {
+        $this->requireRole(['admin']);
+        $this->csrfCheck();
+        $me = Auth::user();
+        $adminId = (int)($me['id'] ?? 0);
+
+        $setting = new Setting();
+        [$curFrom, $curTo] = $setting->currentPeriod();
+        $curFromDt = new \DateTimeImmutable($curFrom);
+        $prevStart = $curFromDt->modify('-1 month')->setDate((int)$curFromDt->format('Y'), (int)$curFromDt->format('m') - 1 <= 0 ? 12 : (int)$curFromDt->format('m') - 1, 10);
+        $prevEndBase = $curFromDt->modify('-1 day');
+        $prevEnd = $prevEndBase->setDate((int)$prevEndBase->format('Y'), (int)$prevEndBase->format('m'), 9);
+
+        $from = $prevStart->format('Y-m-d');
+        $to = $prevEnd->format('Y-m-d');
+
+        $snap = new MonthlySnapshot();
+        $ok = $snap->freezePeriod($from, $to, $adminId, 'manual');
+        if ($ok) {
+            $this->flash('success', "Dados do período {$from} a {$to} foram congelados.");
+        } else {
+            $this->flash('info', "Período {$from} a {$to} já estava congelado.");
+        }
+        $this->redirect('/admin');
+    }
+
+    public function cronFreezePreviousPeriod()
+    {
+        $token = isset($_GET['token']) ? (string)$_GET['token'] : '';
+        $setting = new Setting();
+        $expected = (string)$setting->get('freeze_cron_token', '');
+        if ($expected === '' || !hash_equals($expected, $token)) {
+            http_response_code(403);
+            echo 'invalid_token';
+            return;
+        }
+
+        $today = new \DateTimeImmutable('today');
+        $day = (int)$today->format('j');
+        if ($day >= 10) {
+            $curFrom = $today->setDate((int)$today->format('Y'), (int)$today->format('n'), 10);
+        } else {
+            $firstPrev = $today->modify('first day of previous month');
+            $curFrom = $firstPrev->setDate((int)$firstPrev->format('Y'), (int)$firstPrev->format('n'), 10);
+        }
+        $prevStart = $curFrom->modify('-1 month');
+        $prevEndBase = $prevStart->modify('+1 month');
+        $prevEnd = $prevEndBase->setDate((int)$prevEndBase->format('Y'), (int)$prevEndBase->format('m'), 9);
+
+        $from = $prevStart->format('Y-m-d');
+        $to = $prevEnd->format('Y-m-d');
+
+        $snap = new MonthlySnapshot();
+        $ok = $snap->freezePeriod($from, $to, 0, 'cron');
+        header('Content-Type: text/plain; charset=utf-8');
+        echo $ok ? 'ok' : 'already_frozen';
     }
 }

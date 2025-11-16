@@ -350,6 +350,9 @@ $router->group('/admin', function($r) {
     $r->get('/performance', 'Controllers\\PerformanceController@index');
     $r->get('/performance/export-seller.pdf', 'Controllers\\PerformanceController@exportSellerPdf');
 
+    // Congelamento de período anterior (admin / cron)
+    $r->post('/dashboard/freeze-previous-period', 'Controllers\\DashboardController@freezePreviousPeriod');
+
 }, function() {
     return \Core\Auth::check();
 }, '/login');
@@ -361,6 +364,9 @@ $router->post('/webhooks/demands', 'Controllers\\WebhooksController@demands');
 
 // Public cron endpoint for backups (token required)
 $router->get('/backups/cron-run', 'Controllers\\BackupsController@cronRun');
+
+// Public cron endpoint for freezing previous period (token required)
+$router->get('/cron/freeze-previous-period', 'Controllers\\DashboardController@cronFreezePreviousPeriod');
 
 // API Calculator public endpoint (token via Authorization: Bearer <token>)
 $router->post('/api/calc-net', 'Controllers\\ApiCalcController@compute');

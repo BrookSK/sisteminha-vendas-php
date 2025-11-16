@@ -5,6 +5,7 @@ use Core\Controller;
 use Core\Auth;
 use Models\Commission;
 use Models\Setting;
+use Models\MonthlySnapshot;
 
 class CommissionsController extends Controller
 {
@@ -22,20 +23,61 @@ class CommissionsController extends Controller
         $usdRate = $setRate ? (float)$setRate->get('usd_rate', '5.83') : 5.83;
         if ($usdRate <= 0) { $usdRate = 5.83; }
         if ($from && $to) {
+            // Filtro por datas arbitrárias: manter cálculo ao vivo
             $rangeFrom = $from . ' 00:00:00';
             $rangeTo = $to . ' 23:59:59';
             $calc = $model->computeRange($rangeFrom, $rangeTo);
             $items = $calc['items'];
             $team = $calc['team'];
         } else {
+            // Filtro mensal (10->9): tentar usar snapshot congelado se existir
             [$rangeFrom, $rangeTo] = $model->monthRange($period);
-            // Always recalculate and persist latest monthly data so the view is up-to-date
-            $model->recalcMonthly($period);
-            // Load persisted items for table display
-            $items = $model->loadMonthly($period);
-            // Compute team metrics from live calculation for accuracy
-            $calc = $model->computeRange($rangeFrom, $rangeTo);
-            $team = $calc['team'];
+            $fromDate = substr($rangeFrom, 0, 10);
+            $toDate = substr($rangeTo, 0, 10);
+
+            $snapModel = new MonthlySnapshot();
+            $companySnap = $snapModel->loadCompanyForPeriod($fromDate, $toDate);
+            if ($companySnap) {
+                // Montar items a partir dos snapshots por vendedor
+                $snapSellers = $snapModel->loadSellersForPeriod($fromDate, $toDate);
+                $items = [];
+                foreach ($snapSellers as $row) {
+                    $items[] = [
+                        'vendedor_id' => (int)($row['seller_id'] ?? 0),
+                        'name' => (string)($row['seller_name'] ?? ''),
+                        'ativo' => (int)($row['seller_ativo'] ?? 0),
+                        'bruto_total' => (float)($row['bruto_total_usd'] ?? 0),
+                        'liquido_total' => (float)($row['liquido_total_usd'] ?? 0),
+                        // Não temos individual/bonus separados no snapshot; usar apenas comissão final
+                        'comissao_individual' => 0.0,
+                        'bonus' => 0.0,
+                        'comissao_final' => (float)($row['comissao_usd'] ?? 0),
+                        'bruto_total_brl' => (float)($row['bruto_total_usd'] ?? 0) * $usdRate,
+                        'liquido_total_brl' => (float)($row['liquido_total_usd'] ?? 0) * $usdRate,
+                        'comissao_final_brl' => (float)($row['comissao_brl'] ?? 0) ?: ((float)($row['comissao_usd'] ?? 0) * $usdRate),
+                    ];
+                }
+
+                // Montar dados agregados da equipe a partir do snapshot da empresa
+                $team = [
+                    'team_bruto_total' => (float)($companySnap['bruto_total_usd'] ?? 0),
+                    'team_cost_total' => (float)($companySnap['team_cost_total_usd'] ?? 0),
+                    'team_cost_settings_rate' => (float)($companySnap['custo_config_rate'] ?? 0),
+                    'company_cash_usd' => (float)($companySnap['company_cash_usd'] ?? 0),
+                    'company_cash_brl' => (float)($companySnap['company_cash_brl'] ?? 0),
+                    'sum_commissions_usd' => (float)($companySnap['comissao_usd'] ?? 0),
+                    'team_bruto_total_brl' => (float)($companySnap['bruto_total_usd'] ?? 0) * $usdRate,
+                    'meta_equipe_brl' => (float)($companySnap['meta_equipe_brl'] ?? 0),
+                    'active_count' => (int)($companySnap['active_users'] ?? 0),
+                    // Campos de rateio detalhado não são derivados do snapshot; podem ficar ausentes
+                ];
+            } else {
+                // Sem snapshot: manter comportamento atual (recalc + loadMonthly + computeRange)
+                $model->recalcMonthly($period);
+                $items = $model->loadMonthly($period);
+                $calc = $model->computeRange($rangeFrom, $rangeTo);
+                $team = $calc['team'];
+            }
         }
 
         // Build chart datasets (bar for individual final commissions)
