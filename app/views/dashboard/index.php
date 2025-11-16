@@ -17,6 +17,10 @@
       <a class="btn btn-outline-secondary" href="/admin/hosting-assets">Ativos</a>
       <a class="btn btn-outline-secondary" href="/admin/site-clients">Clientes (Sites)</a>
       <a class="btn btn-outline-secondary" href="/admin/settings/dns">Configurações DNS</a>
+      <form method="post" action="/admin/dashboard/freeze-previous-period" class="d-inline">
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf(), ENT_QUOTES) ?>">
+        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Congelar dados do período anterior (10→9)?');">Congelar período anterior (10→9)</button>
+      </form>
     <?php endif; ?>
   <?php endif; ?>
 </div>

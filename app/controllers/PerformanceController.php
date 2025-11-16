@@ -1,12 +1,13 @@
+```php
 <?php
 namespace Controllers;
 
 use Core\Controller;
 use Core\Auth;
-use Models\Commission;
 use Models\Report;
 use Models\Attendance;
 use Models\User;
+use Models\MonthlySnapshot;
 use Models\Setting;
 
 class PerformanceController extends Controller
@@ -28,11 +29,41 @@ class PerformanceController extends Controller
         $fromTs = $from . ' 00:00:00';
         $toTs = $to . ' 23:59:59';
 
-        $comm = new Commission();
-        $calc = $comm->computeRange($fromTs, $toTs);
         $itemsByUser = [];
-        foreach (($calc['items'] ?? []) as $it) {
-            $itemsByUser[(int)($it['vendedor_id'] ?? 0)] = $it;
+        $snapModel = new MonthlySnapshot();
+        $companySnap = $snapModel->loadCompanyForPeriod($from, $to);
+        if ($companySnap) {
+            $snapSellers = $snapModel->loadSellersForPeriod($from, $to);
+            foreach ($snapSellers as $row) {
+                $uid = (int)($row['seller_id'] ?? 0);
+                if ($uid <= 0) { continue; }
+                $usdRate = (float)($row['usd_rate'] ?? 0);
+                if ($usdRate <= 0) { $usdRate = 5.83; }
+                $bruto = (float)($row['bruto_total_usd'] ?? 0);
+                $liq = (float)($row['liquido_total_usd'] ?? 0);
+                $liqAp = (float)($row['liquido_apurado_usd'] ?? 0);
+                $commUsd = (float)($row['comissao_usd'] ?? 0);
+                $itemsByUser[$uid] = [
+                    'vendedor_id' => $uid,
+                    'bruto_total' => $bruto,
+                    'liquido_total' => $liq,
+                    'liquido_apurado' => $liqAp,
+                    'comissao_final' => $commUsd,
+                    'bruto_total_brl' => $bruto * $usdRate,
+                    'liquido_total_brl' => $liq * $usdRate,
+                    'liquido_apurado_brl' => $liqAp * $usdRate,
+                    'comissao_final_brl' => ((float)($row['comissao_brl'] ?? 0)) ?: ($commUsd * $usdRate),
+                    'user' => [
+                        'role' => (string)($row['seller_role'] ?? 'seller'),
+                    ],
+                ];
+            }
+        } else {
+            $comm = new Commission();
+            $calc = $comm->computeRange($fromTs, $toTs);
+            foreach (($calc['items'] ?? []) as $it) {
+                $itemsByUser[(int)($it['vendedor_id'] ?? 0)] = $it;
+            }
         }
 
         $report = new Report();
