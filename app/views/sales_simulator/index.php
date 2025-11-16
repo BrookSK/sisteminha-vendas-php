@@ -111,7 +111,11 @@
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <div class="fw-semibold">Produto</div>
-          <div class="d-flex gap-2">
+          <div class="d-flex flex-wrap gap-2">
+            <div class="form-check form-switch">
+              <input class="form-check-input aplica_imp_local" type="checkbox" id="il_${id}" checked>
+              <label class="form-check-label" for="il_${id}">Imposto local (7%)?</label>
+            </div>
             <div class="form-check form-switch">
               <input class="form-check-input precisa_frete" type="checkbox" id="pf_${id}">
               <label class="form-check-label" for="pf_${id}">Frete até a sede?</label>
@@ -120,11 +124,15 @@
           </div>
         </div>
         <div class="row g-2 align-items-end">
-          <div class="col-md-6">
+          <div class="col-md-5">
             <label class="form-label">Nome</label>
             <input type="text" class="form-control nome_produto" placeholder="Ex: Apple Watch Series 10 Titanium 46mm">
           </div>
-          <div class="col-md-3">
+          <div class="col-md-2">
+            <label class="form-label">Qtd.</label>
+            <input type="number" step="1" min="1" class="form-control qtd_produto" value="1">
+          </div>
+          <div class="col-md-2">
             <label class="form-label">Valor (USD)</label>
             <input type="number" step="0.01" min="0" class="form-control valor_produto" value="0">
           </div>
@@ -140,7 +148,20 @@
       </div>`;
     const pf = wrap.querySelector('.precisa_frete');
     const fg = wrap.querySelector('.frete_group');
-    pf.addEventListener('change', ()=>{ fg.style.display = pf.checked ? '' : 'none'; });
+    if (pf && fg) {
+      pf.addEventListener('change', ()=>{ fg.style.display = pf.checked ? '' : 'none'; });
+    }
+    // UX: ao focar valor/peso, limpa 0; ao sair vazio, volta 0
+    ['.valor_produto','.peso_produto'].forEach(sel=>{
+      const inp = wrap.querySelector(sel);
+      if (!inp) return;
+      inp.addEventListener('focus', function(){
+        if (this.value === '0' || this.value === '0.00') { this.value = ''; }
+      });
+      inp.addEventListener('blur', function(){
+        if (this.value === '') { this.value = '0'; }
+      });
+    });
     wrap.querySelector('.btn-remove').addEventListener('click', ()=>{ wrap.remove(); });
     return wrap;
   }
@@ -150,17 +171,23 @@
   function applyItemState(wrap, state){
     if (!state) return;
     const nome = wrap.querySelector('.nome_produto');
+    const qtd = wrap.querySelector('.qtd_produto');
     const valor = wrap.querySelector('.valor_produto');
     const peso = wrap.querySelector('.peso_produto');
     const pf = wrap.querySelector('.precisa_frete');
+    const aplicaImp = wrap.querySelector('.aplica_imp_local');
     const frete = wrap.querySelector('.frete_usd');
     if (nome) nome.value = state.nome || '';
+    if (qtd) qtd.value = state.qtd || 1;
     if (valor) valor.value = state.valor || 0;
     if (peso) peso.value = state.peso || 0;
     if (pf) {
       pf.checked = !!state.precisa_frete;
       const fg = wrap.querySelector('.frete_group');
       if (fg) fg.style.display = pf.checked ? '' : 'none';
+    }
+    if (aplicaImp) {
+      aplicaImp.checked = (typeof state.aplica_imp_local === 'boolean') ? state.aplica_imp_local : true;
     }
     if (frete) frete.value = state.frete || 0;
   }
@@ -196,16 +223,23 @@
     const nomes = [];
     items.forEach(w=>{
       const nome = w.querySelector('.nome_produto')?.value?.trim() || '';
+      const qtd = parseInt(w.querySelector('.qtd_produto')?.value || '1', 10) || 1;
       const valor = parseFloat(w.querySelector('.valor_produto')?.value||0);
       const peso = parseFloat(w.querySelector('.peso_produto')?.value||0);
-      const pf = w.querySelector('.precisa_frete').checked;
+      const pf = !!(w.querySelector('.precisa_frete')?.checked);
+      const aplicaImp = !!(w.querySelector('.aplica_imp_local')?.checked);
       const frete = pf ? parseFloat(w.querySelector('.frete_usd')?.value||0) : 0;
-      somaValor += Math.max(0, valor);
-      somaPeso += Math.max(0, peso);
+      const valorTotalItem = Math.max(0, valor) * Math.max(1, qtd);
+      const pesoTotalItem = Math.max(0, peso) * Math.max(1, qtd);
+      somaValor += valorTotalItem;
+      somaPeso += pesoTotalItem;
       somaFrete += Math.max(0, frete);
-      const impLocal = Math.max(0, valor * 0.07);
+      const impLocal = aplicaImp ? Math.max(0, valorTotalItem * 0.07) : 0;
       somaImpLocal += impLocal;
-      if (nome) nomes.push(nome);
+      if (nome) {
+        const label = qtd > 1 ? `${nome} - x${qtd}` : nome;
+        nomes.push(label);
+      }
     });
     const pesoTotalArred = Math.ceil(somaPeso);
     const taxaServico = pesoTotalArred > 0 ? (pesoTotalArred * 39.0) : 0;
@@ -282,9 +316,11 @@
     const items = Array.from(produtos.querySelectorAll('.prod-item')).map(function(w){
       return {
         nome: (w.querySelector('.nome_produto')?.value || '').trim(),
+        qtd: parseInt(w.querySelector('.qtd_produto')?.value || '1', 10) || 1,
         valor: parseFloat(w.querySelector('.valor_produto')?.value||0) || 0,
         peso: parseFloat(w.querySelector('.peso_produto')?.value||0) || 0,
         precisa_frete: !!(w.querySelector('.precisa_frete')?.checked),
+        aplica_imp_local: !!(w.querySelector('.aplica_imp_local')?.checked),
         frete: parseFloat(w.querySelector('.frete_usd')?.value||0) || 0,
       };
     });
