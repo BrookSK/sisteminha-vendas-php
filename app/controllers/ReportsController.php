@@ -6,6 +6,7 @@ use Models\Report;
 use Models\Setting;
 use Models\User;
 use Models\Commission;
+use Models\MonthlySnapshot;
 
 class ReportsController extends Controller
 {
@@ -52,11 +53,42 @@ class ReportsController extends Controller
         }
 
         if ($from && $to) {
-            $week = $report->summary($from, $to, $sellerId);
-            $month = $week; // quando filtrado, usar mesmo sumário
-            $sellers = $report->bySeller($from, $to);
-            // Dados de comissões/empresa para o período filtrado
-            $commCalc = (new Commission())->computeRange($from.' 00:00:00', $to.' 23:59:59');
+            $snapModel = new MonthlySnapshot();
+            $companySnap = $snapModel->loadCompanyForPeriod($from, $to);
+            if ($companySnap) {
+                // Usar dados congelados para o resumo do mês e desempenho dos vendedores
+                $week = $report->summary($from, $to, $sellerId);
+                $month = [
+                    'atendimentos' => (int)($companySnap['atendimentos'] ?? 0),
+                    'atendimentos_concluidos' => (int)($companySnap['atendimentos_concluidos'] ?? 0),
+                    'total_bruto_usd' => (float)($companySnap['bruto_total_usd'] ?? 0),
+                    'total_liquido_usd' => (float)($companySnap['liquido_total_usd'] ?? 0),
+                    'custos_usd' => (float)($companySnap['custos_usd'] ?? 0),
+                    'custos_percentuais_usd' => (float)($companySnap['custos_percentuais'] ?? 0),
+                    'lucro_liquido_usd' => (float)($companySnap['lucro_liquido_usd'] ?? 0),
+                ];
+                $snapSellers = $snapModel->loadSellersForPeriod($from, $to);
+                $sellers = [];
+                foreach ($snapSellers as $row) {
+                    $sellers[] = [
+                        'usuario_id' => (int)($row['seller_id'] ?? 0),
+                        'name' => (string)($row['seller_name'] ?? ''),
+                        'email' => (string)($row['seller_email'] ?? ''),
+                        'role' => (string)($row['seller_role'] ?? ''),
+                        'atendimentos' => (int)($row['atendimentos'] ?? 0),
+                        'total_bruto_usd' => (float)($row['bruto_total_usd'] ?? 0),
+                        'total_liquido_usd' => (float)($row['liquido_total_usd'] ?? 0),
+                    ];
+                }
+                // Para commTeam/commItems, seguir usando cálculo ao vivo (comissões)
+                $commCalc = (new Commission())->computeRange($from.' 00:00:00', $to.' 23:59:59');
+            } else {
+                $week = $report->summary($from, $to, $sellerId);
+                $month = $week; // quando filtrado, usar mesmo sumário
+                $sellers = $report->bySeller($from, $to);
+                // Dados de comissões/empresa para o período filtrado
+                $commCalc = (new Commission())->computeRange($from.' 00:00:00', $to.' 23:59:59');
+            }
         } else {
             // Fallback (não deve ocorrer): usar semana atual e mês corrente
             $week = $report->weekSummary();
