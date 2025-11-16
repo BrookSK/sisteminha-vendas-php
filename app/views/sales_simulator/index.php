@@ -7,6 +7,9 @@
       <a class="btn btn-sm btn-outline-secondary" target="_blank" href="https://www.ebay.com/">🔍 eBay</a>
       <a class="btn btn-sm btn-outline-secondary" target="_blank" href="https://www.amazon.com/">🔍 Amazon</a>
       <a class="btn btn-sm btn-outline-secondary" target="_blank" href="https://www.bestbuy.com/">🔍 Best Buy</a>
+      <a class="btn btn-sm btn-outline-secondary" target="_blank" href="https://www.costco.com/">🔍 Costco</a>
+      <a class="btn btn-sm btn-outline-secondary" target="_blank" href="https://www.walmart.com/">🔍 Walmart</a>
+      <a class="btn btn-sm btn-outline-secondary" target="_blank" href="https://www.samsclub.com/">🔍 Sam's Club</a>
     </div>
   </div>
 
