@@ -30,9 +30,11 @@
     <div class="col-12">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h5 class="m-0">Produtos</h5>
-        <button type="button" class="btn btn-sm btn-outline-primary" id="btn-add-prod">Adicionar produto</button>
       </div>
       <div id="produtos" class="vstack gap-3"></div>
+      <div class="mt-2">
+        <button type="button" class="btn btn-sm btn-outline-primary" id="btn-add-prod">Adicionar produto</button>
+      </div>
     </div>
     <div class="col-12 d-flex flex-wrap gap-2">
       <button class="btn btn-primary" id="btn-calcular">Calcular</button>
