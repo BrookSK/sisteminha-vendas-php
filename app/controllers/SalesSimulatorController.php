@@ -13,6 +13,7 @@ class SalesSimulatorController extends Controller
         $this->requireRole(['seller','trainee','manager','admin','organic']);
         try { $rate = (float)((new Setting())->get('usd_rate', '5.83')); } catch (\Throwable $e) { $rate = 5.83; }
         $budgetData = null;
+        $budgetName = '';
         $budgetId = (int)($_GET['budget_id'] ?? 0);
         if ($budgetId > 0) {
             $me = Auth::user();
@@ -22,6 +23,7 @@ class SalesSimulatorController extends Controller
                     $model = new SimulatorBudget();
                     $row = $model->findForUser($budgetId, $userId);
                     if ($row) {
+                        $budgetName = (string)($row['name'] ?? '');
                         $decoded = json_decode($row['data_json'] ?? '[]', true);
                         if (is_array($decoded)) { $budgetData = $decoded; }
                     }
@@ -35,6 +37,7 @@ class SalesSimulatorController extends Controller
             'usd_rate' => $rate,
             'budget_data' => $budgetData,
             'budget_id' => $budgetId,
+            'budget_name' => $budgetName,
         ]);
     }
 }

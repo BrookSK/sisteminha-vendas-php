@@ -1,4 +1,4 @@
-<?php /** @var float $usd_rate */ /** @var array|null $budget_data */ /** @var int $budget_id */ ?>
+<?php /** @var float $usd_rate */ /** @var array|null $budget_data */ /** @var int $budget_id */ /** @var string $budget_name */ ?>
 <?php use Core\Auth; ?>
 <div class="container py-3">
   <div class="d-flex justify-content-between align-items-center mb-3">
@@ -103,6 +103,7 @@
   function nfBRL(v){ return `R$ ${Number(v||0).toFixed(2)}`; }
   const initialBudget = <?php echo json_encode($budget_data ?? null, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); ?>;
   const currentBudgetId = <?php echo (int)($budget_id ?? 0); ?>;
+  const currentBudgetName = <?php echo json_encode($budget_name ?? '', JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); ?>;
   const csrfToken = '<?= htmlspecialchars(Auth::csrf()) ?>';
 
   const produtos = document.getElementById('produtos');
@@ -342,6 +343,10 @@
     btnSalvar.addEventListener('click', function(){
       const nomeInput = document.getElementById('orcamento_nome');
       if (nomeInput) {
+        // Se já existe um orçamento carregado, pré-preenche com o nome salvo
+        if (currentBudgetId > 0 && currentBudgetName) {
+          nomeInput.value = currentBudgetName;
+        }
         nomeInput.value = nomeInput.value || '';
       }
       const modalEl = document.getElementById('modalSalvarOrcamento');
