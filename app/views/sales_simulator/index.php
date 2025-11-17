@@ -336,12 +336,6 @@
     return { taxa_cambio: taxaCambio, envio_brasil: envioBrasil, items: items };
   }
 
-  const modalEl = document.getElementById('modalSalvarOrcamento');
-  let modalInstance = null;
-  if (modalEl && window.bootstrap && window.bootstrap.Modal) {
-    modalInstance = new window.bootstrap.Modal(modalEl);
-  }
-
   const btnSalvar = document.getElementById('btn-salvar-orcamento');
   const btnConfirmarSalvar = document.getElementById('btn-confirmar-salvar-orcamento');
   if (btnSalvar && btnConfirmarSalvar) {
@@ -350,8 +344,10 @@
       if (nomeInput) {
         nomeInput.value = nomeInput.value || '';
       }
-      if (modalInstance) {
-        modalInstance.show();
+      const modalEl = document.getElementById('modalSalvarOrcamento');
+      if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+        const instance = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+        instance.show();
       }
     });
 
@@ -377,7 +373,11 @@
           alert('Não foi possível salvar o orçamento.');
           return;
         }
-        if (modalInstance) modalInstance.hide();
+        const modalEl = document.getElementById('modalSalvarOrcamento');
+        if (modalEl && window.bootstrap && window.bootstrap.Modal) {
+          const instance = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+          instance.hide();
+        }
         alert('Orçamento salvo com sucesso!');
         if (resp.id && !currentBudgetId) {
           const url = new URL(window.location.href);
