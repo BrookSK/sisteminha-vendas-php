@@ -296,15 +296,19 @@
     const linhas = [];
     linhas.push(`Os itens (${lista}) somam ${nfUSD(s.somaValor||0)}. A taxa de serviço é ${nfUSD(s.taxaServico||0)} (US$ 39 por kg, considerando peso total arredondado de ${s.pesoTotalArred||0} kg).`);
     const compUSD = s.subtotalUSD||0;
+    linhas.push('');
     linhas.push(`O total, já com fretes até a sede e imposto local quando aplicável, fica em ${nfUSD(compUSD)}, o que convertido pela taxa de câmbio atual (${nfBRL(s.taxaCambio||0)}) fica em ${nfBRL(s.subtotalBRL||0)}.`);
     if (s.envioBrasil) {
+      linhas.push('');
       linhas.push('A estimativa dos impostos de importação, calculados sobre o valor dos produtos em reais, seria:');
       linhas.push(`Imposto de Importação (60%): ${nfBRL(s.impostoImport||0)}`);
       linhas.push(`ICMS (20% sobre (produto + 60%)): ${nfBRL(s.icms||0)}`);
       linhas.push(`Total de impostos (Imposto de Importação + ICMS): ${nfBRL((s.impostoImport||0) + (s.icms||0))}`);
+      linhas.push('');
       linhas.push('⚠️ Lembrando que esses valores de impostos são apenas estimativas.');
       linhas.push('O pagamento dos impostos é feito diretamente à Receita Federal, quando o produto chega à alfândega.');
     }
+    linhas.push('');
     linhas.push('Pela Braziliana, o valor da compra é referente apenas aos produtos + taxa de serviço.');
     document.getElementById('mensagem').value = linhas.join('\n');
   });
