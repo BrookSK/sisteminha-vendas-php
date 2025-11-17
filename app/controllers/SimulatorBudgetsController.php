@@ -7,7 +7,7 @@ use Models\SimulatorBudget;
 
 class SimulatorBudgetsController extends Controller
 {
-    public function index(): void
+    public function index()
     {
         $this->requireRole(['seller','trainee','manager','admin','organic']);
         $me = Auth::user();
@@ -28,7 +28,7 @@ class SimulatorBudgetsController extends Controller
         ]);
     }
 
-    public function save(): void
+    public function save()
     {
         $this->requireRole(['seller','trainee','manager','admin','organic']);
         $this->csrfCheck();
@@ -55,7 +55,7 @@ class SimulatorBudgetsController extends Controller
         echo json_encode(['ok'=>true,'id'=>$savedId]);
     }
 
-    public function duplicate(): void
+    public function duplicate()
     {
         $this->requireRole(['seller','trainee','manager','admin','organic']);
         $this->csrfCheck();
@@ -74,7 +74,7 @@ class SimulatorBudgetsController extends Controller
         return $this->redirect('/admin/sales-simulator/budgets');
     }
 
-    public function delete(): void
+    public function delete()
     {
         $this->requireRole(['seller','trainee','manager','admin','organic']);
         $this->csrfCheck();
