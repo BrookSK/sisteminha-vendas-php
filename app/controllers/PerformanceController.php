@@ -9,6 +9,8 @@ use Models\User;
 use Models\MonthlySnapshot;
 use Models\Setting;
 
+use Models\Commission;
+
 class PerformanceController extends Controller
 {
     public function index()
