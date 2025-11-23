@@ -156,6 +156,28 @@
     </div>
   </div>
 
+  <?php $metrics = $salesMetrics ?? ['total_peso_kg'=>0.0,'total_produtos_compra_usd'=>0.0]; ?>
+  <div class="row g-3 mt-3">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Peso Total das Vendas (10 a 9)</div>
+        <div class="card-body">
+          <p class="mb-1"><strong>Janela:</strong> <?= htmlspecialchars($from) ?> a <?= htmlspecialchars($to) ?></p>
+          <p class="mb-0"><strong>Peso Total:</strong> <?= number_format((float)($metrics['total_peso_kg'] ?? 0), 2) ?> kg</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Produtos Compra (USD) - Total (10 a 9)</div>
+        <div class="card-body">
+          <p class="mb-1"><strong>Janela:</strong> <?= htmlspecialchars($from) ?> a <?= htmlspecialchars($to) ?></p>
+          <p class="mb-0"><strong>Total Produtos Compra (USD):</strong> <?= number_format((float)($metrics['total_produtos_compra_usd'] ?? 0), 2) ?></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="card mt-3">
     <div class="card-header">Como é calculado (Fórmulas com valores)</div>
     <div class="card-body">
