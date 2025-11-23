@@ -436,4 +436,48 @@ class Commission extends Model
         ];
         return $out;
     }
+
+    public function salesMetricsInRange(string $from, string $to): array
+    {
+        $totalPeso = 0.0;
+        $totalProdutosCompraUsd = 0.0;
+
+        $stmtV = $this->db->prepare('SELECT 
+                COALESCE(SUM(peso_kg),0) as peso_total,
+                COALESCE(SUM(produto_compra_usd),0) as produtos_compra_total
+            FROM vendas
+            WHERE created_at BETWEEN :from AND :to');
+        $stmtV->execute([':from' => $from, ':to' => $to]);
+        if ($r = $stmtV->fetch(PDO::FETCH_ASSOC)) {
+            $totalPeso += (float)($r['peso_total'] ?? 0);
+            $totalProdutosCompraUsd += (float)($r['produtos_compra_total'] ?? 0);
+        }
+
+        $stmtVi = $this->db->prepare('SELECT 
+                COALESCE(SUM(peso_kg),0) as peso_total,
+                COALESCE(SUM(produtos_compra_usd),0) as produtos_compra_total
+            FROM vendas_internacionais
+            WHERE data_lancamento BETWEEN :from_d AND :to_d');
+        $stmtVi->execute([':from_d' => substr($from,0,10), ':to_d' => substr($to,0,10)]);
+        if ($r = $stmtVi->fetch(PDO::FETCH_ASSOC)) {
+            $totalPeso += (float)($r['peso_total'] ?? 0);
+            $totalProdutosCompraUsd += (float)($r['produtos_compra_total'] ?? 0);
+        }
+
+        $stmtVn = $this->db->prepare('SELECT 
+                COALESCE(SUM(peso_kg),0) as peso_total,
+                COALESCE(SUM(produtos_compra_usd),0) as produtos_compra_total
+            FROM vendas_nacionais
+            WHERE data_lancamento BETWEEN :from_d AND :to_d');
+        $stmtVn->execute([':from_d' => substr($from,0,10), ':to_d' => substr($to,0,10)]);
+        if ($r = $stmtVn->fetch(PDO::FETCH_ASSOC)) {
+            $totalPeso += (float)($r['peso_total'] ?? 0);
+            $totalProdutosCompraUsd += (float)($r['produtos_compra_total'] ?? 0);
+        }
+
+        return [
+            'total_peso_kg' => $totalPeso,
+            'total_produtos_compra_usd' => $totalProdutosCompraUsd,
+        ];
+    }
 }

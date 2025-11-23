@@ -226,6 +226,7 @@ class CommissionsController extends Controller
         }
         $costs = $model->costsInRange($from, $to);
         $sources = $model->sellerSourceSums((int)($u['id'] ?? 0), $from, $to);
+        $salesMetrics = $model->salesMetricsInRange($from, $to);
         $this->render('commissions/debug', [
             'title' => 'Debug de Comissões',
             'period' => $period,
@@ -236,6 +237,7 @@ class CommissionsController extends Controller
             'costs' => $costs,
             'sources' => $sources,
             'items' => $calc['items'] ?? [],
+            'salesMetrics' => $salesMetrics,
         ]);
     }
 }
