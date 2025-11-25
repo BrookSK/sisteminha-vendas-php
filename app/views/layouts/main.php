@@ -45,6 +45,7 @@ use Core\Auth;
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/sales-simulator">Simulador de Cálculo</a></li>
                 <li><a class="dropdown-item" href="/admin/sales-simulator/budgets">Histórico de Orçamentos</a></li>
+                <li><a class="dropdown-item" href="/admin/simulator-products">Produtos do Simulador</a></li>
                 <li><a class="dropdown-item" href="/admin/message-templates">Mensagens Padrão</a></li>
               </ul>
             </li>

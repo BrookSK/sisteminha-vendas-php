@@ -9,6 +9,7 @@ use Models\Notification;
 use Models\InternationalSale;
 use Models\NationalSale;
 use Models\Purchase;
+use Models\SimulatorProduct;
 use Models\User;
 
 class ApprovalsController extends Controller
@@ -184,6 +185,24 @@ class ApprovalsController extends Controller
                     $this->flash('danger', 'Falha ao excluir a venda nacional #'.$sid.'.');
                 }
                 return $this->redirect('/admin/approvals');
+            }
+        } elseif ($etype === 'product') {
+            $prod = new SimulatorProduct();
+            if (($appr['action'] ?? '') === 'create') {
+                $data = (array)($payload['data'] ?? []);
+                $links = (array)($payload['links'] ?? []);
+                $prod->create($data, $links);
+                $apprModel->approve($id, (int)($me['id'] ?? 0));
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Produto aprovado', 'Seu cadastro de produto do simulador foi aprovado.', 'approval', 'approved', [$createdBy]);
+            } elseif (($appr['action'] ?? '') === 'update') {
+                $pid = (int)($payload['id'] ?? (int)($appr['entity_id'] ?? 0));
+                $data = (array)($payload['data'] ?? []);
+                $links = (array)($payload['links'] ?? []);
+                if ($pid > 0) {
+                    $prod->update($pid, $data, $links);
+                }
+                $apprModel->approve($id, (int)($me['id'] ?? 0));
+                (new Notification())->createWithUsers((int)($me['id'] ?? 0), 'Edição de produto aprovada', 'Sua edição de produto do simulador foi aprovada.', 'approval', 'approved', [$createdBy]);
             }
         } else {
             $apprModel->approve($id, (int)($me['id'] ?? 0));
