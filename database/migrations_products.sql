@@ -1,7 +1,3 @@
--- Banco exclusivo para produtos do simulador
-CREATE DATABASE IF NOT EXISTS `sisteminha_produtos` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `sisteminha_produtos`;
-
 -- Tabela principal de produtos do simulador
 CREATE TABLE IF NOT EXISTS simulator_products (
   id INT AUTO_INCREMENT PRIMARY KEY,
