@@ -307,6 +307,16 @@ $router->group('/admin', function($r) {
     $r->post('/sales-simulator/budgets/save', 'Controllers\\SimulatorBudgetsController@save');
     $r->post('/sales-simulator/budgets/duplicate', 'Controllers\\SimulatorBudgetsController@duplicate');
     $r->post('/sales-simulator/budgets/delete', 'Controllers\\SimulatorBudgetsController@delete');
+    // Produtos do simulador (tela própria)
+    $r->get('/simulator-products', 'Controllers\\SimulatorProductsController@index');
+    $r->get('/simulator-products/new', 'Controllers\\SimulatorProductsController@new');
+    $r->post('/simulator-products/create', 'Controllers\\SimulatorProductsController@create');
+    $r->get('/simulator-products/edit', 'Controllers\\SimulatorProductsController@edit');
+    $r->post('/simulator-products/update', 'Controllers\\SimulatorProductsController@update');
+    $r->post('/simulator-products/delete', 'Controllers\\SimulatorProductsController@delete');
+    // Produtos do simulador - integrações AJAX com a tela do simulador
+    $r->get('/sales-simulator/products/search', 'Controllers\\SimulatorProductsController@search');
+    $r->post('/sales-simulator/products/create-ajax', 'Controllers\\SimulatorProductsController@createAjax');
 
     // Vendas Nacionais
     $r->get('/national-sales', 'Controllers\\NationalSalesController@index');

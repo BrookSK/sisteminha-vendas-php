@@ -38,4 +38,15 @@ return [
         'cookie_httponly' => true,
         'cookie_samesite' => 'Lax',
     ],
+
+    // NOVO: banco exclusivo de produtos do simulador
+    'db_products' => [
+        // se for o mesmo host/usuário/porta, pode só mudar o database
+        'host' => 'localhost',
+        'port' => 3306,
+        'database' => 'sisteminha_produtos', // <- novo schema
+        'username' => 'user',
+        'password' => 'senha',
+        'charset' => 'utf8mb4',
+    ],
 ];
