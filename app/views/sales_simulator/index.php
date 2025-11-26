@@ -274,10 +274,11 @@
           </div>
         </div>
         <div class="row g-2 align-items-end">
-          <div class="col-md-4">
+          <div class="col-md-4 position-relative">
             <label class="form-label">Nome do produto</label>
             <input type="text" class="form-control nome_produto" placeholder="Ex: Apple Watch Series 10 Titanium 46mm">
             <div class="small text-muted mt-1">Digite para buscar na base de produtos ou clique em "Criar produto".</div>
+            <div class="list-group" data-prod-resultados style="position:absolute;top:100%;left:0;right:0;z-index:1080;max-height:260px;overflow:auto;display:none;"></div>
           </div>
           <div class="col-md-2">
             <label class="form-label">Qtd.</label>
@@ -298,7 +299,6 @@
           <div class="col-md-2 mt-2 d-flex align-items-end">
             <div class="d-flex flex-column flex-md-column w-100 gap-1">
               <div class="d-flex flex-wrap gap-2">
-                <button type="button" class="btn btn-sm btn-outline-secondary btn-prod-buscar">Buscar produto</button>
                 <button type="button" class="btn btn-sm btn-outline-primary btn-prod-criar">Criar produto</button>
               </div>
               <input type="hidden" class="produto_id" value="">
@@ -349,42 +349,71 @@
     wrap.querySelector('.btn-remove').addEventListener('click', ()=>{ wrap.remove(); });
 
     // Integração com base de produtos
-    const btnBuscarProd = wrap.querySelector('.btn-prod-buscar');
     const btnCriarProd = wrap.querySelector('.btn-prod-criar');
     const criarBox = wrap.querySelector('[data-prod-criar-box]');
     const inputNome = wrap.querySelector('.nome_produto');
     const inputPeso = wrap.querySelector('.peso_produto');
     const inputProdId = wrap.querySelector('.produto_id');
+    const resultadosBox = wrap.querySelector('[data-prod-resultados]');
 
     function preencherProdutoFromApi(p){
       if (!p) return;
       if (inputNome) inputNome.value = p.nome || inputNome.value;
       if (inputPeso && typeof p.peso_kg !== 'undefined') inputPeso.value = String(p.peso_kg);
       if (inputProdId) inputProdId.value = p.id || '';
+      if (resultadosBox) {
+        resultadosBox.innerHTML = '';
+        resultadosBox.style.display = 'none';
+      }
     }
 
-    if (btnBuscarProd && inputNome) {
-      btnBuscarProd.addEventListener('click', function(){
-        const q = inputNome.value.trim();
+    function renderProdResults(items) {
+      if (!resultadosBox) return;
+      resultadosBox.innerHTML = '';
+      if (!items || !items.length) {
+        resultadosBox.style.display = 'none';
+        return;
+      }
+      items.forEach(function(p){
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'list-group-item list-group-item-action';
+        const pesoLabel = (typeof p.peso_kg !== 'undefined' && p.peso_kg !== null)
+          ? ` - ${p.peso_kg} kg` : '';
+        btn.textContent = (p.nome || '') + pesoLabel;
+        btn.addEventListener('click', function(){
+          preencherProdutoFromApi(p);
+        });
+        resultadosBox.appendChild(btn);
+      });
+      resultadosBox.style.display = '';
+    }
+
+    let prodSearchTimer = null;
+    if (inputNome && resultadosBox) {
+      inputNome.addEventListener('input', function(){
+        const q = this.value.trim();
+        if (prodSearchTimer) window.clearTimeout(prodSearchTimer);
         if (!q) {
-          alert('Digite parte do nome do produto para buscar.');
+          renderProdResults([]);
           return;
         }
-        fetch('/admin/sales-simulator/products/search?q=' + encodeURIComponent(q))
-          .then(r=>r.json())
-          .then(function(rows){
-            if (!rows || !rows.length) {
-              if (isTrainee) {
-                alert('Nenhum produto encontrado na base. Como você é trainee, crie o produto pela tela "Produtos do Simulador" no menu de Vendas para enviar para aprovação do seu supervisor.');
-              } else {
-                alert('Nenhum produto encontrado na base. Você pode utilizar a opção "Criar produto" para cadastrá-lo.');
+        prodSearchTimer = window.setTimeout(function(){
+          fetch('/admin/sales-simulator/products/search?q=' + encodeURIComponent(q))
+            .then(r=>r.json())
+            .then(function(rows){
+              if (!rows || !rows.length) {
+                renderProdResults([]);
+                if (isTrainee) {
+                  // Mantém a regra de trainee não criar produto rápido
+                  alert('Nenhum produto encontrado na base. Como você é trainee, crie o produto pela tela "Produtos do Simulador" no menu de Vendas para enviar para aprovação do seu supervisor.');
+                }
+                return;
               }
-              return;
-            }
-            const first = rows[0];
-            preencherProdutoFromApi(first);
-          })
-          .catch(function(){ alert('Erro ao buscar produtos.'); });
+              renderProdResults(rows);
+            })
+            .catch(function(){ renderProdResults([]); });
+        }, 300);
       });
     }
 
