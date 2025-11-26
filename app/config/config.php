@@ -1,6 +1,4 @@
 <?php
-// Configurações globais do sistema
-// Define env padrão aqui; pode ser sobrescrito por variável de ambiente APP_ENV
 $appEnv = getenv('APP_ENV') ?: 'dev';
 
 $app = [
@@ -28,6 +26,25 @@ $dbDev = [
     'charset' => 'utf8mb4',
 ];
 
+// >>> AQUI: bancos de PRODUTOS separados por ambiente
+$dbProductsProd = [
+    'host' => 'localhost',
+    'port' => 3306,
+    'database' => 'sisteminha_produtos_prod', // ex: produtos da produção
+    'username' => 'sistema_vendas_produtos_prod',      // ou outro usuário, se preferir
+    'password' => 'BZRVdb202503',
+    'charset' => 'utf8mb4',
+];
+
+$dbProductsDev = [
+    'host' => 'localhost',
+    'port' => 3306,
+    'database' => 'sisteminha_produtos_dev', // ex: produtos de desenvolvimento
+    'username' => 'sistema_vendas_produtos',         // ou outro usuário, se preferir
+    'password' => 'BZRVdb202503',
+    'charset' => 'utf8mb4',
+];
+
 return [
     'app' => $app,
     'db' => ($appEnv === 'prod') ? $dbProd : $dbDev,
@@ -38,4 +55,7 @@ return [
         'cookie_httponly' => true,
         'cookie_samesite' => 'Lax',
     ],
+
+    // Banco exclusivo de produtos do simulador, também separado por env
+    'db_products' => ($appEnv === 'prod') ? $dbProductsProd : $dbProductsDev,
 ];

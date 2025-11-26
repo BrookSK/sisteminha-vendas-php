@@ -34,6 +34,7 @@ use Core\Auth;
               <ul class="dropdown-menu" aria-labelledby="menuCadastrosSeller">
                 <li><a class="dropdown-item" href="/admin/clients">Clientes</a></li>
                 <li><a class="dropdown-item" href="/admin/attendances">Atendimentos</a></li>
+                <li><a class="dropdown-item" href="/admin/simulator-products">Produtos do Simulador</a></li>
               </ul>
             </li>
             <!-- Vendas (seller) -->
@@ -45,6 +46,7 @@ use Core\Auth;
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/sales-simulator">Simulador de Cálculo</a></li>
                 <li><a class="dropdown-item" href="/admin/sales-simulator/budgets">Histórico de Orçamentos</a></li>
+                <li><a class="dropdown-item" href="/admin/simulator-products">Produtos do Simulador</a></li>
                 <li><a class="dropdown-item" href="/admin/message-templates">Mensagens Padrão</a></li>
               </ul>
             </li>
@@ -73,6 +75,7 @@ use Core\Auth;
               <ul class="dropdown-menu" aria-labelledby="menuCadastrosTrainee">
                 <li><a class="dropdown-item" href="/admin/clients">Clientes</a></li>
                 <li><a class="dropdown-item" href="/admin/attendances">Atendimentos</a></li>
+                <li><a class="dropdown-item" href="/admin/simulator-products">Produtos do Simulador</a></li>
               </ul>
             </li>
             <!-- Vendas (trainee) -->
@@ -112,6 +115,7 @@ use Core\Auth;
               <ul class="dropdown-menu" aria-labelledby="menuCadastrosOrganic">
                 <li><a class="dropdown-item" href="/admin/clients">Clientes</a></li>
                 <li><a class="dropdown-item" href="/admin/attendances">Atendimentos</a></li>
+                <li><a class="dropdown-item" href="/admin/simulator-products">Produtos do Simulador</a></li>
               </ul>
             </li>
             <!-- Vendas (orgânico) -->
@@ -158,6 +162,7 @@ use Core\Auth;
               <ul class="dropdown-menu" aria-labelledby="menuCadastros">
                 <li><a class="dropdown-item" href="/admin/clients">Clientes</a></li>
                 <li><a class="dropdown-item" href="/admin/attendances">Atendimentos</a></li>
+                <li><a class="dropdown-item" href="/admin/simulator-products">Produtos do Simulador</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/costs">Custos</a></li>
