@@ -631,22 +631,30 @@
   if (btnGerar) {
     btnGerar.addEventListener('click', function(){
       const envioBrasilMarcado = document.getElementById('envio_brasil').checked;
-      if (!envioBrasilMarcado && modalEnvioEl && window.bootstrap && window.bootstrap.Modal) {
-        const modal = window.bootstrap.Modal.getOrCreateInstance(modalEnvioEl);
-        modal.show();
+      if (!envioBrasilMarcado && modalEnvioEl) {
+        // Tenta usar o modal do Bootstrap, se disponível; senão, segue direto com o fluxo
+        if (window.bootstrap && window.bootstrap.Modal) {
+          const modal = window.bootstrap.Modal.getOrCreateInstance(modalEnvioEl);
+          modal.show();
+        } else {
+          fluxoGerarESalvar();
+        }
       } else {
         fluxoGerarESalvar();
       }
     });
   }
 
-  if (modalEnvioEl && window.bootstrap && window.bootstrap.Modal) {
-    const modal = window.bootstrap.Modal.getOrCreateInstance(modalEnvioEl);
+  if (modalEnvioEl) {
     if (btnModalEnvioSim) {
       btnModalEnvioSim.addEventListener('click', function(){
         const chk = document.getElementById('envio_brasil');
         if (chk) chk.checked = true;
-        modal.hide();
+        // Fecha o modal se o Bootstrap estiver disponível
+        if (window.bootstrap && window.bootstrap.Modal) {
+          const modal = window.bootstrap.Modal.getOrCreateInstance(modalEnvioEl);
+          modal.hide();
+        }
         fluxoGerarESalvar();
       });
     }
@@ -654,7 +662,10 @@
       btnModalEnvioNao.addEventListener('click', function(){
         const chk = document.getElementById('envio_brasil');
         if (chk) chk.checked = false;
-        modal.hide();
+        if (window.bootstrap && window.bootstrap.Modal) {
+          const modal = window.bootstrap.Modal.getOrCreateInstance(modalEnvioEl);
+          modal.hide();
+        }
         fluxoGerarESalvar();
       });
     }
