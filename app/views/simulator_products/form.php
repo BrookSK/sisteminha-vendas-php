@@ -11,12 +11,20 @@
             <input type="text" name="nome" class="form-control" required value="<?= htmlspecialchars($product['nome'] ?? '') ?>">
           </div>
           <div class="mb-3">
+            <label class="form-label">SKU</label>
+            <input type="text" name="sku" class="form-control" value="<?= htmlspecialchars($product['sku'] ?? '') ?>">
+          </div>
+          <div class="mb-3">
             <label class="form-label">Marca</label>
             <input type="text" name="marca" class="form-control" value="<?= htmlspecialchars($product['marca'] ?? '') ?>">
           </div>
           <div class="mb-3">
             <label class="form-label">Peso (Kg)</label>
             <input type="number" step="0.01" min="0" name="peso_kg" class="form-control" value="<?= htmlspecialchars((string)($product['peso_kg'] ?? '0')) ?>">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Link da imagem (URL)</label>
+            <input type="url" name="image_url" class="form-control" placeholder="https://..." value="<?= htmlspecialchars($product['image_url'] ?? '') ?>">
           </div>
           <div class="mb-3">
             <label class="form-label">Links de compra</label>

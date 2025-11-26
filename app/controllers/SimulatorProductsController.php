@@ -30,7 +30,8 @@ class SimulatorProductsController extends Controller
         header('Content-Disposition: attachment; filename="modelo_produtos_simulador.csv"');
         $out = fopen('php://output', 'w');
         // Cabeçalho da planilha modelo
-        fputcsv($out, ['sku', 'imagem', 'descricao', 'peso_kg']);
+        // Coluna "marca" é opcional: se o usuário não quiser preencher, pode deixar em branco ou remover a coluna.
+        fputcsv($out, ['sku', 'imagem', 'descricao', 'marca', 'peso_kg']);
         fclose($out);
         return exit;
     }
@@ -55,7 +56,8 @@ class SimulatorProductsController extends Controller
 
         // Lê cabeçalho
         $header = fgetcsv($handle, 0, ',');
-        $map = ['sku' => null, 'imagem' => null, 'descricao' => null, 'peso_kg' => null];
+        // "marca" é opcional: se não existir na planilha, será simplesmente ignorada
+        $map = ['sku' => null, 'imagem' => null, 'descricao' => null, 'marca' => null, 'peso_kg' => null];
         if (is_array($header)) {
             foreach ($header as $idx => $col) {
                 $col = mb_strtolower(trim((string)$col));
@@ -73,6 +75,7 @@ class SimulatorProductsController extends Controller
             $sku = $map['sku'] !== null ? trim((string)($row[$map['sku']] ?? '')) : '';
             $imagem = $map['imagem'] !== null ? trim((string)($row[$map['imagem']] ?? '')) : '';
             $descricao = $map['descricao'] !== null ? trim((string)($row[$map['descricao']] ?? '')) : '';
+            $marca = $map['marca'] !== null ? trim((string)($row[$map['marca']] ?? '')) : '';
             $pesoStr = $map['peso_kg'] !== null ? trim((string)($row[$map['peso_kg']] ?? '')) : '';
             if ($descricao === '' && $sku === '') {
                 continue; // linha vazia
@@ -102,7 +105,8 @@ class SimulatorProductsController extends Controller
             $model->create([
                 'sku' => $sku !== '' ? $sku : null,
                 'nome' => $descricao !== '' ? $descricao : ($sku ?: 'Produto sem descrição'),
-                'marca' => null,
+                // Marca é opcional: se vier na planilha, usa; se não, mantém null
+                'marca' => $marca !== '' ? $marca : null,
                 'image_url' => $imagem !== '' ? $imagem : null,
                 'peso_kg' => $peso,
             ], []);
