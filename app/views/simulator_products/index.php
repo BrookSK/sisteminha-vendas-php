@@ -27,6 +27,7 @@
             <th>Imagem</th>
             <th>SKU</th>
             <th>Nome</th>
+            <th>Marca</th>
             <th>Peso (Kg)</th>
             <th>Criado em</th>
             <th>Editado em</th>
@@ -45,6 +46,7 @@
               </td>
               <td><?= htmlspecialchars($p['sku'] ?? '') ?></td>
               <td><?= htmlspecialchars($p['nome'] ?? '') ?></td>
+              <td><?= htmlspecialchars($p['marca'] ?? '') ?></td>
               <td><?= htmlspecialchars(number_format((float)($p['peso_kg'] ?? 0), 2, ',', '.')) ?></td>
               <td><?= htmlspecialchars(!empty($p['created_at']) ? date('d/m/Y H:i', strtotime($p['created_at'])) : '-') ?></td>
               <td><?= htmlspecialchars(!empty($p['updated_at']) ? date('d/m/Y H:i', strtotime($p['updated_at'])) : '-') ?></td>

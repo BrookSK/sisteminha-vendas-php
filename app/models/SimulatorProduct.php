@@ -20,7 +20,7 @@ class SimulatorProduct
 
     public function searchByName(?string $q = null, int $limit = 20, int $offset = 0): array
     {
-        $sql = 'SELECT id, sku, nome, marca, image_url, peso_kg FROM simulator_products';
+        $sql = 'SELECT id, sku, nome, marca, image_url, peso_kg, created_at, updated_at FROM simulator_products';
         $params = [];
         if ($q !== null && $q !== '') {
             $sql .= ' WHERE nome LIKE :q OR sku LIKE :q';
@@ -39,7 +39,7 @@ class SimulatorProduct
 
     public function find(int $id): ?array
     {
-        $stmt = $this->db->prepare('SELECT id, sku, nome, marca, image_url, peso_kg FROM simulator_products WHERE id = :id');
+        $stmt = $this->db->prepare('SELECT id, sku, nome, marca, image_url, peso_kg, created_at, updated_at FROM simulator_products WHERE id = :id');
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) return null;
