@@ -33,10 +33,10 @@
     <div class="col-12">
       <h5 class="mt-3">Cliente</h5>
       <div class="row g-2 align-items-end">
-        <div class="col-md-6">
+        <div class="col-md-6 position-relative">
           <label class="form-label">Buscar cliente (nome ou suíte)</label>
           <input type="text" class="form-control" id="cliente_busca" placeholder="Digite o nome ou a suíte (ex.: BR-123)">
-          <div class="list-group mt-1" id="cliente_resultados" style="max-height:200px;overflow:auto;display:none;"></div>
+          <div class="list-group" id="cliente_resultados" style="position:absolute;top:100%;left:0;right:0;z-index:1080;max-height:260px;overflow:auto;display:none;"></div>
         </div>
         <div class="col-md-6">
           <label class="form-label">Cliente selecionado</label>
@@ -270,7 +270,7 @@
           </div>
         </div>
         <div class="row g-2 align-items-end">
-          <div class="col-md-5">
+          <div class="col-md-4">
             <label class="form-label">Nome do produto</label>
             <input type="text" class="form-control nome_produto" placeholder="Ex: Apple Watch Series 10 Titanium 46mm">
             <div class="small text-muted mt-1">Digite para buscar na base de produtos ou clique em "Criar produto".</div>
@@ -283,20 +283,22 @@
             <label class="form-label">Valor (USD)</label>
             <input type="number" step="0.01" min="0" class="form-control valor_produto" value="0">
           </div>
-          <div class="col-md-3">
+          <div class="col-md-2">
             <label class="form-label">Peso (Kg)</label>
             <input type="number" step="0.01" min="0" class="form-control peso_produto" value="0">
           </div>
-          <div class="col-md-3 frete_group" style="display:none;">
+          <div class="col-md-2 frete_group" style="display:none;">
             <label class="form-label">Frete (USD)</label>
             <input type="number" step="0.01" min="0" class="form-control frete_usd" value="0">
           </div>
-          <div class="col-md-12 mt-2 d-flex justify-content-between align-items-center">
-            <div class="d-flex flex-wrap gap-2">
-              <button type="button" class="btn btn-sm btn-outline-secondary btn-prod-buscar">Buscar produto</button>
-              <button type="button" class="btn btn-sm btn-outline-primary btn-prod-criar">Criar produto</button>
+          <div class="col-md-2 mt-2 d-flex align-items-end">
+            <div class="d-flex flex-column flex-md-column w-100 gap-1">
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary btn-prod-buscar">Buscar produto</button>
+                <button type="button" class="btn btn-sm btn-outline-primary btn-prod-criar">Criar produto</button>
+              </div>
+              <input type="hidden" class="produto_id" value="">
             </div>
-            <input type="hidden" class="produto_id" value="">
           </div>
           <div class="col-md-12 mt-2" style="display:none;" data-prod-criar-box>
             <div class="row g-2">
