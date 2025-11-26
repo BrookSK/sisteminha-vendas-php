@@ -47,8 +47,6 @@ class SimulatorBudgetsController extends Controller
         $model = new SimulatorBudget();
         $paidRaw = $_POST['paid'] ?? null;
         $paid = $paidRaw === '1' || $paidRaw === 'true' || $paidRaw === 'on';
-        $paidAt = trim($_POST['paid_at'] ?? '');
-        if ($paidAt === '') { $paidAt = null; }
         if ($id > 0) {
             $model->updateForUser($id, $userId, $name, $payload);
             $savedId = $id;
@@ -56,7 +54,8 @@ class SimulatorBudgetsController extends Controller
             $savedId = $model->createForUser($userId, $name, $payload);
         }
         if ($savedId > 0) {
-            $model->setPaidForUser($savedId, $userId, $paid, $paidAt ?: null);
+            // Deixa o modelo definir a data de pagamento automaticamente (NOW) quando marcar como pago
+            $model->setPaidForUser($savedId, $userId, $paid, null);
         }
         header('Content-Type: application/json');
         echo json_encode(['ok'=>true,'id'=>$savedId]);
@@ -106,9 +105,9 @@ class SimulatorBudgetsController extends Controller
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) { return $this->redirect('/admin/sales-simulator/budgets'); }
         $paid = isset($_POST['paid']) ? (bool)$_POST['paid'] : false;
-        $paidAt = $_POST['paid_at'] ?? null;
         $model = new SimulatorBudget();
-        $model->setPaidForUser($id, $userId, $paid, $paidAt ?: null);
+        // Sem data manual: modelo usa NOW quando pago=true e limpa quando pago=false
+        $model->setPaidForUser($id, $userId, $paid, null);
         $this->flash('success', $paid ? 'Orçamento marcado como pago.' : 'Marcação de pagamento removida.');
         return $this->redirect('/admin/sales-simulator/budgets');
     }

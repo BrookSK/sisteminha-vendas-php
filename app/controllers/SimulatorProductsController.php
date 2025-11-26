@@ -116,6 +116,16 @@ class SimulatorProductsController extends Controller
         return $this->redirect('/admin/simulator-products');
     }
 
+    // GET /admin/simulator-products/import
+    public function importForm()
+    {
+        $this->requireRole(['admin']);
+        $this->render('simulator_products/import', [
+            'title' => 'Importar Produtos do Simulador',
+            '_csrf' => Auth::csrf(),
+        ]);
+    }
+
     public function new()
     {
         $this->requireRole(['admin']);

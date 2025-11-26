@@ -41,10 +41,6 @@
         <input class="form-check-input" type="checkbox" id="orcamento_pago">
         <label class="form-check-label" for="orcamento_pago">Orçamento pago?</label>
       </div>
-      <div class="mt-2" id="data_pagamento_box" style="display:none;">
-        <label class="form-label">Data de pagamento</label>
-        <input type="datetime-local" class="form-control" id="data_pagamento">
-      </div>
     </div>
     <div class="col-12">
       <h5 class="mt-3">Cliente</h5>
@@ -153,7 +149,6 @@
   let currentBudgetId = currentBudgetIdServer;
   const currentBudgetName = <?php echo json_encode($budget_name ?? '', JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); ?>;
   const currentBudgetPaid = <?php echo !empty($budget_paid) ? 'true' : 'false'; ?>;
-  const currentBudgetPaidAt = <?php echo json_encode($budget_paid_at ?? null, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); ?>;
   const csrfToken = '<?= htmlspecialchars(Auth::csrf()) ?>';
   const currentUserRole = <?= json_encode((string)(Auth::user()['role'] ?? 'seller')) ?>;
   const isTrainee = (currentUserRole === 'trainee');
@@ -445,15 +440,9 @@
 
   function loadInitialBudget(){
     const pagoEl = document.getElementById('orcamento_pago');
-    const pagoDataEl = document.getElementById('data_pagamento');
     if (pagoEl) {
       pagoEl.checked = !!currentBudgetPaid;
     }
-    if (pagoDataEl && currentBudgetPaidAt) {
-      // Mantém o valor bruto vindo do servidor; se você quiser, pode depois formatar para datetime-local
-      pagoDataEl.value = currentBudgetPaidAt;
-    }
-
     if (!initialBudget || !Array.isArray(initialBudget.items) || initialBudget.items.length === 0) {
       produtos.appendChild(makeItem(0));
       return;
@@ -493,14 +482,6 @@
 
   loadInitialBudget();
 
-  const orcamentoPago = document.getElementById('orcamento_pago');
-  const dataPagamentoBox = document.getElementById('data_pagamento_box');
-  if (orcamentoPago && dataPagamentoBox) {
-    orcamentoPago.addEventListener('change', function(){
-      dataPagamentoBox.style.display = this.checked ? '' : 'none';
-    });
-  }
-
   document.getElementById('btn-calcular').addEventListener('click', ()=>{
     const taxaCambio = parseFloat(document.getElementById('taxa_cambio').value||0);
     const envioBrasil = document.getElementById('envio_brasil').checked;
@@ -511,8 +492,6 @@
     const clienteSuiteBr = selectedClient ? (selectedClient.suite_br || null) : null;
     const orcamentoPagoEl = document.getElementById('orcamento_pago');
     const orcamentoPago = !!(orcamentoPagoEl && orcamentoPagoEl.checked);
-    const dataPagamentoEl = document.getElementById('data_pagamento');
-    const dataPagamento = (dataPagamentoEl && dataPagamentoEl.value) ? dataPagamentoEl.value : null;
     const items = Array.from(produtos.querySelectorAll('.prod-item')).map(function(w){
       return {
         nome: (w.querySelector('.nome_produto')?.value || '').trim(),
@@ -534,7 +513,6 @@
       cliente_nome: clienteNome,
       cliente_suite_br: clienteSuiteBr,
       paid: orcamentoPago,
-      paid_at: dataPagamento,
       cashback_percent: sim.cashbackPercent || 0,
       cashback_usd: sim.cashbackUSD || 0,
       cashback_brl: sim.cashbackBRL || 0,
@@ -728,7 +706,6 @@
         payload: JSON.stringify(payload),
         id: currentBudgetId > 0 ? String(currentBudgetId) : '',
         paid: payload.paid ? '1' : '0',
-        paid_at: payload.paid_at || '',
       }),
     }).then(r=>r.json()).then(function(resp){
       if (!resp || !resp.ok) {
