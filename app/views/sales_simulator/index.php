@@ -30,6 +30,22 @@
         <label class="form-check-label" for="envio_brasil">Envio para o Brasil? (calcular impostos)</label>
       </div>
     </div>
+    <div class="col-md-4">
+      <div class="form-check form-switch mt-4">
+        <input class="form-check-input" type="checkbox" id="cliente_clube">
+        <label class="form-check-label" for="cliente_clube">Cliente faz parte do Clube?</label>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="form-check form-switch mt-4">
+        <input class="form-check-input" type="checkbox" id="orcamento_pago">
+        <label class="form-check-label" for="orcamento_pago">Orçamento pago?</label>
+      </div>
+      <div class="mt-2" id="data_pagamento_box" style="display:none;">
+        <label class="form-label">Data de pagamento</label>
+        <input type="datetime-local" class="form-control" id="data_pagamento">
+      </div>
+    </div>
     <div class="col-12">
       <h5 class="mt-3">Cliente</h5>
       <div class="row g-2 align-items-end">
@@ -126,7 +142,7 @@
       </div>
     </div>
   </div>
-  </div>
+</div>
 
 <script>
 (function(){
@@ -136,6 +152,8 @@
   const currentBudgetIdServer = <?php echo (int)($budget_id ?? 0); ?>;
   let currentBudgetId = currentBudgetIdServer;
   const currentBudgetName = <?php echo json_encode($budget_name ?? '', JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); ?>;
+  const currentBudgetPaid = <?php echo !empty($budget_paid) ? 'true' : 'false'; ?>;
+  const currentBudgetPaidAt = <?php echo json_encode($budget_paid_at ?? null, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); ?>;
   const csrfToken = '<?= htmlspecialchars(Auth::csrf()) ?>';
   const currentUserRole = <?= json_encode((string)(Auth::user()['role'] ?? 'seller')) ?>;
   const isTrainee = (currentUserRole === 'trainee');
@@ -284,7 +302,7 @@
           <div class="col-md-4 position-relative">
             <label class="form-label">Nome do produto</label>
             <input type="text" class="form-control nome_produto" placeholder="Ex: Apple Watch Series 10 Titanium 46mm">
-            <div class="small text-muted mt-1">Digite para buscar na base de produtos ou clique em "Criar produto".</div>
+            <div class="small text-muted mt-1">Digite para buscar na base de produtos cadastrados.</div>
             <div class="list-group" data-prod-resultados style="position:absolute;top:100%;left:0;right:0;z-index:1080;max-height:260px;overflow:auto;display:none;"></div>
           </div>
           <div class="col-md-2">
@@ -304,36 +322,7 @@
             <input type="number" step="0.01" min="0" class="form-control frete_usd" value="0">
           </div>
           <div class="col-md-2 mt-2 d-flex align-items-end">
-            <div class="d-flex flex-column flex-md-column w-100 gap-1">
-              <div class="d-flex flex-wrap gap-2">
-                <button type="button" class="btn btn-sm btn-outline-primary btn-prod-criar">Criar produto</button>
-              </div>
-              <input type="hidden" class="produto_id" value="">
-            </div>
-          </div>
-          <div class="col-md-12 mt-2" style="display:none;" data-prod-criar-box>
-            <div class="row g-2">
-              <div class="col-md-4">
-                <label class="form-label">Nome</label>
-                <input type="text" class="form-control prod_criar_nome">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Marca</label>
-                <input type="text" class="form-control prod_criar_marca">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Link para compra</label>
-                <input type="text" class="form-control prod_criar_link" placeholder="https://...">
-              </div>
-              <div class="col-md-3 mt-2">
-                <label class="form-label">Peso (Kg)</label>
-                <input type="number" step="0.01" min="0" class="form-control prod_criar_peso">
-              </div>
-              <div class="col-md-3 mt-4 d-flex align-items-end">
-                <button type="button" class="btn btn-sm btn-success w-100 btn-prod-salvar-rapido">Salvar produto</button>
-              </div>
-            </div>
-            <div class="small text-muted mt-1">O produto será salvo no banco exclusivo de produtos e poderá ser reutilizado em outros orçamentos.</div>
+            <input type="hidden" class="produto_id" value="">
           </div>
         </div>
       </div>`;
@@ -355,9 +344,7 @@
     });
     wrap.querySelector('.btn-remove').addEventListener('click', ()=>{ wrap.remove(); });
 
-    // Integração com base de produtos
-    const btnCriarProd = wrap.querySelector('.btn-prod-criar');
-    const criarBox = wrap.querySelector('[data-prod-criar-box]');
+    // Integração com base de produtos (apenas busca/autocomplete)
     const inputNome = wrap.querySelector('.nome_produto');
     const inputPeso = wrap.querySelector('.peso_produto');
     const inputProdId = wrap.querySelector('.produto_id');
@@ -424,57 +411,7 @@
       });
     }
 
-    if (btnCriarProd && criarBox) {
-      if (isTrainee) {
-        // Trainee não pode criar produto direto pelo simulador
-        btnCriarProd.addEventListener('click', function(){
-          alert('Como você é trainee, a criação de produtos deve ser feita pela tela "Produtos do Simulador" no menu de Vendas, para que seu supervisor possa aprovar.');
-        });
-        criarBox.style.display = 'none';
-      } else {
-        btnCriarProd.addEventListener('click', function(){
-          criarBox.style.display = criarBox.style.display === 'none' ? '' : 'none';
-          const criarNome = criarBox.querySelector('.prod_criar_nome');
-          if (criarNome && inputNome && !criarNome.value) criarNome.value = inputNome.value;
-        });
-      }
-    }
-
-    const btnProdSalvarRapido = wrap.querySelector('.btn-prod-salvar-rapido');
-    if (btnProdSalvarRapido && criarBox && !isTrainee) {
-      btnProdSalvarRapido.addEventListener('click', function(){
-        const nome = criarBox.querySelector('.prod_criar_nome')?.value.trim() || '';
-        const marca = criarBox.querySelector('.prod_criar_marca')?.value.trim() || '';
-        const link = criarBox.querySelector('.prod_criar_link')?.value.trim() || '';
-        const pesoQuick = parseFloat(criarBox.querySelector('.prod_criar_peso')?.value || '0') || 0;
-        if (!nome) {
-          alert('Informe o nome do produto.');
-          return;
-        }
-        const payload = new URLSearchParams();
-        payload.set('_csrf', csrfToken);
-        payload.set('nome', nome);
-        if (marca) payload.set('marca', marca);
-        if (!isNaN(pesoQuick)) payload.set('peso_kg', String(pesoQuick));
-        if (link) payload.set('links', link);
-        fetch('/admin/sales-simulator/products/create-ajax', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-          body: payload,
-        }).then(r=>r.json()).then(function(resp){
-          if (!resp || !resp.id) {
-            alert('Não foi possível salvar o produto.');
-            return;
-          }
-          preencherProdutoFromApi(resp);
-          if (inputNome && !inputNome.value) inputNome.value = resp.nome || nome;
-          if (inputPeso && !isNaN(resp.peso_kg)) inputPeso.value = String(resp.peso_kg);
-          criarBox.style.display = 'none';
-        }).catch(function(){
-          alert('Erro ao salvar o produto.');
-        });
-      });
-    }
+    // Removida a criação direta de produtos no simulador: produtos devem ser cadastrados apenas via importação pelo administrador.
     return wrap;
   }
 
@@ -507,6 +444,16 @@
   }
 
   function loadInitialBudget(){
+    const pagoEl = document.getElementById('orcamento_pago');
+    const pagoDataEl = document.getElementById('data_pagamento');
+    if (pagoEl) {
+      pagoEl.checked = !!currentBudgetPaid;
+    }
+    if (pagoDataEl && currentBudgetPaidAt) {
+      // Mantém o valor bruto vindo do servidor; se você quiser, pode depois formatar para datetime-local
+      pagoDataEl.value = currentBudgetPaidAt;
+    }
+
     if (!initialBudget || !Array.isArray(initialBudget.items) || initialBudget.items.length === 0) {
       produtos.appendChild(makeItem(0));
       return;
@@ -518,6 +465,10 @@
     const envioBrasil = document.getElementById('envio_brasil');
     if (envioBrasil && typeof initialBudget.envio_brasil !== 'undefined') {
       envioBrasil.checked = !!initialBudget.envio_brasil;
+    }
+    const clienteClube = document.getElementById('cliente_clube');
+    if (clienteClube && typeof initialBudget.cliente_clube !== 'undefined') {
+      clienteClube.checked = !!initialBudget.cliente_clube;
     }
     // Restaura cliente selecionado, se houver no orçamento salvo
     if (initialBudget.cliente_id) {
@@ -542,81 +493,54 @@
 
   loadInitialBudget();
 
+  const orcamentoPago = document.getElementById('orcamento_pago');
+  const dataPagamentoBox = document.getElementById('data_pagamento_box');
+  if (orcamentoPago && dataPagamentoBox) {
+    orcamentoPago.addEventListener('change', function(){
+      dataPagamentoBox.style.display = this.checked ? '' : 'none';
+    });
+  }
+
   document.getElementById('btn-calcular').addEventListener('click', ()=>{
     const taxaCambio = parseFloat(document.getElementById('taxa_cambio').value||0);
     const envioBrasil = document.getElementById('envio_brasil').checked;
-    const items = Array.from(produtos.querySelectorAll('.prod-item'));
-    let somaValor = 0, somaPeso = 0, somaFrete = 0, somaImpLocal = 0;
-    const nomes = [];
-    const produtosDetalhes = [];
-    items.forEach(w=>{
-      const nome = w.querySelector('.nome_produto')?.value?.trim() || '';
-      const qtd = parseInt(w.querySelector('.qtd_produto')?.value || '1', 10) || 1;
-      const valor = parseFloat(w.querySelector('.valor_produto')?.value||0);
-      const peso = parseFloat(w.querySelector('.peso_produto')?.value||0);
-      const pf = !!(w.querySelector('.precisa_frete')?.checked);
-      const aplicaImp = !!(w.querySelector('.aplica_imp_local')?.checked);
-      const frete = pf ? parseFloat(w.querySelector('.frete_usd')?.value||0) : 0;
-      const valorTotalItem = Math.max(0, valor) * Math.max(1, qtd);
-      const pesoTotalItem = Math.max(0, peso) * Math.max(1, qtd);
-      somaValor += valorTotalItem;
-      somaPeso += pesoTotalItem;
-      somaFrete += Math.max(0, frete);
-      const impLocal = aplicaImp ? Math.max(0, valorTotalItem * 0.07) : 0;
-      somaImpLocal += impLocal;
-      if (nome) {
-        const label = qtd > 1 ? `${nome} - x${qtd}` : nome;
-        nomes.push(label);
-        produtosDetalhes.push({
-          nome,
-          qtd,
-          valorUnit: Math.max(0, valor),
-          valorTotal: valorTotalItem,
-        });
-      }
+    const clienteClubeEl = document.getElementById('cliente_clube');
+    const clienteClube = !!(clienteClubeEl && clienteClubeEl.checked);
+    const clienteId = parseInt(document.getElementById('cliente_id')?.value || '0', 10) || null;
+    const clienteNome = selectedClient ? (selectedClient.nome || null) : null;
+    const clienteSuiteBr = selectedClient ? (selectedClient.suite_br || null) : null;
+    const orcamentoPagoEl = document.getElementById('orcamento_pago');
+    const orcamentoPago = !!(orcamentoPagoEl && orcamentoPagoEl.checked);
+    const dataPagamentoEl = document.getElementById('data_pagamento');
+    const dataPagamento = (dataPagamentoEl && dataPagamentoEl.value) ? dataPagamentoEl.value : null;
+    const items = Array.from(produtos.querySelectorAll('.prod-item')).map(function(w){
+      return {
+        nome: (w.querySelector('.nome_produto')?.value || '').trim(),
+        qtd: parseInt(w.querySelector('.qtd_produto')?.value || '1', 10) || 1,
+        valor: parseFloat(w.querySelector('.valor_produto')?.value||0) || 0,
+        peso: parseFloat(w.querySelector('.peso_produto')?.value||0) || 0,
+        precisa_frete: !!(w.querySelector('.precisa_frete')?.checked),
+        aplica_imp_local: !!(w.querySelector('.aplica_imp_local')?.checked),
+        frete: parseFloat(w.querySelector('.frete_usd')?.value||0) || 0,
+        product_id: (w.querySelector('.produto_id')?.value || '').trim() || null,
+      };
     });
-    const pesoTotalArred = Math.ceil(somaPeso);
-    const taxaServico = pesoTotalArred > 0 ? (pesoTotalArred * 39.0) : 0;
-    const subtotalUSD = somaValor + taxaServico + somaFrete + somaImpLocal;
-    const subtotalBRL = subtotalUSD * taxaCambio;
-    const baseProdutoBRL = somaValor * taxaCambio;
-    let impostoImport = 0, icms = 0, totalBRL = subtotalBRL;
-    if (envioBrasil) {
-      impostoImport = baseProdutoBRL * 0.60;
-      const subtotalComImport = baseProdutoBRL + impostoImport;
-      icms = subtotalComImport * 0.20;
-      totalBRL = subtotalBRL + impostoImport + icms;
-    }
-
-    const usdList = document.getElementById('usd-list');
-    usdList.innerHTML = '';
-    const usdItems = [
-      ['Valor dos produtos', somaValor],
-      ['Taxa de serviço (US$ 39/kg)', taxaServico],
-      ...(somaFrete>0 ? [['Frete até a sede (somado)', somaFrete]] : []),
-      ...(somaImpLocal>0 ? [['Imposto local (USD) somado (7%)', somaImpLocal]] : []),
-      ['Total em dólar', subtotalUSD],
-      ['Conversão do total em dólar (BRL)', subtotalBRL],
-    ];
-    usdItems.forEach(([k,v])=>{
-      const li = document.createElement('li'); li.className='list-group-item d-flex justify-content-between';
-      const isBRLconv = k.includes('Conversão');
-      li.innerHTML = `<span>${k}</span><span><strong>${isBRLconv ? nfBRL(v) : nfUSD(v)}</strong></span>`; usdList.appendChild(li);
-    });
-
-    const brlList = document.getElementById('brl-list');
-    brlList.innerHTML = '';
-    const brlItems = [
-      ...(envioBrasil ? [['Imposto de Importação (60%) sobre produtos', impostoImport]] : []),
-      ...(envioBrasil ? [['ICMS (20%) sobre (produto+60%)', icms]] : []),
-      ...(envioBrasil ? [['Total de impostos (BRL)', (impostoImport + icms)]] : []),
-    ];
-    brlItems.forEach(([k,v])=>{
-      const li = document.createElement('li'); li.className='list-group-item d-flex justify-content-between';
-      li.innerHTML = `<span>${k}</span><span><strong>${nfBRL(v)}</strong></span>`; brlList.appendChild(li);
-    });
-
-    window.__sim = { nomes, produtosDetalhes, somaValor, taxaServico, somaFrete, somaImpLocal, subtotalUSD, taxaCambio, subtotalBRL, envioBrasil, impostoImport, icms, totalBRL, pesoTotalArred };
+    const sim = window.__sim || {};
+    return {
+      taxa_cambio: taxaCambio,
+      envio_brasil: envioBrasil,
+      cliente_clube: clienteClube,
+      cliente_id: clienteId,
+      cliente_nome: clienteNome,
+      cliente_suite_br: clienteSuiteBr,
+      paid: orcamentoPago,
+      paid_at: dataPagamento,
+      cashback_percent: sim.cashbackPercent || 0,
+      cashback_usd: sim.cashbackUSD || 0,
+      cashback_brl: sim.cashbackBRL || 0,
+      peso_total_kg: sim.pesoTotalArred || null,
+      items: items,
+    };
   });
 
   function gerarMensagem(){
@@ -650,6 +574,16 @@
       `O total, já com a entrega até a nossa sede e imposto local quando aplicável, fica em ${nfUSD(compUSD)}, ` +
       `o que convertido pela taxa de câmbio atual (${nfBRL(s.taxaCambio || 0)}) fica em ${nfBRL(s.subtotalBRL || 0)}.`
     );
+
+    // Cashback do Clube Braziliana
+    if (s.clienteClube && (s.cashbackUSD || 0) > 0) {
+      linhas.push('');
+      linhas.push(
+        'Porque você é membro do Clube Braziliana, o seu pedido de hoje garante US$ ' +
+        Number(s.cashbackUSD || 0).toFixed(2) +
+        ' em cashback para usar na próxima compra. Esse valor será creditado na sua carteira virtual em até 48 horas.'
+      );
+    }
 
     // Bloco de impostos de importação (apenas se envioBrasil=true)
     if (s.envioBrasil) {
@@ -739,9 +673,15 @@
   function collectCurrentState(){
     const taxaCambio = parseFloat(document.getElementById('taxa_cambio').value||0);
     const envioBrasil = document.getElementById('envio_brasil').checked;
+    const clienteClubeEl = document.getElementById('cliente_clube');
+    const clienteClube = !!(clienteClubeEl && clienteClubeEl.checked);
     const clienteId = parseInt(document.getElementById('cliente_id')?.value || '0', 10) || null;
     const clienteNome = selectedClient ? (selectedClient.nome || null) : null;
     const clienteSuiteBr = selectedClient ? (selectedClient.suite_br || null) : null;
+    const orcamentoPagoEl = document.getElementById('orcamento_pago');
+    const orcamentoPago = !!(orcamentoPagoEl && orcamentoPagoEl.checked);
+    const dataPagamentoEl = document.getElementById('data_pagamento');
+    const dataPagamento = (dataPagamentoEl && dataPagamentoEl.value) ? dataPagamentoEl.value : null;
     const items = Array.from(produtos.querySelectorAll('.prod-item')).map(function(w){
       return {
         nome: (w.querySelector('.nome_produto')?.value || '').trim(),
@@ -754,12 +694,20 @@
         product_id: (w.querySelector('.produto_id')?.value || '').trim() || null,
       };
     });
+    const sim = window.__sim || {};
     return {
       taxa_cambio: taxaCambio,
       envio_brasil: envioBrasil,
+      cliente_clube: clienteClube,
       cliente_id: clienteId,
       cliente_nome: clienteNome,
       cliente_suite_br: clienteSuiteBr,
+      paid: orcamentoPago,
+      paid_at: dataPagamento,
+      cashback_percent: sim.cashbackPercent || 0,
+      cashback_usd: sim.cashbackUSD || 0,
+      cashback_brl: sim.cashbackBRL || 0,
+      peso_total_kg: sim.pesoTotalArred || null,
       items: items,
     };
   }
@@ -779,6 +727,8 @@
         name: nome,
         payload: JSON.stringify(payload),
         id: currentBudgetId > 0 ? String(currentBudgetId) : '',
+        paid: payload.paid ? '1' : '0',
+        paid_at: payload.paid_at || '',
       }),
     }).then(r=>r.json()).then(function(resp){
       if (!resp || !resp.ok) {

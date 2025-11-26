@@ -1,8 +1,18 @@
 <?php /** @var array $items */ ?>
+<?php $role = (string) (\Core\Auth::user()['role'] ?? 'seller'); ?>
 <div class="container py-3">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3 class="m-0">Produtos do Simulador</h3>
-    <a href="/admin/simulator-products/new" class="btn btn-primary">Novo Produto</a>
+    <?php if ($role === 'admin'): ?>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="/admin/simulator-products/template" class="btn btn-sm btn-outline-secondary">Baixar planilha modelo</a>
+        <form method="post" action="/admin/simulator-products/import" enctype="multipart/form-data" class="d-flex align-items-center gap-2">
+          <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
+          <input type="file" name="arquivo" accept=".csv" class="form-control form-control-sm" required>
+          <button type="submit" class="btn btn-sm btn-primary">Adicionar novos produtos</button>
+        </form>
+      </div>
+    <?php endif; ?>
   </div>
 
   <?php if (empty($items)): ?>

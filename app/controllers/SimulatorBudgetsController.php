@@ -45,11 +45,18 @@ class SimulatorBudgetsController extends Controller
             return;
         }
         $model = new SimulatorBudget();
+        $paidRaw = $_POST['paid'] ?? null;
+        $paid = $paidRaw === '1' || $paidRaw === 'true' || $paidRaw === 'on';
+        $paidAt = trim($_POST['paid_at'] ?? '');
+        if ($paidAt === '') { $paidAt = null; }
         if ($id > 0) {
             $model->updateForUser($id, $userId, $name, $payload);
             $savedId = $id;
         } else {
             $savedId = $model->createForUser($userId, $name, $payload);
+        }
+        if ($savedId > 0) {
+            $model->setPaidForUser($savedId, $userId, $paid, $paidAt ?: null);
         }
         header('Content-Type: application/json');
         echo json_encode(['ok'=>true,'id'=>$savedId]);
@@ -86,6 +93,23 @@ class SimulatorBudgetsController extends Controller
             (new SimulatorBudget())->deleteForUser($id, $userId);
             $this->flash('success', 'Orçamento excluído com sucesso.');
         }
+        return $this->redirect('/admin/sales-simulator/budgets');
+    }
+
+    public function togglePaid()
+    {
+        $this->requireRole(['seller','trainee','manager','admin','organic']);
+        $this->csrfCheck();
+        $me = Auth::user();
+        $userId = (int)($me['id'] ?? 0);
+        if ($userId <= 0) { return $this->redirect('/login'); }
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) { return $this->redirect('/admin/sales-simulator/budgets'); }
+        $paid = isset($_POST['paid']) ? (bool)$_POST['paid'] : false;
+        $paidAt = $_POST['paid_at'] ?? null;
+        $model = new SimulatorBudget();
+        $model->setPaidForUser($id, $userId, $paid, $paidAt ?: null);
+        $this->flash('success', $paid ? 'Orçamento marcado como pago.' : 'Marcação de pagamento removida.');
         return $this->redirect('/admin/sales-simulator/budgets');
     }
 }
