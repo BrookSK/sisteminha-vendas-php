@@ -152,8 +152,10 @@ class SimulatorProductsController extends Controller
             $this->flash('danger', 'Nome do produto é obrigatório.');
             return $this->redirect('/admin/simulator-products/new');
         }
+        $sku = trim($in['sku'] ?? '');
         $marca = trim($in['marca'] ?? '');
         $peso = (float)($in['peso_kg'] ?? 0);
+        $imageUrl = trim($in['image_url'] ?? '');
         $links = [];
         if (!empty($in['links']) && is_array($in['links'])) {
             foreach ($in['links'] as $url) {
@@ -169,8 +171,10 @@ class SimulatorProductsController extends Controller
             $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
             $payload = [
                 'data' => [
+                    'sku' => $sku !== '' ? $sku : null,
                     'nome' => $nome,
                     'marca' => $marca ?: null,
+                    'image_url' => $imageUrl !== '' ? $imageUrl : null,
                     'peso_kg' => $peso,
                 ],
                 'links' => $links,
@@ -185,8 +189,10 @@ class SimulatorProductsController extends Controller
 
         $model = new SimulatorProduct();
         $id = $model->create([
+            'sku' => $sku !== '' ? $sku : null,
             'nome' => $nome,
             'marca' => $marca ?: null,
+            'image_url' => $imageUrl !== '' ? $imageUrl : null,
             'peso_kg' => $peso,
         ], $links);
         $this->flash('success', 'Produto criado com sucesso.');
@@ -223,8 +229,10 @@ class SimulatorProductsController extends Controller
             $this->flash('danger', 'Nome do produto é obrigatório.');
             return $this->redirect('/admin/simulator-products/edit?id='.$id);
         }
+        $sku = trim($in['sku'] ?? '');
         $marca = trim($in['marca'] ?? '');
         $peso = (float)($in['peso_kg'] ?? 0);
+        $imageUrl = trim($in['image_url'] ?? '');
         $links = [];
         if (!empty($in['links']) && is_array($in['links'])) {
             foreach ($in['links'] as $url) {
@@ -257,8 +265,10 @@ class SimulatorProductsController extends Controller
 
         $model = new SimulatorProduct();
         $model->update($id, [
+            'sku' => $sku !== '' ? $sku : null,
             'nome' => $nome,
             'marca' => $marca ?: null,
+            'image_url' => $imageUrl !== '' ? $imageUrl : null,
             'peso_kg' => $peso,
         ], $links);
         $this->flash('success', 'Produto atualizado com sucesso.');
