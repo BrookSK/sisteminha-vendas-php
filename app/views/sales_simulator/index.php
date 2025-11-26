@@ -548,6 +548,7 @@
     const items = Array.from(produtos.querySelectorAll('.prod-item'));
     let somaValor = 0, somaPeso = 0, somaFrete = 0, somaImpLocal = 0;
     const nomes = [];
+    const produtosDetalhes = [];
     items.forEach(w=>{
       const nome = w.querySelector('.nome_produto')?.value?.trim() || '';
       const qtd = parseInt(w.querySelector('.qtd_produto')?.value || '1', 10) || 1;
@@ -566,6 +567,12 @@
       if (nome) {
         const label = qtd > 1 ? `${nome} - x${qtd}` : nome;
         nomes.push(label);
+        produtosDetalhes.push({
+          nome,
+          qtd,
+          valorUnit: Math.max(0, valor),
+          valorTotal: valorTotalItem,
+        });
       }
     });
     const pesoTotalArred = Math.ceil(somaPeso);
@@ -609,29 +616,61 @@
       li.innerHTML = `<span>${k}</span><span><strong>${nfBRL(v)}</strong></span>`; brlList.appendChild(li);
     });
 
-    window.__sim = { nomes, somaValor, taxaServico, somaFrete, somaImpLocal, subtotalUSD, taxaCambio, subtotalBRL, envioBrasil, impostoImport, icms, totalBRL, pesoTotalArred };
+    window.__sim = { nomes, produtosDetalhes, somaValor, taxaServico, somaFrete, somaImpLocal, subtotalUSD, taxaCambio, subtotalBRL, envioBrasil, impostoImport, icms, totalBRL, pesoTotalArred };
   });
 
   function gerarMensagem(){
     const s = window.__sim || {};
-    const lista = (s.nomes||[]).length ? s.nomes.join(', ') : 'produtos';
     const linhas = [];
-    linhas.push(`Os itens (${lista}) somam ${nfUSD(s.somaValor||0)}. A taxa de serviço é ${nfUSD(s.taxaServico||0)} (US$ 39 por kg, considerando peso total arredondado de ${s.pesoTotalArred||0} kg).`);
-    const compUSD = s.subtotalUSD||0;
-    linhas.push('');
-    linhas.push(`O total, já com fretes até a sede e imposto local quando aplicável, fica em ${nfUSD(compUSD)}, o que convertido pela taxa de câmbio atual (${nfBRL(s.taxaCambio||0)}) fica em ${nfBRL(s.subtotalBRL||0)}.`);
-    if (s.envioBrasil) {
-      linhas.push('');
-      linhas.push('A estimativa dos impostos de importação, calculados sobre o valor dos produtos em reais, seria:');
-      linhas.push(`Imposto de Importação (60%): ${nfBRL(s.impostoImport||0)}`);
-      linhas.push(`ICMS (20% sobre (produto + 60%)): ${nfBRL(s.icms||0)}`);
-      linhas.push(`Total de impostos (Imposto de Importação + ICMS): ${nfBRL((s.impostoImport||0) + (s.icms||0))}`);
-      linhas.push('');
-      linhas.push('⚠️ Lembrando que esses valores de impostos são apenas estimativas.');
-      linhas.push('O pagamento dos impostos é feito diretamente à Receita Federal, quando o produto chega à alfândega.');
+
+    // Lista de produtos
+    linhas.push('O(s) produto(s):');
+    const detalhados = Array.isArray(s.produtosDetalhes) ? s.produtosDetalhes : [];
+    if (detalhados.length === 0) {
+      linhas.push('- Produtos não informados.');
+    } else {
+      detalhados.forEach(function(p){
+        const qtdLabel = (p.qtd && p.qtd > 1) ? ` x${p.qtd}` : '';
+        linhas.push(`- ${p.nome}${qtdLabel} no valor de ${nfUSD(p.valorTotal || 0)}`);
+      });
     }
     linhas.push('');
+
+    // Somatório e taxa de serviço
+    linhas.push(`Somam ${nfUSD(s.somaValor || 0)}.`);
+    linhas.push(
+      `A taxa de serviço é ${nfUSD(s.taxaServico || 0)} (US$ 39 por kg, considerando peso total estimado de ${s.pesoTotalArred || 0} kg. ` +
+      'Se houver diferença de peso ao chegar em nossa sede, cobraremos a diferença se estiver mais pesado ou estornaremos o valor se estiver mais leve).'
+    );
+    linhas.push('');
+
+    // Total com frete até a sede e imposto local quando aplicável
+    const compUSD = s.subtotalUSD || 0;
+    linhas.push(
+      `O total, já com a entrega até a nossa sede e imposto local quando aplicável, fica em ${nfUSD(compUSD)}, ` +
+      `o que convertido pela taxa de câmbio atual (${nfBRL(s.taxaCambio || 0)}) fica em ${nfBRL(s.subtotalBRL || 0)}.`
+    );
+
+    // Bloco de impostos de importação (apenas se envioBrasil=true)
+    if (s.envioBrasil) {
+      linhas.push('');
+      linhas.push('A estimativa dos impostos de importação considera a soma do valor total dos produtos e do envio. ' +
+                  'Como na Braziliana o frete é grátis, o cálculo é feito apenas sobre o valor dos produtos. ' +
+                  'Em reais, isso seria aproximadamente:');
+      linhas.push(`Imposto de Importação (60%): ${nfBRL(s.impostoImport || 0)}`);
+      linhas.push(`ICMS (20% sobre (produto + 60%)): ${nfBRL(s.icms || 0)}`);
+      linhas.push(`Total de impostos (Imposto de Importação + ICMS): ${nfBRL((s.impostoImport || 0) + (s.icms || 0))}`);
+      linhas.push('');
+      linhas.push('⚠️ Lembrando que esses valores de impostos são apenas estimativas.');
+      linhas.push('O pagamento dos impostos é feito diretamente à Receita Federal, quando o produto passa pela fiscalização da Receita Federal.');
+    }
+
+    linhas.push('');
     linhas.push('Pela Braziliana, o valor da compra é referente apenas aos produtos + taxa de serviço.');
+    linhas.push('');
+    linhas.push('Caso você queira parcelar o pagamento dos seus impostos (já que a Receita Federal aceita apenas pagamento à vista), a Braziliana pode te ajudar com isso. ' +
+                'Assim que seus impostos estiverem disponíveis para pagamento, entre em contato conosco que cuidamos de todo o processo para você.');
+
     document.getElementById('mensagem').value = linhas.join('\n');
   }
 
