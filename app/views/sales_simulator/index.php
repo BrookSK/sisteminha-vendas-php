@@ -133,7 +133,8 @@
   function nfUSD(v){ return `$ ${Number(v||0).toFixed(2)}`; }
   function nfBRL(v){ return `R$ ${Number(v||0).toFixed(2)}`; }
   const initialBudget = <?php echo json_encode($budget_data ?? null, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); ?>;
-  const currentBudgetId = <?php echo (int)($budget_id ?? 0); ?>;
+  const currentBudgetIdServer = <?php echo (int)($budget_id ?? 0); ?>;
+  let currentBudgetId = currentBudgetIdServer;
   const currentBudgetName = <?php echo json_encode($budget_name ?? '', JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); ?>;
   const csrfToken = '<?= htmlspecialchars(Auth::csrf()) ?>';
   const currentUserRole = <?= json_encode((string)(Auth::user()['role'] ?? 'seller')) ?>;
@@ -149,7 +150,6 @@
   let selectedClient = null;
 
   function setSelectedClient(c) {
-    selectedClient = c;
     if (!clienteResumo || !clienteIdInput) return;
     if (!c) {
       clienteResumo.value = '';
@@ -163,6 +163,13 @@
     const suiteRaw = c.suite || null;
     const suite = suiteBr ? `BR-${suiteBr}` : (suiteRaw || '');
     const label = suite ? `${nome} (${suite})` : nome;
+    // Guarda a versão normalizada do cliente, garantindo que tenha "nome"
+    selectedClient = {
+      ...c,
+      nome,
+      suite_br: suiteBr,
+      suite: suiteRaw,
+    };
     clienteResumo.value = label;
     clienteIdInput.value = c.id;
   }
@@ -512,6 +519,19 @@
     if (envioBrasil && typeof initialBudget.envio_brasil !== 'undefined') {
       envioBrasil.checked = !!initialBudget.envio_brasil;
     }
+    // Restaura cliente selecionado, se houver no orçamento salvo
+    if (initialBudget.cliente_id) {
+      const cid = parseInt(initialBudget.cliente_id, 10) || null;
+      const cnome = initialBudget.cliente_nome || '';
+      const csuiteBr = initialBudget.cliente_suite_br || null;
+      if (cid && (cnome || csuiteBr)) {
+        setSelectedClient({
+          id: cid,
+          nome: cnome,
+          suite_br: csuiteBr,
+        });
+      }
+    }
     produtos.innerHTML = '';
     initialBudget.items.forEach(function(it){
       const w = makeItem(produtos.children.length);
@@ -727,9 +747,16 @@
         return;
       }
       if (resp.id && !currentBudgetId) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('budget_id', String(resp.id));
-        window.location.href = url.toString();
+        // Atualiza o ID atual em memória, sem recarregar a página
+        currentBudgetId = resp.id;
+        // Atualiza a URL para conter o budget_id, sem reload
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set('budget_id', String(resp.id));
+          window.history.replaceState({}, document.title, url.toString());
+        } catch (e) {
+          // se der erro, simplesmente segue sem quebrar o fluxo
+        }
       }
     }).catch(function(){
       alert('Erro ao salvar o orçamento automaticamente.');
