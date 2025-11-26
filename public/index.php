@@ -310,6 +310,9 @@ $router->group('/admin', function($r) {
     $r->post('/sales-simulator/budgets/toggle-paid', 'Controllers\\SimulatorBudgetsController@togglePaid');
     // Produtos do simulador (tela própria)
     $r->get('/simulator-products', 'Controllers\\SimulatorProductsController@index');
+    $r->get('/simulator-products/template', 'Controllers\\SimulatorProductsController@template');
+    $r->get('/simulator-products/import', 'Controllers\\SimulatorProductsController@importForm');
+    $r->post('/simulator-products/import', 'Controllers\\SimulatorProductsController@import');
     $r->get('/simulator-products/new', 'Controllers\\SimulatorProductsController@new');
     $r->post('/simulator-products/create', 'Controllers\\SimulatorProductsController@create');
     $r->get('/simulator-products/edit', 'Controllers\\SimulatorProductsController@edit');

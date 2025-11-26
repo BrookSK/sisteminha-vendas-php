@@ -5,12 +5,8 @@
     <h3 class="m-0">Produtos do Simulador</h3>
     <?php if ($role === 'admin'): ?>
       <div class="d-flex flex-wrap gap-2">
-        <a href="/admin/simulator-products/template" class="btn btn-sm btn-outline-secondary">Baixar planilha modelo</a>
-        <form method="post" action="/admin/simulator-products/import" enctype="multipart/form-data" class="d-flex align-items-center gap-2">
-          <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
-          <input type="file" name="arquivo" accept=".csv" class="form-control form-control-sm" required>
-          <button type="submit" class="btn btn-sm btn-primary">Adicionar novos produtos</button>
-        </form>
+        <a href="/admin/simulator-products/new" class="btn btn-sm btn-outline-primary">Novo produto</a>
+        <a href="/admin/simulator-products/import" class="btn btn-sm btn-outline-secondary">Importar via planilha</a>
       </div>
     <?php endif; ?>
   </div>
