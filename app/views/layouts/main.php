@@ -236,6 +236,7 @@ use Core\Auth;
                 <?php endif; ?>
                 <li><a class="dropdown-item" href="/admin/users">Usuários</a></li>
                 <li><a class="dropdown-item" href="/admin/approvals">Aprovações</a></li>
+                <li><a class="dropdown-item" href="/admin/sales-simulator/products-report">Relatório de Produtos do Simulador</a></li>
                 <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/donations">Doações</a></li>
                 <?php endif; ?>
