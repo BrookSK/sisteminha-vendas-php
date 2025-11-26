@@ -157,8 +157,12 @@
       clienteIdInput.value = '';
       return;
     }
-    const suite = c.suite_br ? `BR-${c.suite_br}` : (c.suite || '');
-    const label = suite ? `${c.nome} (${suite})` : c.nome;
+    // Alguns endpoints retornam apenas {id, text}; outros retornam nome/suite separados
+    const nome = c.nome || c.text || '';
+    const suiteBr = c.suite_br || null;
+    const suiteRaw = c.suite || null;
+    const suite = suiteBr ? `BR-${suiteBr}` : (suiteRaw || '');
+    const label = suite ? `${nome} (${suite})` : nome;
     clienteResumo.value = label;
     clienteIdInput.value = c.id;
   }
