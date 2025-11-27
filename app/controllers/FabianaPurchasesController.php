@@ -95,7 +95,6 @@ class FabianaPurchasesController extends Controller
         $keys = array_keys($consolidated);
         $purchaseModel = new SimulatorProductPurchase();
         $purchases = $purchaseModel->getForKeys($keys);
-        $cashPerKey = $purchaseModel->getCashForKeys($keys);
 
         $items = [];
         foreach ($consolidated as $key => $row) {
@@ -104,7 +103,6 @@ class FabianaPurchasesController extends Controller
             $totalQtd = (int)($row['total_qtd'] ?? 0);
             if ($totalQtd <= 0) continue;
             $purchasedQtd = (int)($purchases[$key] ?? 0);
-            $cashWithFabiana = (float)($cashPerKey[$key] ?? 0.0);
 
             $storeId = null;
             if ($info && array_key_exists('store_id', $info)) {
@@ -129,7 +127,6 @@ class FabianaPurchasesController extends Controller
             $purchasedQtdClamped = max(0, min($totalQtd, $purchasedQtd));
             $remainingQtd = max(0, $totalQtd - $purchasedQtdClamped);
             $remainingValor = $unitValor * $remainingQtd;
-            $toSendUsd = max(0.0, $remainingValor - $cashWithFabiana);
 
             $items[] = [
                 'key' => $key,
@@ -144,8 +141,6 @@ class FabianaPurchasesController extends Controller
                 'remaining_qtd' => $remainingQtd,
                 'total_valor' => $totalValor,
                 'remaining_valor' => $remainingValor,
-                'cash_with_fabiana_usd' => $cashWithFabiana,
-                'to_send_usd' => $toSendUsd,
             ];
         }
 
@@ -157,16 +152,13 @@ class FabianaPurchasesController extends Controller
 
         $totalNeeded = 0.0;
         $totalRemaining = 0.0;
-        $totalCashPerProduct = 0.0;
-        $totalToSend = 0.0;
         foreach ($items as $it) {
             $totalNeeded += (float)($it['total_valor'] ?? 0);
             $totalRemaining += (float)($it['remaining_valor'] ?? 0);
-            $totalCashPerProduct += (float)($it['cash_with_fabiana_usd'] ?? 0);
-            $totalToSend += (float)($it['to_send_usd'] ?? 0);
         }
 
         $fabianaCashTotal = (float)$setting->get('fabiana_cash_total_usd', '0');
+        $totalToSend = max(0.0, $totalRemaining - $fabianaCashTotal);
 
         $this->render('sales_simulator/fabiana_dashboard', [
             'title' => 'Dashboard de Compras - Fabiana',
@@ -177,7 +169,6 @@ class FabianaPurchasesController extends Controller
             'stores' => $allStores,
             'total_needed_usd' => $totalNeeded,
             'total_remaining_usd' => $totalRemaining,
-            'total_cash_per_product_usd' => $totalCashPerProduct,
             'total_to_send_usd' => $totalToSend,
             'fabiana_cash_total_usd' => $fabianaCashTotal,
         ]);

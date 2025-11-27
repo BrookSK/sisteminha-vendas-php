@@ -106,7 +106,6 @@ class SimulatorProductsReportController extends Controller
         $keys = array_keys($consolidated);
         $purchaseModel = new SimulatorProductPurchase();
         $purchases = $purchaseModel->getForKeys($keys);
-        $cashPerKey = $purchaseModel->getCashForKeys($keys);
 
         // Montar lista final para view
         $items = [];
@@ -114,7 +113,6 @@ class SimulatorProductsReportController extends Controller
             $pid = $row['product_id'] ? (int)$row['product_id'] : null;
             $info = $pid && isset($productsInfo[$pid]) ? $productsInfo[$pid] : null;
             $purchasedQtd = (int)($purchases[$key] ?? 0);
-            $cashWithFabiana = (float)($cashPerKey[$key] ?? 0.0);
             $totalQtd = (int)($row['total_qtd'] ?? 0);
             $statusCompra = 'nao_comprado';
             if ($totalQtd > 0) {
@@ -143,7 +141,6 @@ class SimulatorProductsReportController extends Controller
                 'budgets_count' => count($row['budget_ids'] ?? []),
                 'purchased_qtd' => $purchasedQtd,
                 'status_compra' => $statusCompra,
-                'cash_with_fabiana_usd' => $cashWithFabiana,
             ];
             if ($q !== '') {
                 $needle = mb_strtolower($q, 'UTF-8');
