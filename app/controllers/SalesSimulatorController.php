@@ -20,10 +20,16 @@ class SalesSimulatorController extends Controller
         if ($budgetId > 0) {
             $me = Auth::user();
             $userId = (int)($me['id'] ?? 0);
+            $role = (string)($me['role'] ?? 'seller');
             if ($userId > 0) {
                 try {
                     $model = new SimulatorBudget();
+                    // Primeiro tenta carregar apenas se pertencer ao usuário logado
                     $row = $model->findForUser($budgetId, $userId);
+                    // Se não encontrar e for admin/manager, permite abrir qualquer orçamento pelo ID
+                    if (!$row && in_array($role, ['admin','manager'], true)) {
+                        $row = $model->findById($budgetId);
+                    }
                     if ($row) {
                         $budgetName = (string)($row['name'] ?? '');
                         $budgetPaid = (bool)($row['paid'] ?? false);

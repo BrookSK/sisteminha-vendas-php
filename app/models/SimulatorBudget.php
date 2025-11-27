@@ -37,6 +37,18 @@ class SimulatorBudget extends Model
         return $row ?: null;
     }
 
+    /**
+     * Busca um orçamento pelo ID, sem filtrar por usuário.
+     * Usado por administradores/gerentes para abrir orçamentos de outros usuários.
+     */
+    public function findById(int $id): ?array
+    {
+        $st = $this->db->prepare('SELECT * FROM simulator_budgets WHERE id=:id');
+        $st->execute([':id' => $id]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
     public function listForUser(int $userId, int $limit = 100, int $offset = 0): array
     {
         $st = $this->db->prepare('SELECT id, name, created_at, updated_at, paid, paid_at FROM simulator_budgets WHERE user_id=:uid ORDER BY created_at DESC, id DESC LIMIT :lim OFFSET :off');
