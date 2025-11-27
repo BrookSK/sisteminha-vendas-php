@@ -18,9 +18,25 @@
       <label class="form-label mb-1">Buscar produto</label>
       <input type="text" name="q" value="<?= htmlspecialchars($q ?? '') ?>" class="form-control form-control-sm" placeholder="Nome do produto">
     </div>
-    <div class="col-md-3 d-flex align-items-end gap-2">
-      <button type="submit" class="btn btn-sm btn-primary">Aplicar filtros</button>
-      <a href="/admin/sales-simulator/products-report/export-pdf?from=<?= urlencode($from ?? '') ?>&to=<?= urlencode($to ?? '') ?>&q=<?= urlencode($q ?? '') ?>" target="_blank" class="btn btn-sm btn-outline-secondary">Exportar PDF</a>
+    <div class="col-md-3">
+      <label class="form-label mb-1">Loja</label>
+      <select name="store_id" class="form-select form-select-sm">
+        <option value="">Todas as lojas</option>
+        <option value="0" <?= ($store_id ?? '') === '0' ? 'selected' : '' ?>>Loja não selecionada</option>
+        <?php foreach (($stores ?? []) as $st): ?>
+          <option value="<?= (int)($st['id'] ?? 0) ?>" <?= (string)($store_id ?? '') === (string)($st['id'] ?? '') ? 'selected' : '' ?>>
+            <?= htmlspecialchars($st['name'] ?? '') ?> (ID: <?= (int)($st['id'] ?? 0) ?>)
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div class="col-md-6 d-flex align-items-end gap-2 mt-2">
+      <div class="btn-group" role="group" aria-label="Modo de visualização">
+        <button type="submit" name="view" value="product" class="btn btn-sm <?= ($view ?? 'product') === 'product' ? 'btn-primary' : 'btn-outline-primary' ?>">Visão por produto</button>
+        <button type="submit" name="view" value="store" class="btn btn-sm <?= ($view ?? 'product') === 'store' ? 'btn-primary' : 'btn-outline-primary' ?>">Visão por loja</button>
+      </div>
+      <button type="submit" class="btn btn-sm btn-secondary ms-2">Aplicar filtros</button>
+      <a href="/admin/sales-simulator/products-report/export-pdf?from=<?= urlencode($from ?? '') ?>&to=<?= urlencode($to ?? '') ?>&q=<?= urlencode($q ?? '') ?>&store_id=<?= urlencode($store_id ?? '') ?>&view=<?= urlencode($view ?? 'product') ?>" target="_blank" class="btn btn-sm btn-outline-secondary">Exportar PDF</a>
     </div>
   </form>
 
@@ -34,75 +50,192 @@
   <?php if (empty($items)): ?>
     <div class="alert alert-info">Nenhum produto encontrado para os filtros selecionados.</div>
   <?php else: ?>
-    <div class="table-responsive">
-      <table class="table table-striped align-middle table-sm">
-        <thead>
-          <tr>
-            <th>Produto</th>
-            <th>Imagem</th>
-            <th class="text-end">Qtd total</th>
-            <th class="text-end">Peso total (kg)</th>
-            <th class="text-end">Valor total (USD)</th>
-            <th class="text-end">Qtd comprada</th>
-            <th class="text-center">Status</th>
-            <th class="text-end">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($items as $row): ?>
-          <?php
-            $status = $row['status_compra'] ?? 'nao_comprado';
-            $rowClass = '';
-            if ($status === 'comprado_total') { $rowClass = 'table-success'; }
-            elseif ($status === 'comprado_parcial') { $rowClass = 'table-warning'; }
-          ?>
-          <tr class="<?= $rowClass ?>">
-            <td>
-              <div class="fw-semibold mb-1"><?= htmlspecialchars($row['name'] ?? '') ?></div>
-              <?php if (!empty($row['links'])): ?>
-                <div class="small text-muted">
-                  <?php foreach ($row['links'] as $lnk): ?>
-                    <div><a href="<?= htmlspecialchars($lnk['url'] ?? '') ?>" target="_blank" rel="noopener">Link para compra (<?= htmlspecialchars($lnk['fonte'] ?? 'site') ?>)</a></div>
-                  <?php endforeach; ?>
-                </div>
-              <?php endif; ?>
-            </td>
-            <td style="max-width:120px;">
-              <?php if (!empty($row['image_url'])): ?>
-                <img src="<?= htmlspecialchars($row['image_url']) ?>" alt="Imagem do produto" class="img-fluid" style="max-height:70px;">
-              <?php else: ?>
-                <span class="text-muted small">Sem imagem</span>
-              <?php endif; ?>
-            </td>
-            <td class="text-end"><?= (int)($row['total_qtd'] ?? 0) ?></td>
-            <td class="text-end"><?= number_format((float)($row['total_peso'] ?? 0), 2, ',', '.') ?></td>
-            <td class="text-end">
-              $ <?= number_format((float)($row['total_valor'] ?? 0), 2, '.', ',') ?>
-            </td>
-            <td class="text-end">
-              <form method="post" action="/admin/sales-simulator/products-report/update-purchased" class="d-flex justify-content-end align-items-center gap-2">
-                <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
-                <input type="hidden" name="product_key" value="<?= htmlspecialchars($row['key']) ?>">
-                <input type="number" name="purchased_qtd" min="0" step="1" value="<?= (int)($row['purchased_qtd'] ?? 0) ?>" class="form-control form-control-sm" style="width:90px;">
-                <button type="submit" class="btn btn-sm btn-outline-primary">Salvar</button>
-              </form>
-            </td>
-            <td class="text-center">
-              <?php if ($status === 'comprado_total'): ?>
-                <span class="badge bg-success">Comprado</span>
-              <?php elseif ($status === 'comprado_parcial'): ?>
-                <span class="badge bg-warning text-dark">Parcial</span>
-              <?php else: ?>
-                <span class="badge bg-secondary">Pendente</span>
-              <?php endif; ?>
-            </td>
-            <td class="text-end">
-              <a href="/admin/sales-simulator/products-report/product?product_key=<?= urlencode($row['key']) ?>&from=<?= urlencode($from ?? '') ?>&to=<?= urlencode($to ?? '') ?>" class="btn btn-sm btn-outline-secondary">Ver orçamentos</a>
-            </td>
-          </tr>
-        <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
+    <?php if (($view ?? 'product') === 'store'): ?>
+      <?php
+        $grouped = [];
+        foreach ($items as $row) {
+            $sname = $row['store_name'] ?? null;
+            if ($sname === null || $sname === '') { $sname = 'Loja não selecionada'; }
+            $grouped[$sname][] = $row;
+        }
+        ksort($grouped, SORT_NATURAL | SORT_FLAG_CASE);
+      ?>
+      <?php foreach ($grouped as $storeName => $rowsByStore): ?>
+        <div class="mb-4">
+          <h5 class="mb-2">Loja: <?= htmlspecialchars($storeName) ?></h5>
+          <div class="table-responsive">
+            <table class="table table-striped align-middle table-sm">
+              <thead>
+                <tr>
+                  <th>Produto</th>
+                  <th>Imagem</th>
+                  <th class="text-end">Qtd total</th>
+                  <th class="text-end">Peso total (kg)</th>
+                  <th class="text-end">Valor total (USD)</th>
+                  <th class="text-end">Qtd comprada</th>
+                  <th class="text-end">Caixa com Fabiana (US$)</th>
+                  <th class="text-center">Status</th>
+                  <th class="text-end">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+              <?php foreach ($rowsByStore as $row): ?>
+                <?php
+                  $status = $row['status_compra'] ?? 'nao_comprado';
+                  $rowClass = '';
+                  if ($status === 'comprado_total') { $rowClass = 'table-success'; }
+                  elseif ($status === 'comprado_parcial') { $rowClass = 'table-warning'; }
+                ?>
+                <tr class="<?= $rowClass ?>">
+                  <td>
+                    <div class="fw-semibold mb-1"><?= htmlspecialchars($row['name'] ?? '') ?></div>
+                    <?php if (!empty($row['links'])): ?>
+                      <div class="small text-muted">
+                        <?php foreach ($row['links'] as $lnk): ?>
+                          <div><a href="<?= htmlspecialchars($lnk['url'] ?? '') ?>" target="_blank" rel="noopener">Link para compra (<?= htmlspecialchars($lnk['fonte'] ?? 'site') ?>)</a></div>
+                        <?php endforeach; ?>
+                      </div>
+                    <?php endif; ?>
+                  </td>
+                  <td style="max-width:120px;">
+                    <?php if (!empty($row['image_url'])): ?>
+                      <img src="<?= htmlspecialchars($row['image_url']) ?>" alt="Imagem do produto" class="img-fluid" style="max-height:70px;">
+                    <?php else: ?>
+                      <span class="text-muted small">Sem imagem</span>
+                    <?php endif; ?>
+                  </td>
+                  <td class="text-end"><?= (int)($row['total_qtd'] ?? 0) ?></td>
+                  <td class="text-end"><?= number_format((float)($row['total_peso'] ?? 0), 2, ',', '.') ?></td>
+                  <td class="text-end">
+                    $ <?= number_format((float)($row['total_valor'] ?? 0), 2, '.', ',') ?>
+                  </td>
+                  <td class="text-end">
+                    <form method="post" action="/admin/sales-simulator/products-report/update-purchased" class="d-flex justify-content-end align-items-center gap-2">
+                      <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
+                      <input type="hidden" name="product_key" value="<?= htmlspecialchars($row['key']) ?>">
+                      <input type="number" name="purchased_qtd" min="0" step="1" value="<?= (int)($row['purchased_qtd'] ?? 0) ?>" class="form-control form-control-sm" style="width:90px;">
+                      <button type="submit" class="btn btn-sm btn-outline-primary">Salvar</button>
+                    </form>
+                  </td>
+                  <td class="text-end">
+                    <form method="post" action="/admin/sales-simulator/products-report/update-cash" class="d-flex justify-content-end align-items-center gap-2">
+                      <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
+                      <input type="hidden" name="product_key" value="<?= htmlspecialchars($row['key']) ?>">
+                      <span class="text-muted small me-1">$</span>
+                      <input type="number" name="cash_with_fabiana_usd" min="0" step="0.01" value="<?= number_format((float)($row['cash_with_fabiana_usd'] ?? 0), 2, '.', '') ?>" class="form-control form-control-sm" style="width:110px;">
+                      <button type="submit" class="btn btn-sm btn-outline-success">Salvar</button>
+                    </form>
+                  </td>
+                  <td class="text-center">
+                    <?php if ($status === 'comprado_total'): ?>
+                      <span class="badge bg-success">Comprado</span>
+                    <?php elseif ($status === 'comprado_parcial'): ?>
+                      <span class="badge bg-warning text-dark">Parcial</span>
+                    <?php else: ?>
+                      <span class="badge bg-secondary">Pendente</span>
+                    <?php endif; ?>
+                  </td>
+                  <td class="text-end">
+                    <a href="/admin/sales-simulator/products-report/product?product_key=<?= urlencode($row['key']) ?>&from=<?= urlencode($from ?? '') ?>&to=<?= urlencode($to ?? '') ?>" class="btn btn-sm btn-outline-secondary">Ver orçamentos</a>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    <?php else: ?>
+      <div class="table-responsive">
+        <table class="table table-striped align-middle table-sm">
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Loja</th>
+              <th>Imagem</th>
+              <th class="text-end">Qtd total</th>
+              <th class="text-end">Peso total (kg)</th>
+              <th class="text-end">Valor total (USD)</th>
+              <th class="text-end">Qtd comprada</th>
+              <th class="text-end">Caixa com Fabiana (US$)</th>
+              <th class="text-center">Status</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+          <?php foreach ($items as $row): ?>
+            <?php
+              $status = $row['status_compra'] ?? 'nao_comprado';
+              $rowClass = '';
+              if ($status === 'comprado_total') { $rowClass = 'table-success'; }
+              elseif ($status === 'comprado_parcial') { $rowClass = 'table-warning'; }
+            ?>
+            <tr class="<?= $rowClass ?>">
+              <td>
+                <div class="fw-semibold mb-1"><?= htmlspecialchars($row['name'] ?? '') ?></div>
+                <?php if (!empty($row['links'])): ?>
+                  <div class="small text-muted">
+                    <?php foreach ($row['links'] as $lnk): ?>
+                      <div><a href="<?= htmlspecialchars($lnk['url'] ?? '') ?>" target="_blank" rel="noopener">Link para compra (<?= htmlspecialchars($lnk['fonte'] ?? 'site') ?>)</a></div>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endif; ?>
+              </td>
+              <td>
+                <?php if (!empty($row['store_name'])): ?>
+                  <?= htmlspecialchars($row['store_name']) ?>
+                <?php elseif (!empty($row['store_id'])): ?>
+                  Loja #<?= (int)$row['store_id'] ?>
+                <?php else: ?>
+                  <span class="text-muted small">Loja não selecionada</span>
+                <?php endif; ?>
+              </td>
+              <td style="max-width:120px;">
+                <?php if (!empty($row['image_url'])): ?>
+                  <img src="<?= htmlspecialchars($row['image_url']) ?>" alt="Imagem do produto" class="img-fluid" style="max-height:70px;">
+                <?php else: ?>
+                  <span class="text-muted small">Sem imagem</span>
+                <?php endif; ?>
+              </td>
+              <td class="text-end"><?= (int)($row['total_qtd'] ?? 0) ?></td>
+              <td class="text-end"><?= number_format((float)($row['total_peso'] ?? 0), 2, ',', '.') ?></td>
+              <td class="text-end">
+                $ <?= number_format((float)($row['total_valor'] ?? 0), 2, '.', ',') ?>
+              </td>
+              <td class="text-end">
+                <form method="post" action="/admin/sales-simulator/products-report/update-purchased" class="d-flex justify-content-end align-items-center gap-2">
+                  <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
+                  <input type="hidden" name="product_key" value="<?= htmlspecialchars($row['key']) ?>">
+                  <input type="number" name="purchased_qtd" min="0" step="1" value="<?= (int)($row['purchased_qtd'] ?? 0) ?>" class="form-control form-control-sm" style="width:90px;">
+                  <button type="submit" class="btn btn-sm btn-outline-primary">Salvar</button>
+                </form>
+              </td>
+              <td class="text-end">
+                <form method="post" action="/admin/sales-simulator/products-report/update-cash" class="d-flex justify-content-end align-items-center gap-2">
+                  <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
+                  <input type="hidden" name="product_key" value="<?= htmlspecialchars($row['key']) ?>">
+                  <span class="text-muted small me-1">$</span>
+                  <input type="number" name="cash_with_fabiana_usd" min="0" step="0.01" value="<?= number_format((float)($row['cash_with_fabiana_usd'] ?? 0), 2, '.', '') ?>" class="form-control form-control-sm" style="width:110px;">
+                  <button type="submit" class="btn btn-sm btn-outline-success">Salvar</button>
+                </form>
+              </td>
+              <td class="text-center">
+                <?php if ($status === 'comprado_total'): ?>
+                  <span class="badge bg-success">Comprado</span>
+                <?php elseif ($status === 'comprado_parcial'): ?>
+                  <span class="badge bg-warning text-dark">Parcial</span>
+                <?php else: ?>
+                  <span class="badge bg-secondary">Pendente</span>
+                <?php endif; ?>
+              </td>
+              <td class="text-end">
+                <a href="/admin/sales-simulator/products-report/product?product_key=<?= urlencode($row['key']) ?>&from=<?= urlencode($from ?? '') ?>&to=<?= urlencode($to ?? '') ?>" class="btn btn-sm btn-outline-secondary">Ver orçamentos</a>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php endif; ?>
   <?php endif; ?>
 </div>

@@ -41,4 +41,32 @@ class SimulatorProductPurchase
         $st = $this->db->prepare($sql);
         $st->execute([':k' => $key, ':q' => $qty]);
     }
+
+    public function getCashForKeys(array $keys): array
+    {
+        if (empty($keys)) return [];
+        $in = implode(',', array_fill(0, count($keys), '?'));
+        $sql = 'SELECT product_key, cash_with_fabiana_usd FROM simulator_product_purchases WHERE product_key IN ('.$in.')';
+        $st = $this->db->prepare($sql);
+        foreach ($keys as $i => $k) {
+            $st->bindValue($i+1, (string)$k, PDO::PARAM_STR);
+        }
+        $st->execute();
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $out = [];
+        foreach ($rows as $r) {
+            $out[(string)$r['product_key']] = (float)($r['cash_with_fabiana_usd'] ?? 0.0);
+        }
+        return $out;
+    }
+
+    public function setCashForKey(string $key, float $amount): void
+    {
+        $amount = max(0.0, $amount);
+        $sql = 'INSERT INTO simulator_product_purchases (product_key, purchased_qtd, cash_with_fabiana_usd, created_at, updated_at)
+                VALUES (:k, 0, :c, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE cash_with_fabiana_usd = VALUES(cash_with_fabiana_usd), updated_at = NOW()';
+        $st = $this->db->prepare($sql);
+        $st->execute([':k' => $key, ':c' => $amount]);
+    }
 }

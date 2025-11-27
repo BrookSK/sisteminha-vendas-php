@@ -6,6 +6,7 @@ use Core\Auth;
 use Models\SimulatorBudget;
 use Models\SimulatorProduct;
 use Models\SimulatorProductPurchase;
+use Models\SimulatorStore;
 
 class SimulatorProductsReportController extends Controller
 {
@@ -26,12 +27,15 @@ class SimulatorProductsReportController extends Controller
             $to = date('Y-m-t');
         }
         $q = trim($_GET['q'] ?? '');
+        $storeFilter = trim($_GET['store_id'] ?? '');
+        $view = trim($_GET['view'] ?? '') ?: 'product';
 
         $budgetsModel = new SimulatorBudget();
         $rows = $budgetsModel->listPaidInRange($from, $to);
 
         $consolidated = [];
         $allProductIds = [];
+        $storeIds = [];
 
         foreach ($rows as $row) {
             $data = json_decode($row['data_json'] ?? '[]', true) ?: [];
@@ -79,13 +83,30 @@ class SimulatorProductsReportController extends Controller
                 $p = $simProd->find((int)$pid);
                 if ($p) {
                     $productsInfo[(int)$pid] = $p;
+                    if (!empty($p['store_id'])) {
+                        $storeIds[(int)$p['store_id']] = true;
+                    }
+                }
+            }
+        }
+
+        // Carregar informações das lojas relacionadas
+        $storesMap = [];
+        if ($storeIds) {
+            $stores = (new SimulatorStore())->all();
+            foreach ($stores as $st) {
+                $sid = (int)($st['id'] ?? 0);
+                if ($sid && isset($storeIds[$sid])) {
+                    $storesMap[$sid] = (string)($st['name'] ?? '');
                 }
             }
         }
 
         // Trazer informações de quantidade comprada
         $keys = array_keys($consolidated);
-        $purchases = (new SimulatorProductPurchase())->getForKeys($keys);
+        $purchaseModel = new SimulatorProductPurchase();
+        $purchases = $purchaseModel->getForKeys($keys);
+        $cashPerKey = $purchaseModel->getCashForKeys($keys);
 
         // Montar lista final para view
         $items = [];
@@ -93,6 +114,7 @@ class SimulatorProductsReportController extends Controller
             $pid = $row['product_id'] ? (int)$row['product_id'] : null;
             $info = $pid && isset($productsInfo[$pid]) ? $productsInfo[$pid] : null;
             $purchasedQtd = (int)($purchases[$key] ?? 0);
+            $cashWithFabiana = (float)($cashPerKey[$key] ?? 0.0);
             $totalQtd = (int)($row['total_qtd'] ?? 0);
             $statusCompra = 'nao_comprado';
             if ($totalQtd > 0) {
@@ -102,24 +124,44 @@ class SimulatorProductsReportController extends Controller
                     $statusCompra = 'comprado_parcial';
                 }
             }
+            $storeId = null;
+            if ($info && array_key_exists('store_id', $info)) {
+                $storeId = $info['store_id'] !== null ? (int)$info['store_id'] : null;
+            }
+            $storeName = $storeId && isset($storesMap[$storeId]) ? $storesMap[$storeId] : null;
             $item = [
                 'key' => $key,
                 'product_id' => $pid,
                 'name' => $info['nome'] ?? $row['name'],
                 'image_url' => $info['image_url'] ?? null,
                 'links' => $info['links'] ?? [],
+                'store_id' => $storeId,
+                'store_name' => $storeName,
                 'total_qtd' => $totalQtd,
                 'total_peso' => (float)$row['total_peso'],
                 'total_valor' => (float)$row['total_valor'],
                 'budgets_count' => count($row['budget_ids'] ?? []),
                 'purchased_qtd' => $purchasedQtd,
                 'status_compra' => $statusCompra,
+                'cash_with_fabiana_usd' => $cashWithFabiana,
             ];
             if ($q !== '') {
                 $needle = mb_strtolower($q, 'UTF-8');
                 $hay = mb_strtolower($item['name'] ?? '', 'UTF-8');
                 if (mb_strpos($hay, $needle) === false) {
                     continue;
+                }
+            }
+            if ($storeFilter !== '') {
+                if ($storeFilter === '0') {
+                    if (!empty($item['store_id'])) {
+                        continue;
+                    }
+                } else {
+                    $storeFilterInt = (int)$storeFilter;
+                    if ((int)($item['store_id'] ?? 0) !== $storeFilterInt) {
+                        continue;
+                    }
                 }
             }
             $items[] = $item;
@@ -129,12 +171,18 @@ class SimulatorProductsReportController extends Controller
             return strcmp(mb_strtolower($a['name'],'UTF-8'), mb_strtolower($b['name'],'UTF-8'));
         });
 
+        // Todas as lojas (para filtro)
+        $allStores = (new SimulatorStore())->all();
+
         $this->render('sales_simulator/products_report', [
             'title' => 'Relatório de Produtos do Simulador',
             'from' => $from,
             'to' => $to,
             'q' => $q,
+            'store_id' => $storeFilter,
+            'view' => $view,
             'items' => $items,
+            'stores' => $allStores,
         ]);
     }
 
@@ -147,6 +195,19 @@ class SimulatorProductsReportController extends Controller
         $qtd = (int)($_POST['purchased_qtd'] ?? 0);
         (new SimulatorProductPurchase())->setPurchasedQty($key, $qtd);
         $this->flash('success', 'Quantidade comprada atualizada para o produto.');
+        return $this->redirect('/admin/sales-simulator/products-report');
+    }
+
+    public function updateCash()
+    {
+        $this->requireRole(['manager','admin']);
+        $this->csrfCheck();
+        $key = trim($_POST['product_key'] ?? '');
+        if ($key === '') { return $this->redirect('/admin/sales-simulator/products-report'); }
+        $raw = str_replace([','], ['.'], (string)($_POST['cash_with_fabiana_usd'] ?? '0'));
+        $amount = (float)$raw;
+        (new SimulatorProductPurchase())->setCashForKey($key, $amount);
+        $this->flash('success', 'Valor em caixa com a Fabiana atualizado para o produto.');
         return $this->redirect('/admin/sales-simulator/products-report');
     }
 
@@ -199,6 +260,8 @@ class SimulatorProductsReportController extends Controller
         $from = trim($_GET['from'] ?? '');
         $to = trim($_GET['to'] ?? '');
         $q = trim($_GET['q'] ?? '');
+        $storeFilter = trim($_GET['store_id'] ?? '');
+        $view = trim($_GET['view'] ?? '');
         if ($from === '' || $to === '') {
             $from = date('Y-m-01');
             $to = date('Y-m-t');
@@ -208,6 +271,10 @@ class SimulatorProductsReportController extends Controller
         $_GET['from'] = $from;
         $_GET['to'] = $to;
         $_GET['q'] = $q;
+        $_GET['store_id'] = $storeFilter;
+        if ($view !== '') {
+            $_GET['view'] = $view;
+        }
         ob_start();
         $this->index();
         $htmlPage = ob_get_clean();

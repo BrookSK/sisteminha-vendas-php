@@ -1,4 +1,4 @@
-<?php /** @var array|null $product */ /** @var array $links */ ?>
+<?php /** @var array|null $product */ /** @var array $links */ /** @var array $stores */ ?>
 <div class="row">
   <div class="col-md-8 col-lg-6">
     <div class="card shadow-sm">
@@ -17,6 +17,20 @@
           <div class="mb-3">
             <label class="form-label">Marca</label>
             <input type="text" name="marca" class="form-control" value="<?= htmlspecialchars($product['marca'] ?? '') ?>">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Loja</label>
+            <select name="store_id" class="form-select">
+              <option value="0">Loja não selecionada</option>
+              <?php
+                $currentStoreId = isset($product['store_id']) ? (int)$product['store_id'] : 0;
+                foreach ($stores as $s):
+                  $sid = (int)($s['id'] ?? 0);
+                  $selected = $sid === $currentStoreId ? 'selected' : '';
+              ?>
+                <option value="<?= $sid ?>" <?= $selected ?>><?= htmlspecialchars($s['name'] ?? '') ?> (ID: <?= $sid ?>)</option>
+              <?php endforeach; ?>
+            </select>
           </div>
           <div class="mb-3">
             <label class="form-label">Peso (Kg)</label>
