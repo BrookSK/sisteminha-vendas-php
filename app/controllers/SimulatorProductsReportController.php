@@ -301,41 +301,162 @@ class SimulatorProductsReportController extends Controller
         $this->requireRole(['manager','admin']);
         $from = trim($_GET['from'] ?? '');
         $to = trim($_GET['to'] ?? '');
-        $q = trim($_GET['q'] ?? '');
-        $storeFilter = trim($_GET['store_id'] ?? '');
-        $view = trim($_GET['view'] ?? '');
         if ($from === '' || $to === '') {
             $from = date('Y-m-01');
             $to = date('Y-m-t');
         }
+        $q = trim($_GET['q'] ?? '');
+        $storeFilter = trim($_GET['store_id'] ?? '');
+        $statusFilter = trim($_GET['status'] ?? '');
 
-        // Reutiliza a lógica de index para montar a lista
-        $_GET['from'] = $from;
-        $_GET['to'] = $to;
-        $_GET['q'] = $q;
-        $_GET['store_id'] = $storeFilter;
-        if ($view !== '') {
-            $_GET['view'] = $view;
+        // Montar lista consolidada igual ao index(), mas sem layout
+        $budgetsModel = new SimulatorBudget();
+        $rows = $budgetsModel->listPaidInRange($from, $to);
+
+        $consolidated = [];
+        $allProductIds = [];
+        $storeIds = [];
+
+        foreach ($rows as $row) {
+            $data = json_decode($row['data_json'] ?? '[]', true) ?: [];
+            $items = $data['items'] ?? [];
+            if (!is_array($items) || !$items) continue;
+            foreach ($items as $it) {
+                $name = trim((string)($it['nome'] ?? ''));
+                if ($name === '') continue;
+                $qtd = (int)($it['qtd'] ?? 0) ?: 0;
+                $peso = (float)($it['peso'] ?? 0.0);
+                $valor = (float)($it['valor'] ?? 0.0);
+                if ($qtd <= 0 && $peso <= 0 && $valor <= 0) continue;
+                $productId = $it['product_id'] ?? null;
+                if ($productId) {
+                    $key = 'db:'.(int)$productId;
+                    $allProductIds[(int)$productId] = true;
+                } else {
+                    $norm = $this->normalizeFreeName($name);
+                    $key = 'free:'.$norm;
+                }
+                if (!isset($consolidated[$key])) {
+                    $consolidated[$key] = [
+                        'key' => $key,
+                        'product_id' => $productId ? (int)$productId : null,
+                        'name' => $name,
+                        'total_qtd' => 0,
+                    ];
+                }
+                $consolidated[$key]['total_qtd'] += $qtd;
+            }
         }
-        ob_start();
-        $this->index();
-        $htmlPage = ob_get_clean();
 
-        // Para simplificar, usamos o HTML da página como base de PDF
+        $productsInfo = [];
+        if ($allProductIds) {
+            $ids = array_keys($allProductIds);
+            $simProd = new SimulatorProduct();
+            foreach ($ids as $pid) {
+                $p = $simProd->find((int)$pid);
+                if ($p) {
+                    $productsInfo[(int)$pid] = $p;
+                    if (!empty($p['store_id'])) {
+                        $storeIds[(int)$p['store_id']] = true;
+                    }
+                }
+            }
+        }
+
+        $storesMap = [];
+        if ($storeIds) {
+            $stores = (new SimulatorStore())->all();
+            foreach ($stores as $st) {
+                $sid = (int)($st['id'] ?? 0);
+                if ($sid && isset($storeIds[$sid])) {
+                    $storesMap[$sid] = (string)($st['name'] ?? '');
+                }
+            }
+        }
+
+        $keys = array_keys($consolidated);
+        $purchaseModel = new SimulatorProductPurchase();
+        $purchases = $purchaseModel->getForKeys($keys);
+
+        $items = [];
+        foreach ($consolidated as $key => $row) {
+            $pid = $row['product_id'] ? (int)$row['product_id'] : null;
+            $info = $pid && isset($productsInfo[$pid]) ? $productsInfo[$pid] : null;
+            $purchasedQtd = (int)($purchases[$key] ?? 0);
+            $totalQtd = (int)($row['total_qtd'] ?? 0);
+            $statusCompra = 'nao_comprado';
+            if ($totalQtd > 0) {
+                if ($purchasedQtd >= $totalQtd) {
+                    $statusCompra = 'comprado_total';
+                } elseif ($purchasedQtd > 0) {
+                    $statusCompra = 'comprado_parcial';
+                }
+            }
+
+            $storeId = null;
+            if ($info && array_key_exists('store_id', $info)) {
+                $storeId = $info['store_id'] !== null ? (int)$info['store_id'] : null;
+            }
+            $storeName = $storeId && isset($storesMap[$storeId]) ? $storesMap[$storeId] : null;
+
+            $item = [
+                'name' => $info['nome'] ?? $row['name'],
+                'store_name' => $storeName,
+                'image_url' => $info['image_url'] ?? null,
+                'total_qtd' => $totalQtd,
+                'purchased_qtd' => $purchasedQtd,
+                'status_compra' => $statusCompra,
+            ];
+
+            if ($q !== '') {
+                $needle = mb_strtolower($q, 'UTF-8');
+                $hay = mb_strtolower($item['name'] ?? '', 'UTF-8');
+                if (mb_strpos($hay, $needle) === false) {
+                    continue;
+                }
+            }
+            if ($storeFilter !== '') {
+                if ($storeFilter === '0') {
+                    if (!empty($storeId)) {
+                        continue;
+                    }
+                } else {
+                    $storeFilterInt = (int)$storeFilter;
+                    if ((int)($storeId ?? 0) !== $storeFilterInt) {
+                        continue;
+                    }
+                }
+            }
+            if ($statusFilter !== '' && $statusFilter !== 'all') {
+                if (($item['status_compra'] ?? '') !== $statusFilter) {
+                    continue;
+                }
+            }
+
+            $items[] = $item;
+        }
+
+        usort($items, function($a, $b){
+            return strcmp(mb_strtolower($a['name'],'UTF-8'), mb_strtolower($b['name'],'UTF-8'));
+        });
+
+        // Renderizar HTML simples específico para PDF
+        ob_start();
+        $title = 'Lista de Compras - Simulador';
+        $fromDate = $from;
+        $toDate = $to;
+        include dirname(__DIR__) . '/views/sales_simulator/products_report_pdf.php';
+        $html = ob_get_clean();
+
         if (class_exists('Dompdf\\Dompdf')) {
             $dompdf = new \Dompdf\Dompdf();
-            $dompdf->loadHtml($htmlPage);
+            $dompdf->loadHtml($html);
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
             $dompdf->stream('produtos_simulador.pdf', ['Attachment' => true]);
             exit;
         }
         header('Content-Type: text/html; charset=utf-8');
-        echo '<div style="padding:16px;font-family:Arial, sans-serif">'
-            .'<p><strong>Dompdf não encontrado.</strong> Instale com:</p>'
-            .'<pre>composer require dompdf/dompdf</pre>'
-            .'<hr>'
-            .$htmlPage
-            .'</div>';
+        echo $html;
     }
 }
