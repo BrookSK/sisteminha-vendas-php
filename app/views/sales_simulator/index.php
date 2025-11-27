@@ -95,7 +95,7 @@
   <div class="row mt-4">
     <div class="col-md-6">
       <div class="card">
-        <div class="card-header">💵 Resultado em Dólares</div>
+        <div class="card-header">💵 Valores Finais</div>
         <div class="card-body">
           <ul class="list-group list-group-flush" id="usd-list"></ul>
         </div>
@@ -103,7 +103,7 @@
     </div>
     <div class="col-md-6">
       <div class="card">
-        <div class="card-header">💰 Resultado em Reais</div>
+        <div class="card-header">💰 Impostos do Brasil</div>
         <div class="card-body">
           <ul class="list-group list-group-flush" id="brl-list"></ul>
         </div>
@@ -112,7 +112,7 @@
   </div>
 
   <div class="card mt-3">
-    <div class="card-header">🧾 Mensagem automática</div>
+    <div class="card-header">🧾 Mensagem final</div>
     <div class="card-body">
       <textarea class="form-control" id="mensagem" rows="8" placeholder="Aperte 'Gerar mensagem para o cliente' para preencher."></textarea>
     </div>
@@ -482,7 +482,7 @@
 
   loadInitialBudget();
 
-  document.getElementById('btn-calcular').addEventListener('click', ()=>{
+  function calcularESincronizar(){
     const taxaCambio = parseFloat(document.getElementById('taxa_cambio').value||0);
     const envioBrasil = document.getElementById('envio_brasil').checked;
     const clienteClubeEl = document.getElementById('cliente_clube');
@@ -492,6 +492,7 @@
     const clienteSuiteBr = selectedClient ? (selectedClient.suite_br || null) : null;
     const orcamentoPagoEl = document.getElementById('orcamento_pago');
     const orcamentoPago = !!(orcamentoPagoEl && orcamentoPagoEl.checked);
+
     const items = Array.from(produtos.querySelectorAll('.prod-item')).map(function(w){
       return {
         nome: (w.querySelector('.nome_produto')?.value || '').trim(),
@@ -504,22 +505,134 @@
         product_id: (w.querySelector('.produto_id')?.value || '').trim() || null,
       };
     });
-    const sim = window.__sim || {};
-    return {
-      taxa_cambio: taxaCambio,
-      envio_brasil: envioBrasil,
-      cliente_clube: clienteClube,
-      cliente_id: clienteId,
-      cliente_nome: clienteNome,
-      cliente_suite_br: clienteSuiteBr,
+
+    // Cálculos básicos em USD
+    let somaProdutosUSD = 0;
+    let somaFretesUSD = 0;
+    let pesoTotalKg = 0;
+    const produtosDetalhes = [];
+
+    items.forEach(function(it){
+      if (!it || !it.nome) return;
+      const qtd = it.qtd || 1;
+      const valorUnit = it.valor || 0;
+      const pesoUnit = it.peso || 0;
+      const freteUnit = it.frete || 0;
+
+      const valorTotalItem = valorUnit * qtd;
+      somaProdutosUSD += valorTotalItem;
+      if (it.precisa_frete) {
+        somaFretesUSD += freteUnit;
+      }
+      pesoTotalKg += pesoUnit * qtd;
+
+      produtosDetalhes.push({
+        nome: it.nome,
+        qtd: qtd,
+        valorUnit: valorUnit,
+        valorTotal: valorTotalItem,
+      });
+    });
+
+    // Peso arredondado para taxa de serviço (regra simples: arredonda para cima em kg cheios)
+    const pesoTotalArred = Math.ceil(pesoTotalKg || 0);
+    const taxaServico = 39 * (pesoTotalArred || 0);
+    const subtotalUSD = somaProdutosUSD + somaFretesUSD + taxaServico;
+    const subtotalBRL = subtotalUSD * (taxaCambio || 0);
+
+    // Impostos de importação (quando envioBrasil=true)
+    let impostoImportBRL = 0;
+    let icmsBRL = 0;
+    if (envioBrasil) {
+      const baseProdutosBRL = somaProdutosUSD * (taxaCambio || 0);
+      impostoImportBRL = baseProdutosBRL * 0.60;
+      icmsBRL = (baseProdutosBRL + impostoImportBRL) * 0.20;
+    }
+
+    // Atualiza window.__sim com os dados calculados
+    window.__sim = {
+      taxaCambio: taxaCambio,
+      envioBrasil: envioBrasil,
+      clienteClube: clienteClube,
+      clienteId: clienteId,
+      clienteNome: clienteNome,
+      clienteSuiteBr: clienteSuiteBr,
+      somaValor: somaProdutosUSD,
+      somaFretes: somaFretesUSD,
+      taxaServico: taxaServico,
+      subtotalUSD: subtotalUSD,
+      subtotalBRL: subtotalBRL,
+      pesoTotalKg: pesoTotalKg,
+      pesoTotalArred: pesoTotalArred,
+      impostoImport: impostoImportBRL,
+      icms: icmsBRL,
+      produtosDetalhes: produtosDetalhes,
       paid: orcamentoPago,
-      cashback_percent: sim.cashbackPercent || 0,
-      cashback_usd: sim.cashbackUSD || 0,
-      cashback_brl: sim.cashbackBRL || 0,
-      peso_total_kg: sim.pesoTotalArred || null,
-      items: items,
     };
-  });
+
+    // Renderiza listas de resultado
+    const usdList = document.getElementById('usd-list');
+    const brlList = document.getElementById('brl-list');
+    if (usdList) {
+      usdList.innerHTML = '';
+      const liProd = document.createElement('li');
+      liProd.className = 'list-group-item d-flex justify-content-between';
+      liProd.innerHTML = '<span>Produtos</span><span>'+nfUSD(somaProdutosUSD)+'</span>';
+      usdList.appendChild(liProd);
+
+      const liFrete = document.createElement('li');
+      liFrete.className = 'list-group-item d-flex justify-content-between';
+      liFrete.innerHTML = '<span>Fretes até a sede</span><span>'+nfUSD(somaFretesUSD)+'</span>';
+      usdList.appendChild(liFrete);
+
+      const liTaxa = document.createElement('li');
+      liTaxa.className = 'list-group-item d-flex justify-content-between';
+      liTaxa.innerHTML = '<span>Taxa de serviço (US$ 39/kg)</span><span>'+nfUSD(taxaServico)+'</span>';
+      usdList.appendChild(liTaxa);
+
+      const liTotal = document.createElement('li');
+      liTotal.className = 'list-group-item d-flex justify-content-between fw-bold';
+      liTotal.innerHTML = '<span>Total em USD</span><span>'+nfUSD(subtotalUSD)+'</span>';
+      usdList.appendChild(liTotal);
+    }
+
+    if (brlList) {
+      brlList.innerHTML = '';
+      if (!envioBrasil) {
+        const liInfo = document.createElement('li');
+        liInfo.className = 'list-group-item';
+        liInfo.textContent = 'Impostos não calculados (envio para o Brasil não marcado).';
+        brlList.appendChild(liInfo);
+      } else {
+        const liBase = document.createElement('li');
+        liBase.className = 'list-group-item d-flex justify-content-between';
+        liBase.innerHTML = '<span>Base (produtos em BRL)</span><span>'+nfBRL(somaProdutosUSD * (taxaCambio || 0))+'</span>';
+        brlList.appendChild(liBase);
+
+        const liImp = document.createElement('li');
+        liImp.className = 'list-group-item d-flex justify-content-between';
+        liImp.innerHTML = '<span>Imposto de Importação (60%)</span><span>'+nfBRL(impostoImportBRL)+'</span>';
+        brlList.appendChild(liImp);
+
+        const liIcms = document.createElement('li');
+        liIcms.className = 'list-group-item d-flex justify-content-between';
+        liIcms.innerHTML = '<span>ICMS (20% sobre produto + 60%)</span><span>'+nfBRL(icmsBRL)+'</span>';
+        brlList.appendChild(liIcms);
+
+        const liTotImp = document.createElement('li');
+        liTotImp.className = 'list-group-item d-flex justify-content-between fw-bold';
+        liTotImp.innerHTML = '<span>Total de impostos estimados</span><span>'+nfBRL(impostoImportBRL+icmsBRL)+'</span>';
+        brlList.appendChild(liTotImp);
+      }
+    }
+  }
+
+  const btnCalcular = document.getElementById('btn-calcular');
+  if (btnCalcular) {
+    btnCalcular.addEventListener('click', function(){
+      calcularESincronizar();
+    });
+  }
 
   function gerarMensagem(){
     const s = window.__sim || {};
