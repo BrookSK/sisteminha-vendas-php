@@ -34,12 +34,13 @@
           <th>Suite</th>
           <th>Data Cadastro</th>
           <th>Total Vendas</th>
+          <th>Cashback (US$)</th>
           <th class="text-end">Ações</th>
         </tr>
       </thead>
       <tbody>
         <?php if (empty($clients)): ?>
-          <tr><td colspan="7" class="text-center text-muted">Nenhum cliente encontrado</td></tr>
+          <tr><td colspan="8" class="text-center text-muted">Nenhum cliente encontrado</td></tr>
         <?php else: foreach ($clients as $c): ?>
           <tr>
             <td><?= htmlspecialchars($c['nome']) ?></td>
@@ -70,6 +71,10 @@
             </td>
             <td><?= htmlspecialchars($c['created_at']) ?></td>
             <td><?= (int)($c['total_vendas'] ?? 0) ?></td>
+            <td>
+              <?php $cb = isset($c['cashback_balance_usd']) ? (float)$c['cashback_balance_usd'] : 0.0; ?>
+              <?= '$ ' . number_format($cb, 2, '.', ',') ?>
+            </td>
             <td class="text-end">
               <a class="btn btn-sm btn-outline-primary" href="/admin/clients/edit?id=<?= (int)$c['id'] ?>">Editar</a>
               <?php $isPlaceholder = (trim($c['nome'] ?? '') === '[REMOVIDO]') || (strtolower(trim($c['email'] ?? '')) === 'removed@system.local'); ?>

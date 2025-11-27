@@ -46,6 +46,13 @@
             <label class="form-label">Observações</label>
             <textarea name="observacoes" class="form-control" rows="3"><?= htmlspecialchars($client['observacoes'] ?? '') ?></textarea>
           </div>
+          <?php if (!empty($client) && array_key_exists('cashback_balance_usd', $client)): ?>
+            <div class="mb-3">
+              <label class="form-label">Cashback acumulado (US$)</label>
+              <input type="text" class="form-control" value="<?= '$ ' . number_format((float)($client['cashback_balance_usd'] ?? 0), 2, '.', ',') ?>" readonly>
+              <div class="form-text">Este valor é calculado automaticamente pelos orçamentos pagos no simulador.</div>
+            </div>
+          <?php endif; ?>
           <div class="d-flex gap-2">
             <a href="/admin/clients" class="btn btn-outline-secondary">Cancelar</a>
             <button type="submit" class="btn btn-primary">Salvar</button>
