@@ -22,9 +22,117 @@ class SimulatorProductsController extends Controller
         ]);
     }
 
+    // GET /admin/simulator-products/template
+    public function template()
+    {
+        $this->requireRole(['admin']);
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="modelo_produtos_simulador.csv"');
+        $out = fopen('php://output', 'w');
+        // Cabeçalho da planilha modelo
+        // Coluna "marca" é opcional: se o usuário não quiser preencher, pode deixar em branco ou remover a coluna.
+        fputcsv($out, ['sku', 'imagem', 'descricao', 'marca', 'peso_kg']);
+        fclose($out);
+        return exit;
+    }
+
+    // POST /admin/simulator-products/import
+    public function import()
+    {
+        $this->csrfCheck();
+        $this->requireRole(['admin']);
+
+        if (empty($_FILES['arquivo']['tmp_name']) || !is_uploaded_file($_FILES['arquivo']['tmp_name'])) {
+            $this->flash('danger', 'Nenhuma planilha enviada.');
+            return $this->redirect('/admin/simulator-products');
+        }
+
+        $tmp = $_FILES['arquivo']['tmp_name'];
+        $handle = fopen($tmp, 'r');
+        if (!$handle) {
+            $this->flash('danger', 'Não foi possível ler a planilha enviada.');
+            return $this->redirect('/admin/simulator-products');
+        }
+
+        // Lê cabeçalho
+        $header = fgetcsv($handle, 0, ',');
+        // "marca" é opcional: se não existir na planilha, será simplesmente ignorada
+        $map = ['sku' => null, 'imagem' => null, 'descricao' => null, 'marca' => null, 'peso_kg' => null];
+        if (is_array($header)) {
+            foreach ($header as $idx => $col) {
+                $col = mb_strtolower(trim((string)$col));
+                if (array_key_exists($col, $map)) {
+                    $map[$col] = $idx;
+                }
+            }
+        }
+
+        $model = new SimulatorProduct();
+        $criados = 0; $ignorados = 0;
+
+        while (($row = fgetcsv($handle, 0, ',')) !== false) {
+            if (!is_array($row) || count($row) === 0) continue;
+            $sku = $map['sku'] !== null ? trim((string)($row[$map['sku']] ?? '')) : '';
+            $imagem = $map['imagem'] !== null ? trim((string)($row[$map['imagem']] ?? '')) : '';
+            $descricao = $map['descricao'] !== null ? trim((string)($row[$map['descricao']] ?? '')) : '';
+            $marca = $map['marca'] !== null ? trim((string)($row[$map['marca']] ?? '')) : '';
+            $pesoStr = $map['peso_kg'] !== null ? trim((string)($row[$map['peso_kg']] ?? '')) : '';
+            if ($descricao === '' && $sku === '') {
+                continue; // linha vazia
+            }
+            $peso = (float)str_replace([','], ['.'], $pesoStr ?: '0');
+
+            // Regra: se já existir produto com mesmo SKU ou mesmo nome, não mexe
+            $exists = false;
+            if ($sku !== '' || $descricao !== '') {
+                $q = 'SELECT id FROM simulator_products WHERE ';
+                $conds = [];
+                $params = [];
+                if ($sku !== '') { $conds[] = 'sku = :sku'; $params[':sku'] = $sku; }
+                if ($descricao !== '') { $conds[] = 'nome = :nome'; $params[':nome'] = $descricao; }
+                $q .= implode(' OR ', $conds) . ' LIMIT 1';
+                $stmt = $model->getDb()->prepare($q);
+                $stmt->execute($params);
+                $rowExist = $stmt->fetch(\PDO::FETCH_ASSOC);
+                if ($rowExist) { $exists = true; }
+            }
+
+            if ($exists) {
+                $ignorados++;
+                continue;
+            }
+
+            $model->create([
+                'sku' => $sku !== '' ? $sku : null,
+                'nome' => $descricao !== '' ? $descricao : ($sku ?: 'Produto sem descrição'),
+                // Marca é opcional: se vier na planilha, usa; se não, mantém null
+                'marca' => $marca !== '' ? $marca : null,
+                'image_url' => $imagem !== '' ? $imagem : null,
+                'peso_kg' => $peso,
+            ], []);
+            $criados++;
+        }
+
+        fclose($handle);
+
+        $msg = "Importação concluída. Produtos criados: {$criados}. Linhas ignoradas (SKU/nome já existentes ou inválidos): {$ignorados}.";
+        $this->flash('success', $msg);
+        return $this->redirect('/admin/simulator-products');
+    }
+
+    // GET /admin/simulator-products/import
+    public function importForm()
+    {
+        $this->requireRole(['admin']);
+        $this->render('simulator_products/import', [
+            'title' => 'Importar Produtos do Simulador',
+            '_csrf' => Auth::csrf(),
+        ]);
+    }
+
     public function new()
     {
-        $this->requireRole(['seller','trainee','manager','admin','organic']);
+        $this->requireRole(['admin']);
         $this->render('simulator_products/form', [
             'title' => 'Novo Produto do Simulador',
             'product' => null,
@@ -37,15 +145,17 @@ class SimulatorProductsController extends Controller
     public function create()
     {
         $this->csrfCheck();
-        $this->requireRole(['seller','trainee','manager','admin','organic']);
+        $this->requireRole(['admin']);
         $in = $_POST;
         $nome = trim($in['nome'] ?? '');
         if ($nome === '') {
             $this->flash('danger', 'Nome do produto é obrigatório.');
             return $this->redirect('/admin/simulator-products/new');
         }
+        $sku = trim($in['sku'] ?? '');
         $marca = trim($in['marca'] ?? '');
         $peso = (float)($in['peso_kg'] ?? 0);
+        $imageUrl = trim($in['image_url'] ?? '');
         $links = [];
         if (!empty($in['links']) && is_array($in['links'])) {
             foreach ($in['links'] as $url) {
@@ -61,8 +171,10 @@ class SimulatorProductsController extends Controller
             $supervisorId = (int)($meFull['supervisor_user_id'] ?? 0) ?: null;
             $payload = [
                 'data' => [
+                    'sku' => $sku !== '' ? $sku : null,
                     'nome' => $nome,
                     'marca' => $marca ?: null,
+                    'image_url' => $imageUrl !== '' ? $imageUrl : null,
                     'peso_kg' => $peso,
                 ],
                 'links' => $links,
@@ -77,8 +189,10 @@ class SimulatorProductsController extends Controller
 
         $model = new SimulatorProduct();
         $id = $model->create([
+            'sku' => $sku !== '' ? $sku : null,
             'nome' => $nome,
             'marca' => $marca ?: null,
+            'image_url' => $imageUrl !== '' ? $imageUrl : null,
             'peso_kg' => $peso,
         ], $links);
         $this->flash('success', 'Produto criado com sucesso.');
@@ -87,7 +201,7 @@ class SimulatorProductsController extends Controller
 
     public function edit()
     {
-        $this->requireRole(['seller','trainee','manager','admin','organic']);
+        $this->requireRole(['admin']);
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) return $this->redirect('/admin/simulator-products');
         $model = new SimulatorProduct();
@@ -106,7 +220,7 @@ class SimulatorProductsController extends Controller
     public function update()
     {
         $this->csrfCheck();
-        $this->requireRole(['seller','trainee','manager','admin','organic']);
+        $this->requireRole(['admin']);
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) return $this->redirect('/admin/simulator-products');
         $in = $_POST;
@@ -115,8 +229,10 @@ class SimulatorProductsController extends Controller
             $this->flash('danger', 'Nome do produto é obrigatório.');
             return $this->redirect('/admin/simulator-products/edit?id='.$id);
         }
+        $sku = trim($in['sku'] ?? '');
         $marca = trim($in['marca'] ?? '');
         $peso = (float)($in['peso_kg'] ?? 0);
+        $imageUrl = trim($in['image_url'] ?? '');
         $links = [];
         if (!empty($in['links']) && is_array($in['links'])) {
             foreach ($in['links'] as $url) {
@@ -149,8 +265,10 @@ class SimulatorProductsController extends Controller
 
         $model = new SimulatorProduct();
         $model->update($id, [
+            'sku' => $sku !== '' ? $sku : null,
             'nome' => $nome,
             'marca' => $marca ?: null,
+            'image_url' => $imageUrl !== '' ? $imageUrl : null,
             'peso_kg' => $peso,
         ], $links);
         $this->flash('success', 'Produto atualizado com sucesso.');
@@ -160,7 +278,7 @@ class SimulatorProductsController extends Controller
     public function delete()
     {
         $this->csrfCheck();
-        $this->requireRole(['seller','manager','admin','organic']);
+        $this->requireRole(['admin']);
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) return $this->redirect('/admin/simulator-products');
         $model = new SimulatorProduct();

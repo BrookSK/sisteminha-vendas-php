@@ -21,6 +21,7 @@
             <th>Nome</th>
             <th>Criado em</th>
             <th>Atualizado em</th>
+            <th>Status</th>
             <th class="text-end">Ações</th>
           </tr>
         </thead>
@@ -30,8 +31,42 @@
             <td><?= htmlspecialchars($b['name'] ?? '') ?></td>
             <td><?= htmlspecialchars($b['created_at'] ?? '') ?></td>
             <td><?= htmlspecialchars($b['updated_at'] ?? '') ?></td>
+            <td>
+              <?php if (!empty($b['paid'])): ?>
+                <span class="badge bg-success">Pago</span>
+                <?php if (!empty($b['paid_at'])): ?>
+                  <div class="small text-muted"><?= htmlspecialchars($b['paid_at']) ?></div>
+                <?php endif; ?>
+              <?php else: ?>
+                <span class="badge bg-secondary">Não pago</span>
+              <?php endif; ?>
+            </td>
             <td class="text-end">
               <a href="/admin/sales-simulator?budget_id=<?= (int)$b['id'] ?>" class="btn btn-sm btn-primary">Abrir</a>
+              <?php $lockedPaid = !empty($b['locked_paid']); ?>
+              <?php if (empty($b['paid'])): ?>
+                <!-- Pode sempre marcar como pago quando ainda não está pago -->
+                <form method="post" action="/admin/sales-simulator/budgets/toggle-paid" class="d-inline">
+                  <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrf()) ?>">
+                  <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">
+                  <input type="hidden" name="paid" value="1">
+                  <button type="submit" class="btn btn-sm btn-outline-success">
+                    Marcar como pago
+                  </button>
+                </form>
+              <?php else: ?>
+                <?php if (!$lockedPaid): ?>
+                  <!-- Só permite voltar para não pago se não houver produtos comprados no relatório -->
+                  <form method="post" action="/admin/sales-simulator/budgets/toggle-paid" class="d-inline">
+                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrf()) ?>">
+                    <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">
+                    <input type="hidden" name="paid" value="0">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                      Marcar como não pago
+                    </button>
+                  </form>
+                <?php endif; ?>
+              <?php endif; ?>
               <form method="post" action="/admin/sales-simulator/budgets/duplicate" class="d-inline">
                 <input type="hidden" name="_csrf" value="<?= htmlspecialchars(Auth::csrf()) ?>">
                 <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">

@@ -46,7 +46,6 @@ use Core\Auth;
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/sales-simulator">Simulador de Cálculo</a></li>
                 <li><a class="dropdown-item" href="/admin/sales-simulator/budgets">Histórico de Orçamentos</a></li>
-                <li><a class="dropdown-item" href="/admin/simulator-products">Produtos do Simulador</a></li>
                 <li><a class="dropdown-item" href="/admin/message-templates">Mensagens Padrão</a></li>
               </ul>
             </li>
@@ -236,6 +235,7 @@ use Core\Auth;
                 <?php endif; ?>
                 <li><a class="dropdown-item" href="/admin/users">Usuários</a></li>
                 <li><a class="dropdown-item" href="/admin/approvals">Aprovações</a></li>
+                <li><a class="dropdown-item" href="/admin/sales-simulator/products-report">Relatório de Produtos e Compras</a></li>
                 <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/donations">Doações</a></li>
                 <?php endif; ?>

@@ -307,8 +307,12 @@ $router->group('/admin', function($r) {
     $r->post('/sales-simulator/budgets/save', 'Controllers\\SimulatorBudgetsController@save');
     $r->post('/sales-simulator/budgets/duplicate', 'Controllers\\SimulatorBudgetsController@duplicate');
     $r->post('/sales-simulator/budgets/delete', 'Controllers\\SimulatorBudgetsController@delete');
+    $r->post('/sales-simulator/budgets/toggle-paid', 'Controllers\\SimulatorBudgetsController@togglePaid');
     // Produtos do simulador (tela própria)
     $r->get('/simulator-products', 'Controllers\\SimulatorProductsController@index');
+    $r->get('/simulator-products/template', 'Controllers\\SimulatorProductsController@template');
+    $r->get('/simulator-products/import', 'Controllers\\SimulatorProductsController@importForm');
+    $r->post('/simulator-products/import', 'Controllers\\SimulatorProductsController@import');
     $r->get('/simulator-products/new', 'Controllers\\SimulatorProductsController@new');
     $r->post('/simulator-products/create', 'Controllers\\SimulatorProductsController@create');
     $r->get('/simulator-products/edit', 'Controllers\\SimulatorProductsController@edit');
@@ -317,6 +321,12 @@ $router->group('/admin', function($r) {
     // Produtos do simulador - integrações AJAX com a tela do simulador
     $r->get('/sales-simulator/products/search', 'Controllers\\SimulatorProductsController@search');
     $r->post('/sales-simulator/products/create-ajax', 'Controllers\\SimulatorProductsController@createAjax');
+
+    // Relatório consolidado de produtos do simulador (admin/manager)
+    $r->get('/sales-simulator/products-report', 'Controllers\\SimulatorProductsReportController@index');
+    $r->get('/sales-simulator/products-report/product', 'Controllers\\SimulatorProductsReportController@product');
+    $r->post('/sales-simulator/products-report/update-purchased', 'Controllers\\SimulatorProductsReportController@updatePurchased');
+    $r->get('/sales-simulator/products-report/export-pdf', 'Controllers\\SimulatorProductsReportController@exportPdf');
 
     // Vendas Nacionais
     $r->get('/national-sales', 'Controllers\\NationalSalesController@index');
