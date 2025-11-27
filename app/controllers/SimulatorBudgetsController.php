@@ -4,6 +4,7 @@ namespace Controllers;
 use Core\Controller;
 use Core\Auth;
 use Models\SimulatorBudget;
+use Models\SimulatorProductPurchase;
 
 class SimulatorBudgetsController extends Controller
 {
@@ -18,13 +19,54 @@ class SimulatorBudgetsController extends Controller
         $offset = ($page - 1) * $per;
         $model = new SimulatorBudget();
         $items = $model->listForUser($userId, $per, $offset);
+
+        // Marca orçamentos que já têm produtos comprados no relatório consolidado,
+        // para impedir que sejam revertidos de "pago" para "não pago".
+        if ($items) {
+            $purchaseModel = new SimulatorProductPurchase();
+            foreach ($items as &$b) {
+                $b['locked_paid'] = false;
+                $bid = (int)($b['id'] ?? 0);
+                if ($bid <= 0) continue;
+                $full = $model->findForUser($bid, $userId);
+                if (!$full) continue;
+                $data = json_decode($full['data_json'] ?? '[]', true) ?: [];
+                $its = $data['items'] ?? [];
+                if (!is_array($its) || !$its) continue;
+                $keysMap = [];
+                foreach ($its as $it) {
+                    $name = trim((string)($it['nome'] ?? ''));
+                    if ($name === '') continue;
+                    $productId = $it['product_id'] ?? null;
+                    if ($productId) {
+                        $key = 'db:'.(int)$productId;
+                    } else {
+                        $norm = mb_strtolower(trim(preg_replace('/\s+/', ' ', $name)), 'UTF-8');
+                        $key = 'free:'.$norm;
+                    }
+                    $keysMap[$key] = true;
+                }
+                $keys = array_keys($keysMap);
+                if (!$keys) continue;
+                $purchased = $purchaseModel->getForKeys($keys);
+                foreach ($purchased as $qty) {
+                    if ((int)$qty > 0) {
+                        $b['locked_paid'] = true;
+                        break;
+                    }
+                }
+            }
+            unset($b);
+        }
         $total = $model->countForUser($userId);
+        $totalPages = ceil($total / $per);
         $this->render('sales_simulator/budgets', [
             'title' => 'Meus Orçamentos do Simulador',
             'items' => $items,
             'page' => $page,
             'per' => $per,
             'total' => $total,
+            'totalPages' => $totalPages,
         ]);
     }
 
