@@ -20,22 +20,22 @@ class SimulatorProduct
 
     public function searchByName(?string $q = null, int $limit = 20, int $offset = 0): array
     {
-        // Importante: não usar parâmetros nomeados em LIMIT/OFFSET para evitar SQLSTATE[HY093]
+        // Versão compatível com drivers PDO mais rígidos: apenas placeholders posicionais
         $limit = max(1, $limit);
         $offset = max(0, $offset);
 
         $sql = 'SELECT id, sku, nome, marca, image_url, peso_kg, created_at, updated_at FROM simulator_products';
         $params = [];
         if ($q !== null && $q !== '') {
-            $sql .= ' WHERE nome LIKE :q OR sku LIKE :q';
-            $params[':q'] = '%'.$q.'%';
+            $like = '%'.$q.'%';
+            $sql .= ' WHERE nome LIKE ? OR sku LIKE ?';
+            $params[] = $like;
+            $params[] = $like;
         }
-        $sql .= ' ORDER BY nome ASC LIMIT ' . $limit . ' OFFSET ' . $offset;
+        $sql .= ' ORDER BY nome ASC LIMIT '.$limit.' OFFSET '.$offset;
+
         $stmt = $this->db->prepare($sql);
-        foreach ($params as $k => $v) {
-            $stmt->bindValue($k, $v);
-        }
-        $stmt->execute();
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
