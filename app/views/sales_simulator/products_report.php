@@ -73,7 +73,6 @@
                   <th class="text-end">Peso total (kg)</th>
                   <th class="text-end">Valor total (USD)</th>
                   <th class="text-end">Qtd comprada</th>
-                  <th class="text-end">Caixa com Fabiana (US$)</th>
                   <th class="text-center">Status</th>
                   <th class="text-end">Ações</th>
                 </tr>
@@ -117,15 +116,6 @@
                       <button type="submit" class="btn btn-sm btn-outline-primary">Salvar</button>
                     </form>
                   </td>
-                  <td class="text-end">
-                    <form method="post" action="/admin/sales-simulator/products-report/update-cash" class="d-flex justify-content-end align-items-center gap-2">
-                      <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
-                      <input type="hidden" name="product_key" value="<?= htmlspecialchars($row['key']) ?>">
-                      <span class="text-muted small me-1">$</span>
-                      <input type="number" name="cash_with_fabiana_usd" min="0" step="0.01" value="<?= number_format((float)($row['cash_with_fabiana_usd'] ?? 0), 2, '.', '') ?>" class="form-control form-control-sm" style="width:110px;">
-                      <button type="submit" class="btn btn-sm btn-outline-success">Salvar</button>
-                    </form>
-                  </td>
                   <td class="text-center">
                     <?php if ($status === 'comprado_total'): ?>
                       <span class="badge bg-success">Comprado</span>
@@ -157,7 +147,6 @@
               <th class="text-end">Peso total (kg)</th>
               <th class="text-end">Valor total (USD)</th>
               <th class="text-end">Qtd comprada</th>
-              <th class="text-end">Caixa com Fabiana (US$)</th>
               <th class="text-center">Status</th>
               <th class="text-end">Ações</th>
             </tr>
@@ -208,15 +197,6 @@
                   <input type="hidden" name="product_key" value="<?= htmlspecialchars($row['key']) ?>">
                   <input type="number" name="purchased_qtd" min="0" step="1" value="<?= (int)($row['purchased_qtd'] ?? 0) ?>" class="form-control form-control-sm" style="width:90px;">
                   <button type="submit" class="btn btn-sm btn-outline-primary">Salvar</button>
-                </form>
-              </td>
-              <td class="text-end">
-                <form method="post" action="/admin/sales-simulator/products-report/update-cash" class="d-flex justify-content-end align-items-center gap-2">
-                  <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
-                  <input type="hidden" name="product_key" value="<?= htmlspecialchars($row['key']) ?>">
-                  <span class="text-muted small me-1">$</span>
-                  <input type="number" name="cash_with_fabiana_usd" min="0" step="0.01" value="<?= number_format((float)($row['cash_with_fabiana_usd'] ?? 0), 2, '.', '') ?>" class="form-control form-control-sm" style="width:110px;">
-                  <button type="submit" class="btn btn-sm btn-outline-success">Salvar</button>
                 </form>
               </td>
               <td class="text-center">
