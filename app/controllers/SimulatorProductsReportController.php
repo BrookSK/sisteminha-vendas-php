@@ -7,6 +7,7 @@ use Models\SimulatorBudget;
 use Models\SimulatorProduct;
 use Models\SimulatorProductPurchase;
 use Models\SimulatorStore;
+use Models\Setting;
 
 class SimulatorProductsReportController extends Controller
 {
@@ -29,6 +30,7 @@ class SimulatorProductsReportController extends Controller
         $q = trim($_GET['q'] ?? '');
         $storeFilter = trim($_GET['store_id'] ?? '');
         $view = trim($_GET['view'] ?? '') ?: 'product';
+        $statusFilter = trim($_GET['status'] ?? '');
 
         $budgetsModel = new SimulatorBudget();
         $rows = $budgetsModel->listPaidInRange($from, $to);
@@ -109,6 +111,12 @@ class SimulatorProductsReportController extends Controller
 
         // Montar lista final para view
         $items = [];
+        $summary = [
+            'total' => 0,
+            'comprado_total' => 0,
+            'comprado_parcial' => 0,
+            'nao_comprado' => 0,
+        ];
         foreach ($consolidated as $key => $row) {
             $pid = $row['product_id'] ? (int)$row['product_id'] : null;
             $info = $pid && isset($productsInfo[$pid]) ? $productsInfo[$pid] : null;
@@ -161,6 +169,15 @@ class SimulatorProductsReportController extends Controller
                     }
                 }
             }
+            if ($statusFilter !== '' && $statusFilter !== 'all') {
+                if (($item['status_compra'] ?? '') !== $statusFilter) {
+                    continue;
+                }
+            }
+            $summary['total']++;
+            if (isset($summary[$statusCompra])) {
+                $summary[$statusCompra]++;
+            }
             $items[] = $item;
         }
 
@@ -171,6 +188,9 @@ class SimulatorProductsReportController extends Controller
         // Todas as lojas (para filtro)
         $allStores = (new SimulatorStore())->all();
 
+        // Caixa global com a Fabiana (config)
+        $fabianaCashTotal = (float)(new Setting())->get('fabiana_cash_total_usd', '0');
+
         $this->render('sales_simulator/products_report', [
             'title' => 'Relatório de Produtos do Simulador',
             'from' => $from,
@@ -178,8 +198,11 @@ class SimulatorProductsReportController extends Controller
             'q' => $q,
             'store_id' => $storeFilter,
             'view' => $view,
+            'status' => $statusFilter,
             'items' => $items,
             'stores' => $allStores,
+            'summary' => $summary,
+            'fabiana_cash_total_usd' => $fabianaCashTotal,
         ]);
     }
 
@@ -193,6 +216,28 @@ class SimulatorProductsReportController extends Controller
         (new SimulatorProductPurchase())->setPurchasedQty($key, $qtd);
         $this->flash('success', 'Quantidade comprada atualizada para o produto.');
         return $this->redirect('/admin/sales-simulator/products-report');
+    }
+
+    public function saveFabianaCash()
+    {
+        $this->requireRole(['manager','admin']);
+        $this->csrfCheck();
+        $raw = str_replace([','], ['.'], (string)($_POST['fabiana_cash_total_usd'] ?? '0'));
+        $amount = (float)$raw;
+        if ($amount < 0) { $amount = 0.0; }
+        (new Setting())->set('fabiana_cash_total_usd', (string)$amount);
+
+        $params = [
+            'from' => trim($_POST['from'] ?? ''),
+            'to' => trim($_POST['to'] ?? ''),
+            'q' => trim($_POST['q'] ?? ''),
+            'store_id' => trim($_POST['store_id'] ?? ''),
+            'view' => trim($_POST['view'] ?? ''),
+            'status' => trim($_POST['status'] ?? ''),
+        ];
+        $query = http_build_query(array_filter($params, fn($v) => $v !== '' && $v !== null));
+        $this->flash('success', 'Caixa total com a Fabiana atualizado.');
+        return $this->redirect('/admin/sales-simulator/products-report'.($query ? ('?'.$query) : ''));
     }
 
     public function updateCash()
