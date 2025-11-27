@@ -494,6 +494,12 @@
           lastState = this.checked;
           return;
         }
+        // Após confirmar que está pago, salva automaticamente o orçamento com o status atualizado
+        try {
+          salvarOrcamentoAutomatico();
+        } catch (e) {
+          console && console.error && console.error('Erro ao salvar orçamento automaticamente após marcar como pago', e);
+        }
       }
       lastState = this.checked;
     });
