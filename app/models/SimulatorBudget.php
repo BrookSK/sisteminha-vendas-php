@@ -145,4 +145,60 @@ class SimulatorBudget extends Model
             }
         }
     }
+
+    /**
+     * Atualiza um orçamento por ID, sem checar o user_id.
+     * Usado por administradores/gerentes ao editar orçamentos de outros usuários.
+     */
+    public function updateById(int $id, string $name, array $payload): void
+    {
+        $st = $this->db->prepare('UPDATE simulator_budgets SET name=:name, data_json=:data, updated_at=NOW() WHERE id=:id');
+        $st->execute([
+            ':id' => $id,
+            ':name' => $name,
+            ':data' => json_encode($payload, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+        ]);
+    }
+
+    /**
+     * Marca como pago/não pago por ID, sem checar o user_id (para admins/gerentes).
+     * Mantém exatamente a mesma lógica de cashback do setPaidForUser.
+     */
+    public function setPaidById(int $id, bool $paid, ?string $paidAt = null): void
+    {
+        // Carrega estado atual para saber se estávamos pagos ou não antes
+        $stSel = $this->db->prepare('SELECT paid, data_json FROM simulator_budgets WHERE id = :id');
+        $stSel->execute([':id' => $id]);
+        $row = $stSel->fetch(PDO::FETCH_ASSOC) ?: null;
+        $wasPaid = $row && (int)($row['paid'] ?? 0) === 1;
+
+        if ($paid) {
+            $sql = 'UPDATE simulator_budgets SET paid=1, paid_at=:paid_at, updated_at=NOW() WHERE id=:id';
+        } else {
+            $sql = 'UPDATE simulator_budgets SET paid=0, paid_at=NULL, updated_at=NOW() WHERE id=:id';
+        }
+        $st = $this->db->prepare($sql);
+        $params = [
+            ':id' => $id,
+        ];
+        if ($paid) {
+            $params[':paid_at'] = $paidAt ?: date('Y-m-d H:i:s');
+        }
+        $st->execute($params);
+
+        // Se acabou de ser marcado como pago (antes era não pago), credita cashback para o cliente, se houver
+        if ($paid && !$wasPaid && $row && !empty($row['data_json'])) {
+            $payload = json_decode($row['data_json'], true) ?: [];
+            $clientId = (int)($payload['cliente_id'] ?? 0);
+            $cashbackUSD = (float)($payload['cashback_usd'] ?? 0);
+            if ($clientId > 0 && $cashbackUSD > 0) {
+                try {
+                    $clientModel = new Client();
+                    $clientModel->addCashbackUsd($clientId, $cashbackUSD);
+                } catch (\Throwable $e) {
+                    // não deixa o erro de cashback quebrar a marcação de pago
+                }
+            }
+        }
+    }
 }
