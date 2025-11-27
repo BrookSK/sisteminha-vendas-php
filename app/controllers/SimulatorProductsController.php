@@ -165,7 +165,6 @@ class SimulatorProductsController extends Controller
         $peso = (float)($in['peso_kg'] ?? 0);
         $imageUrl = trim($in['image_url'] ?? '');
         $storeId = isset($in['store_id']) ? (int)$in['store_id'] : 0;
-        $storeId = isset($in['store_id']) ? (int)$in['store_id'] : 0;
         $links = [];
         if (!empty($in['links']) && is_array($in['links'])) {
             foreach ($in['links'] as $url) {
@@ -247,6 +246,7 @@ class SimulatorProductsController extends Controller
         $marca = trim($in['marca'] ?? '');
         $peso = (float)($in['peso_kg'] ?? 0);
         $imageUrl = trim($in['image_url'] ?? '');
+        $storeId = isset($in['store_id']) ? (int)$in['store_id'] : 0;
         $links = [];
         if (!empty($in['links']) && is_array($in['links'])) {
             foreach ($in['links'] as $url) {
