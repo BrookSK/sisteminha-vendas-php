@@ -68,39 +68,76 @@
     Período: <?= htmlspecialchars($fromDate ?? '') ?> até <?= htmlspecialchars($toDate ?? '') ?>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Produto</th>
-        <th>Loja</th>
-        <th class="col-img">Imagem</th>
-        <th class="col-qty">Qtd total</th>
-        <th class="col-check">Comprado?</th>
-        <th class="col-qty-bought">Qtd comprada</th>
-      </tr>
-    </thead>
-    <tbody>
-    <?php if (!empty($items)): ?>
-      <?php foreach ($items as $it): ?>
+  <?php
+    $items = $itemsForView ?? ($items ?? []);
+    $storeGroups = $storeGroups ?? [];
+  ?>
+
+  <?php if (!empty($storeGroups)): ?>
+    <?php foreach ($storeGroups as $storeName => $groupItems): ?>
+      <h3 style="margin-top:16px; margin-bottom:4px; font-size:13px;">Loja: <?= htmlspecialchars($storeName) ?></h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th class="col-img">Imagem</th>
+            <th class="col-qty">Qtd total</th>
+            <th class="col-check">Comprado?</th>
+            <th class="col-qty-bought">Qtd comprada</th>
+          </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($groupItems as $it): ?>
+          <tr>
+            <td><?= htmlspecialchars($it['name'] ?? '') ?></td>
+            <td class="col-img">
+              <?php if (!empty($it['image_url'])): ?>
+                <img src="<?= htmlspecialchars($it['image_url']) ?>" alt="" class="img-thumb">
+              <?php endif; ?>
+            </td>
+            <td class="col-qty"><?= (int)($it['total_qtd'] ?? 0) ?></td>
+            <td class="col-check"><span class="checkbox-box"></span></td>
+            <td class="col-qty-bought"></td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    <?php endforeach; ?>
+  <?php else: ?>
+    <table>
+      <thead>
         <tr>
-          <td><?= htmlspecialchars($it['name'] ?? '') ?></td>
-          <td><?= htmlspecialchars($it['store_name'] ?? '') ?></td>
-          <td class="col-img">
-            <?php if (!empty($it['image_url'])): ?>
-              <img src="<?= htmlspecialchars($it['image_url']) ?>" alt="" class="img-thumb">
-            <?php endif; ?>
-          </td>
-          <td class="col-qty"><?= (int)($it['total_qtd'] ?? 0) ?></td>
-          <td class="col-check"><span class="checkbox-box"></span></td>
-          <td class="col-qty-bought"></td>
+          <th>Produto</th>
+          <th>Loja</th>
+          <th class="col-img">Imagem</th>
+          <th class="col-qty">Qtd total</th>
+          <th class="col-check">Comprado?</th>
+          <th class="col-qty-bought">Qtd comprada</th>
         </tr>
-      <?php endforeach; ?>
-    <?php else: ?>
-      <tr>
-        <td colspan="6">Nenhum produto encontrado para o período/filtros selecionados.</td>
-      </tr>
-    <?php endif; ?>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+      <?php if (!empty($items)): ?>
+        <?php foreach ($items as $it): ?>
+          <tr>
+            <td><?= htmlspecialchars($it['name'] ?? '') ?></td>
+            <td><?= htmlspecialchars($it['store_name'] ?? '') ?></td>
+            <td class="col-img">
+              <?php if (!empty($it['image_url'])): ?>
+                <img src="<?= htmlspecialchars($it['image_url']) ?>" alt="" class="img-thumb">
+              <?php endif; ?>
+            </td>
+            <td class="col-qty"><?= (int)($it['total_qtd'] ?? 0) ?></td>
+            <td class="col-check"><span class="checkbox-box"></span></td>
+            <td class="col-qty-bought"></td>
+          </tr>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <tr>
+          <td colspan="6">Nenhum produto encontrado para o período/filtros selecionados.</td>
+        </tr>
+      <?php endif; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
 </body>
 </html>

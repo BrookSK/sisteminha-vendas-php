@@ -308,6 +308,7 @@ class SimulatorProductsReportController extends Controller
         $q = trim($_GET['q'] ?? '');
         $storeFilter = trim($_GET['store_id'] ?? '');
         $statusFilter = trim($_GET['status'] ?? '');
+        $view = trim($_GET['view'] ?? '');
 
         // Montar lista consolidada igual ao index(), mas sem layout
         $budgetsModel = new SimulatorBudget();
@@ -440,16 +441,35 @@ class SimulatorProductsReportController extends Controller
             return strcmp(mb_strtolower($a['name'],'UTF-8'), mb_strtolower($b['name'],'UTF-8'));
         });
 
+        // Se visão por loja, agrupar em blocos por loja
+        $groupByStore = ($view === 'store');
+        $groups = [];
+        if ($groupByStore) {
+            foreach ($items as $it) {
+                $storeName = $it['store_name'] ?? '';
+                if ($storeName === '' || $storeName === null) {
+                    $storeName = 'Loja não selecionada';
+                }
+                if (!isset($groups[$storeName])) {
+                    $groups[$storeName] = [];
+                }
+                $groups[$storeName][] = $it;
+            }
+            ksort($groups, SORT_NATURAL | SORT_FLAG_CASE);
+        }
+
         // Renderizar HTML simples específico para PDF
         ob_start();
         $title = 'Lista de Compras - Simulador';
         $fromDate = $from;
         $toDate = $to;
+        $itemsForView = $items;
+        $storeGroups = $groups;
         include dirname(__DIR__) . '/views/sales_simulator/products_report_pdf.php';
         $html = ob_get_clean();
 
         if (class_exists('Dompdf\\Dompdf')) {
-            $dompdf = new \Dompdf\Dompdf();
+            $dompdf = new \Dompdf\Dompdf(['isRemoteEnabled' => true]);
             $dompdf->loadHtml($html);
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
