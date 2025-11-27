@@ -4,6 +4,7 @@ namespace Controllers;
 use Core\Controller;
 use Core\Auth;
 use Models\SimulatorProduct;
+use Models\SimulatorStore;
 use Models\Approval;
 use Models\Notification;
 use Models\User;
@@ -31,7 +32,8 @@ class SimulatorProductsController extends Controller
         $out = fopen('php://output', 'w');
         // Cabeçalho da planilha modelo
         // Coluna "marca" é opcional: se o usuário não quiser preencher, pode deixar em branco ou remover a coluna.
-        fputcsv($out, ['sku', 'imagem', 'descricao', 'marca', 'peso_kg']);
+        // Coluna "store_id" indica o ID da loja (veja a tela de Lojas do Simulador para consultar os IDs). 0 ou vazio = Loja não selecionada.
+        fputcsv($out, ['sku', 'imagem', 'descricao', 'marca', 'peso_kg', 'store_id']);
         fclose($out);
         return exit;
     }
@@ -57,7 +59,8 @@ class SimulatorProductsController extends Controller
         // Lê cabeçalho
         $header = fgetcsv($handle, 0, ',');
         // "marca" é opcional: se não existir na planilha, será simplesmente ignorada
-        $map = ['sku' => null, 'imagem' => null, 'descricao' => null, 'marca' => null, 'peso_kg' => null];
+        // "store_id" é opcional: se informado, deve conter o ID de uma loja cadastrada; 0 ou vazio = loja não selecionada
+        $map = ['sku' => null, 'imagem' => null, 'descricao' => null, 'marca' => null, 'peso_kg' => null, 'store_id' => null];
         if (is_array($header)) {
             foreach ($header as $idx => $col) {
                 $col = mb_strtolower(trim((string)$col));
@@ -77,10 +80,12 @@ class SimulatorProductsController extends Controller
             $descricao = $map['descricao'] !== null ? trim((string)($row[$map['descricao']] ?? '')) : '';
             $marca = $map['marca'] !== null ? trim((string)($row[$map['marca']] ?? '')) : '';
             $pesoStr = $map['peso_kg'] !== null ? trim((string)($row[$map['peso_kg']] ?? '')) : '';
+            $storeIdStr = $map['store_id'] !== null ? trim((string)($row[$map['store_id']] ?? '')) : '';
             if ($descricao === '' && $sku === '') {
                 continue; // linha vazia
             }
             $peso = (float)str_replace([','], ['.'], $pesoStr ?: '0');
+            $storeId = (int)($storeIdStr !== '' ? $storeIdStr : 0) ?: null;
 
             // Regra: se já existir produto com mesmo SKU ou mesmo nome, não mexe
             $exists = false;
@@ -109,6 +114,7 @@ class SimulatorProductsController extends Controller
                 'marca' => $marca !== '' ? $marca : null,
                 'image_url' => $imagem !== '' ? $imagem : null,
                 'peso_kg' => $peso,
+                'store_id' => $storeId,
             ], []);
             $criados++;
         }
@@ -133,12 +139,14 @@ class SimulatorProductsController extends Controller
     public function new()
     {
         $this->requireRole(['admin']);
+        $stores = (new SimulatorStore())->all();
         $this->render('simulator_products/form', [
             'title' => 'Novo Produto do Simulador',
             'product' => null,
             'links' => [],
             'action' => '/admin/simulator-products/create',
             '_csrf' => Auth::csrf(),
+            'stores' => $stores,
         ]);
     }
 
@@ -156,6 +164,8 @@ class SimulatorProductsController extends Controller
         $marca = trim($in['marca'] ?? '');
         $peso = (float)($in['peso_kg'] ?? 0);
         $imageUrl = trim($in['image_url'] ?? '');
+        $storeId = isset($in['store_id']) ? (int)$in['store_id'] : 0;
+        $storeId = isset($in['store_id']) ? (int)$in['store_id'] : 0;
         $links = [];
         if (!empty($in['links']) && is_array($in['links'])) {
             foreach ($in['links'] as $url) {
@@ -176,6 +186,7 @@ class SimulatorProductsController extends Controller
                     'marca' => $marca ?: null,
                     'image_url' => $imageUrl !== '' ? $imageUrl : null,
                     'peso_kg' => $peso,
+                    'store_id' => $storeId ?: null,
                 ],
                 'links' => $links,
             ];
@@ -194,6 +205,7 @@ class SimulatorProductsController extends Controller
             'marca' => $marca ?: null,
             'image_url' => $imageUrl !== '' ? $imageUrl : null,
             'peso_kg' => $peso,
+            'store_id' => $storeId ?: null,
         ], $links);
         $this->flash('success', 'Produto criado com sucesso.');
         return $this->redirect('/admin/simulator-products');
@@ -206,6 +218,7 @@ class SimulatorProductsController extends Controller
         if ($id <= 0) return $this->redirect('/admin/simulator-products');
         $model = new SimulatorProduct();
         $product = $model->find($id);
+        $stores = (new SimulatorStore())->all();
         if (!$product) return $this->redirect('/admin/simulator-products');
         $links = $product['links'] ?? [];
         $this->render('simulator_products/form', [
@@ -214,6 +227,7 @@ class SimulatorProductsController extends Controller
             'links' => $links,
             'action' => '/admin/simulator-products/update?id='.$id,
             '_csrf' => Auth::csrf(),
+            'stores' => $stores,
         ]);
     }
 
@@ -252,6 +266,7 @@ class SimulatorProductsController extends Controller
                     'nome' => $nome,
                     'marca' => $marca ?: null,
                     'peso_kg' => $peso,
+                    'store_id' => $storeId ?: null,
                 ],
                 'links' => $links,
             ];
@@ -270,6 +285,7 @@ class SimulatorProductsController extends Controller
             'marca' => $marca ?: null,
             'image_url' => $imageUrl !== '' ? $imageUrl : null,
             'peso_kg' => $peso,
+            'store_id' => $storeId ?: null,
         ], $links);
         $this->flash('success', 'Produto atualizado com sucesso.');
         return $this->redirect('/admin/simulator-products');

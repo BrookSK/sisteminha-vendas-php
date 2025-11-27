@@ -6,10 +6,12 @@ CREATE TABLE IF NOT EXISTS simulator_products (
   marca VARCHAR(150) NULL,
   image_url VARCHAR(500) NULL,
   peso_kg DECIMAL(10,2) NOT NULL DEFAULT 0,
+  store_id INT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL DEFAULT NULL,
   INDEX idx_simprod_nome (nome),
-  INDEX idx_simprod_sku (sku)
+  INDEX idx_simprod_sku (sku),
+  INDEX idx_simprod_store (store_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Links onde comprar cada produto (1:N)
@@ -21,4 +23,13 @@ CREATE TABLE IF NOT EXISTS simulator_product_links (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX (product_id),
   CONSTRAINT fk_spl_product FOREIGN KEY (product_id) REFERENCES simulator_products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Tabela de lojas usadas nos produtos do simulador
+CREATE TABLE IF NOT EXISTS simulator_stores (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL DEFAULT NULL,
+  UNIQUE KEY uq_simstore_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
