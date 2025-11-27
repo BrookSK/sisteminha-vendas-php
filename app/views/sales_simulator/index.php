@@ -36,12 +36,6 @@
         <label class="form-check-label" for="cliente_clube">Cliente faz parte do Clube?</label>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="form-check form-switch mt-4">
-        <input class="form-check-input" type="checkbox" id="orcamento_pago">
-        <label class="form-check-label" for="orcamento_pago">Orçamento pago?</label>
-      </div>
-    </div>
     <div class="col-12">
       <h5 class="mt-3">Cliente</h5>
       <div class="row g-2 align-items-end">
@@ -85,10 +79,14 @@
         <button type="button" class="btn btn-sm btn-outline-primary" id="btn-add-prod">Adicionar produto</button>
       </div>
     </div>
-    <div class="col-12 d-flex flex-wrap gap-2">
+    <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
       <button class="btn btn-primary" id="btn-calcular">Calcular</button>
       <button class="btn btn-outline-secondary" id="btn-gerar">Gerar mensagem para o cliente</button>
       <button class="btn btn-outline-dark" id="btn-copiar" type="button">Copiar mensagem</button>
+      <div class="form-check form-switch ms-3">
+        <input class="form-check-input" type="checkbox" id="orcamento_pago">
+        <label class="form-check-label" for="orcamento_pago">Orçamento pago?</label>
+      </div>
     </div>
   </form>
 
@@ -482,6 +480,25 @@
 
   loadInitialBudget();
 
+  // Confirmação ao marcar orçamento como pago no simulador
+  (function(){
+    const chk = document.getElementById('orcamento_pago');
+    if (!chk) return;
+    let lastState = chk.checked;
+    chk.addEventListener('change', function(){
+      // Só pede confirmação quando for marcar como pago
+      if (this.checked && !lastState) {
+        const ok = window.confirm('Tem certeza que deseja marcar este orçamento como pago?\n\nSe confirmar, este orçamento será marcado como pago e entrará na fila para compra pela Fabiana.');
+        if (!ok) {
+          this.checked = false;
+          lastState = this.checked;
+          return;
+        }
+      }
+      lastState = this.checked;
+    });
+  })();
+
   function calcularESincronizar(){
     const taxaCambio = parseFloat(document.getElementById('taxa_cambio').value||0);
     const envioBrasil = document.getElementById('envio_brasil').checked;
@@ -540,6 +557,17 @@
     const subtotalUSD = somaProdutosUSD + somaFretesUSD + taxaServico;
     const subtotalBRL = subtotalUSD * (taxaCambio || 0);
 
+    // Imposto local (7%) em USD, somado apenas sobre itens com aplica_imp_local
+    let impostoLocalUSD = 0;
+    items.forEach(function(it){
+      if (!it || !it.nome) return;
+      if (!it.aplica_imp_local) return;
+      const qtd = it.qtd || 1;
+      const valorUnit = it.valor || 0;
+      const valorTotalItem = valorUnit * qtd;
+      impostoLocalUSD += valorTotalItem * 0.07;
+    });
+
     // Impostos de importação (quando envioBrasil=true)
     let impostoImportBRL = 0;
     let icmsBRL = 0;
@@ -575,25 +603,52 @@
     const brlList = document.getElementById('brl-list');
     if (usdList) {
       usdList.innerHTML = '';
+
+      // Soma dos valores dos produtos
       const liProd = document.createElement('li');
       liProd.className = 'list-group-item d-flex justify-content-between';
       liProd.innerHTML = '<span>Produtos</span><span>'+nfUSD(somaProdutosUSD)+'</span>';
       usdList.appendChild(liProd);
 
-      const liFrete = document.createElement('li');
-      liFrete.className = 'list-group-item d-flex justify-content-between';
-      liFrete.innerHTML = '<span>Fretes até a sede</span><span>'+nfUSD(somaFretesUSD)+'</span>';
-      usdList.appendChild(liFrete);
-
+      // Taxa de serviço
       const liTaxa = document.createElement('li');
       liTaxa.className = 'list-group-item d-flex justify-content-between';
       liTaxa.innerHTML = '<span>Taxa de serviço (US$ 39/kg)</span><span>'+nfUSD(taxaServico)+'</span>';
       usdList.appendChild(liTaxa);
 
+      // Frete até a sede (soma)
+      const liFrete = document.createElement('li');
+      liFrete.className = 'list-group-item d-flex justify-content-between';
+      liFrete.innerHTML = '<span>Frete até a sede (soma)</span><span>'+nfUSD(somaFretesUSD)+'</span>';
+      usdList.appendChild(liFrete);
+
+      // Imposto local em dólar (7%)
+      const liImpLocal = document.createElement('li');
+      liImpLocal.className = 'list-group-item d-flex justify-content-between';
+      liImpLocal.innerHTML = '<span>Imposto local (7%)</span><span>'+nfUSD(impostoLocalUSD)+'</span>';
+      usdList.appendChild(liImpLocal);
+
+      // Total em dólar
       const liTotal = document.createElement('li');
       liTotal.className = 'list-group-item d-flex justify-content-between fw-bold';
       liTotal.innerHTML = '<span>Total em USD</span><span>'+nfUSD(subtotalUSD)+'</span>';
       usdList.appendChild(liTotal);
+
+      // Conversão total em reais
+      const liTotalBRL = document.createElement('li');
+      liTotalBRL.className = 'list-group-item d-flex justify-content-between';
+      liTotalBRL.innerHTML = '<span>Total convertido em BRL</span><span>'+nfBRL(subtotalBRL)+'</span>';
+      usdList.appendChild(liTotalBRL);
+
+      // Cashback (quando cliente é do clube e houver valor)
+      const simAtual = window.__sim || {};
+      const cashbackUSD = simAtual.cashbackUSD || 0;
+      if (clienteClube && cashbackUSD > 0) {
+        const liCash = document.createElement('li');
+        liCash.className = 'list-group-item d-flex justify-content-between text-success';
+        liCash.innerHTML = '<span>Cashback (Clube)</span><span>'+nfUSD(cashbackUSD)+'</span>';
+        usdList.appendChild(liCash);
+      }
     }
 
     if (brlList) {
@@ -604,11 +659,6 @@
         liInfo.textContent = 'Impostos não calculados (envio para o Brasil não marcado).';
         brlList.appendChild(liInfo);
       } else {
-        const liBase = document.createElement('li');
-        liBase.className = 'list-group-item d-flex justify-content-between';
-        liBase.innerHTML = '<span>Base (produtos em BRL)</span><span>'+nfBRL(somaProdutosUSD * (taxaCambio || 0))+'</span>';
-        brlList.appendChild(liBase);
-
         const liImp = document.createElement('li');
         liImp.className = 'list-group-item d-flex justify-content-between';
         liImp.innerHTML = '<span>Imposto de Importação (60%)</span><span>'+nfBRL(impostoImportBRL)+'</span>';
