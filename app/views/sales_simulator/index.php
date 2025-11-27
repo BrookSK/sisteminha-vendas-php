@@ -557,6 +557,24 @@
     const subtotalUSD = somaProdutosUSD + somaFretesUSD + taxaServico;
     const subtotalBRL = subtotalUSD * (taxaCambio || 0);
 
+    // Cashback por faixas de peso, aplicado apenas sobre o subtotal dos valores dos produtos (somaProdutosUSD)
+    let cashbackPercent = 0;
+    if (clienteClube) {
+      const p = pesoTotalKg || 0;
+      if (p <= 5) cashbackPercent = 5;
+      else if (p <= 10) cashbackPercent = 10;
+      else if (p <= 20) cashbackPercent = 15;
+      else if (p <= 30) cashbackPercent = 20;
+      else if (p <= 40) cashbackPercent = 25;
+      else if (p <= 50) cashbackPercent = 30;
+      else if (p <= 60) cashbackPercent = 35;
+      else if (p <= 70) cashbackPercent = 40;
+      else if (p <= 80) cashbackPercent = 45;
+      else cashbackPercent = 50; // acima de 80kg
+    }
+    const cashbackUSD = clienteClube && cashbackPercent > 0 ? (somaProdutosUSD * (cashbackPercent / 100)) : 0;
+    const cashbackBRL = cashbackUSD * (taxaCambio || 0);
+
     // Imposto local (7%) em USD, somado apenas sobre itens com aplica_imp_local
     let impostoLocalUSD = 0;
     items.forEach(function(it){
@@ -594,6 +612,9 @@
       pesoTotalArred: pesoTotalArred,
       impostoImport: impostoImportBRL,
       icms: icmsBRL,
+      cashbackPercent: cashbackPercent,
+      cashbackUSD: cashbackUSD,
+      cashbackBRL: cashbackBRL,
       produtosDetalhes: produtosDetalhes,
       paid: orcamentoPago,
     };
