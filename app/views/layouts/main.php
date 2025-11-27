@@ -162,6 +162,7 @@ use Core\Auth;
                 <li><a class="dropdown-item" href="/admin/clients">Clientes</a></li>
                 <li><a class="dropdown-item" href="/admin/attendances">Atendimentos</a></li>
                 <li><a class="dropdown-item" href="/admin/simulator-products">Produtos do Simulador</a></li>
+                <li><a class="dropdown-item" href="/admin/simulator-stores">Lojas do Simulador</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/costs">Custos</a></li>
@@ -232,6 +233,7 @@ use Core\Auth;
                 <?php if ($role === 'admin'): ?>
                 <li><a class="dropdown-item" href="/admin/performance">Desempenho Individual</a></li>
                 <li><a class="dropdown-item" href="/admin/finance">Financeiro</a></li>
+                <li><a class="dropdown-item" href="/admin/sales-simulator/fabiana">Dashboard Compras Fabiana</a></li>
                 <?php endif; ?>
                 <li><a class="dropdown-item" href="/admin/users">Usuários</a></li>
                 <li><a class="dropdown-item" href="/admin/approvals">Aprovações</a></li>

@@ -5,6 +5,26 @@
     <a href="/admin/sales-simulator" class="btn btn-outline-secondary">Voltar para o Simulador</a>
   </div>
 
+<style>
+  @media print {
+    nav.navbar,
+    footer,
+    form[action="/admin/sales-simulator/products-report"],
+    a.btn,
+    .alert.alert-info.small {
+      display: none !important;
+    }
+    main.container {
+      margin: 0;
+      padding: 0;
+      max-width: 100%;
+    }
+    .table {
+      font-size: 11px;
+    }
+  }
+</style>
+
   <form class="row g-2 mb-3" method="get" action="/admin/sales-simulator/products-report">
     <div class="col-md-3">
       <label class="form-label mb-1">Data de pagamento (de)</label>
@@ -30,15 +50,67 @@
         <?php endforeach; ?>
       </select>
     </div>
-    <div class="col-md-6 d-flex align-items-end gap-2 mt-2">
+    <div class="col-md-6 d-flex align-items-end gap-2 mt-2 flex-wrap">
+      <div class="me-2">
+        <label class="form-label mb-1">Status de compra</label>
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Todos</option>
+          <option value="comprado_total" <?= ($status ?? '') === 'comprado_total' ? 'selected' : '' ?>>Comprado</option>
+          <option value="comprado_parcial" <?= ($status ?? '') === 'comprado_parcial' ? 'selected' : '' ?>>Parcial</option>
+          <option value="nao_comprado" <?= ($status ?? '') === 'nao_comprado' ? 'selected' : '' ?>>Pendente</option>
+        </select>
+      </div>
       <div class="btn-group" role="group" aria-label="Modo de visualização">
         <button type="submit" name="view" value="product" class="btn btn-sm <?= ($view ?? 'product') === 'product' ? 'btn-primary' : 'btn-outline-primary' ?>">Visão por produto</button>
         <button type="submit" name="view" value="store" class="btn btn-sm <?= ($view ?? 'product') === 'store' ? 'btn-primary' : 'btn-outline-primary' ?>">Visão por loja</button>
       </div>
       <button type="submit" class="btn btn-sm btn-secondary ms-2">Aplicar filtros</button>
-      <a href="/admin/sales-simulator/products-report/export-pdf?from=<?= urlencode($from ?? '') ?>&to=<?= urlencode($to ?? '') ?>&q=<?= urlencode($q ?? '') ?>&store_id=<?= urlencode($store_id ?? '') ?>&view=<?= urlencode($view ?? 'product') ?>" target="_blank" class="btn btn-sm btn-outline-secondary">Exportar PDF</a>
+      <a href="/admin/sales-simulator/products-report/export-pdf?from=<?= urlencode($from ?? '') ?>&to=<?= urlencode($to ?? '') ?>&q=<?= urlencode($q ?? '') ?>&store_id=<?= urlencode($store_id ?? '') ?>&view=<?= urlencode($view ?? 'product') ?>&status=<?= urlencode($status ?? '') ?>" target="_blank" class="btn btn-sm btn-outline-secondary">Exportar PDF</a>
     </div>
   </form>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-3">
+      <div class="p-2 border rounded h-100">
+        <div class="text-muted small">Caixa total com a Fabiana (manual)</div>
+        <form method="post" action="/admin/sales-simulator/products-report/save-fabiana-cash" class="d-flex flex-column gap-1 mt-1">
+          <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
+          <input type="hidden" name="from" value="<?= htmlspecialchars($from ?? '') ?>">
+          <input type="hidden" name="to" value="<?= htmlspecialchars($to ?? '') ?>">
+          <input type="hidden" name="q" value="<?= htmlspecialchars($q ?? '') ?>">
+          <input type="hidden" name="store_id" value="<?= htmlspecialchars($store_id ?? '') ?>">
+          <input type="hidden" name="view" value="<?= htmlspecialchars($view ?? 'product') ?>">
+          <input type="hidden" name="status" value="<?= htmlspecialchars($status ?? '') ?>">
+          <div class="d-flex align-items-center gap-1">
+            <span class="text-muted small">$</span>
+            <input type="number" step="0.01" min="0" name="fabiana_cash_total_usd" class="form-control form-control-sm" style="max-width:120px;" value="<?= number_format((float)($fabiana_cash_total_usd ?? 0), 2, '.', '') ?>">
+          </div>
+          <button type="submit" class="btn btn-sm btn-outline-success align-self-start">Salvar</button>
+        </form>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="p-2 border rounded h-100">
+        <div class="text-muted small">Produtos listados (após filtros)</div>
+        <div class="fw-bold"><?= (int)($summary['total'] ?? 0) ?></div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="p-2 border rounded h-100">
+        <div class="text-muted small">Produtos comprados</div>
+        <div class="fw-bold text-success"><?= (int)($summary['comprado_total'] ?? 0) ?></div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="p-2 border rounded h-100">
+        <div class="text-muted small">Produtos parciais / pendentes</div>
+        <div class="fw-bold">
+          <?= (int)(($summary['comprado_parcial'] ?? 0) + ($summary['nao_comprado'] ?? 0)) ?>
+          <span class="small text-muted">(Parciais: <?= (int)($summary['comprado_parcial'] ?? 0) ?> / Pendentes: <?= (int)($summary['nao_comprado'] ?? 0) ?>)</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div class="alert alert-info small">
     <strong>Legenda de cores:</strong><br>
@@ -73,7 +145,6 @@
                   <th class="text-end">Peso total (kg)</th>
                   <th class="text-end">Valor total (USD)</th>
                   <th class="text-end">Qtd comprada</th>
-                  <th class="text-end">Caixa com Fabiana (US$)</th>
                   <th class="text-center">Status</th>
                   <th class="text-end">Ações</th>
                 </tr>
@@ -117,15 +188,6 @@
                       <button type="submit" class="btn btn-sm btn-outline-primary">Salvar</button>
                     </form>
                   </td>
-                  <td class="text-end">
-                    <form method="post" action="/admin/sales-simulator/products-report/update-cash" class="d-flex justify-content-end align-items-center gap-2">
-                      <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
-                      <input type="hidden" name="product_key" value="<?= htmlspecialchars($row['key']) ?>">
-                      <span class="text-muted small me-1">$</span>
-                      <input type="number" name="cash_with_fabiana_usd" min="0" step="0.01" value="<?= number_format((float)($row['cash_with_fabiana_usd'] ?? 0), 2, '.', '') ?>" class="form-control form-control-sm" style="width:110px;">
-                      <button type="submit" class="btn btn-sm btn-outline-success">Salvar</button>
-                    </form>
-                  </td>
                   <td class="text-center">
                     <?php if ($status === 'comprado_total'): ?>
                       <span class="badge bg-success">Comprado</span>
@@ -157,7 +219,6 @@
               <th class="text-end">Peso total (kg)</th>
               <th class="text-end">Valor total (USD)</th>
               <th class="text-end">Qtd comprada</th>
-              <th class="text-end">Caixa com Fabiana (US$)</th>
               <th class="text-center">Status</th>
               <th class="text-end">Ações</th>
             </tr>
@@ -208,15 +269,6 @@
                   <input type="hidden" name="product_key" value="<?= htmlspecialchars($row['key']) ?>">
                   <input type="number" name="purchased_qtd" min="0" step="1" value="<?= (int)($row['purchased_qtd'] ?? 0) ?>" class="form-control form-control-sm" style="width:90px;">
                   <button type="submit" class="btn btn-sm btn-outline-primary">Salvar</button>
-                </form>
-              </td>
-              <td class="text-end">
-                <form method="post" action="/admin/sales-simulator/products-report/update-cash" class="d-flex justify-content-end align-items-center gap-2">
-                  <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
-                  <input type="hidden" name="product_key" value="<?= htmlspecialchars($row['key']) ?>">
-                  <span class="text-muted small me-1">$</span>
-                  <input type="number" name="cash_with_fabiana_usd" min="0" step="0.01" value="<?= number_format((float)($row['cash_with_fabiana_usd'] ?? 0), 2, '.', '') ?>" class="form-control form-control-sm" style="width:110px;">
-                  <button type="submit" class="btn btn-sm btn-outline-success">Salvar</button>
                 </form>
               </td>
               <td class="text-center">

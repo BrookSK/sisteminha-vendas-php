@@ -79,21 +79,15 @@
     <?php foreach ($grouped as $storeName => $rowsByStore): ?>
       <?php
         $storeTotalRemaining = 0.0;
-        $storeCash = 0.0;
-        $storeToSend = 0.0;
         foreach ($rowsByStore as $r) {
           $storeTotalRemaining += (float)($r['remaining_valor'] ?? 0);
-          $storeCash += (float)($r['cash_with_fabiana_usd'] ?? 0);
-          $storeToSend += (float)($r['to_send_usd'] ?? 0);
         }
       ?>
       <div class="mb-4">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h5 class="mb-0">Loja: <?= htmlspecialchars($storeName) ?></h5>
           <div class="small text-muted">
-            Restante (não comprado): $ <?= number_format($storeTotalRemaining, 2, '.', ',') ?> |
-            Caixa por produto: $ <?= number_format($storeCash, 2, '.', ',') ?> |
-            Falta enviar: <span class="fw-semibold text-danger">$ <?= number_format($storeToSend, 2, '.', ',') ?></span>
+            Restante (não comprado): $ <?= number_format($storeTotalRemaining, 2, '.', ',') ?>
           </div>
         </div>
         <div class="table-responsive">
@@ -107,8 +101,6 @@
                 <th class="text-end">Qtd restante</th>
                 <th class="text-end">Valor total (USD)</th>
                 <th class="text-end">Valor restante (USD)</th>
-                <th class="text-end">Caixa com Fabiana (US$)</th>
-                <th class="text-end">Falta enviar (US$)</th>
               </tr>
             </thead>
             <tbody>
@@ -136,8 +128,6 @@
                 <td class="text-end"><?= (int)($row['remaining_qtd'] ?? 0) ?></td>
                 <td class="text-end">$ <?= number_format((float)($row['total_valor'] ?? 0), 2, '.', ',') ?></td>
                 <td class="text-end">$ <?= number_format((float)($row['remaining_valor'] ?? 0), 2, '.', ',') ?></td>
-                <td class="text-end">$ <?= number_format((float)($row['cash_with_fabiana_usd'] ?? 0), 2, '.', ',') ?></td>
-                <td class="text-end fw-semibold text-danger">$ <?= number_format((float)($row['to_send_usd'] ?? 0), 2, '.', ',') ?></td>
               </tr>
             <?php endforeach; ?>
             </tbody>

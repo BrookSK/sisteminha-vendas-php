@@ -331,6 +331,7 @@ $router->group('/admin', function($r) {
     $r->get('/sales-simulator/products-report/product', 'Controllers\\SimulatorProductsReportController@product');
     $r->post('/sales-simulator/products-report/update-purchased', 'Controllers\\SimulatorProductsReportController@updatePurchased');
     $r->post('/sales-simulator/products-report/update-cash', 'Controllers\\SimulatorProductsReportController@updateCash');
+    $r->post('/sales-simulator/products-report/save-fabiana-cash', 'Controllers\\SimulatorProductsReportController@saveFabianaCash');
     $r->get('/sales-simulator/products-report/export-pdf', 'Controllers\\SimulatorProductsReportController@exportPdf');
 
     // Dashboard financeiro para compras da Fabiana (apenas admin)
