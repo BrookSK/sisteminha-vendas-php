@@ -736,6 +736,7 @@
       `O total, já com a entrega até a nossa sede e imposto local quando aplicável, fica em ${nfUSD(compUSD)}, ` +
       `o que convertido pela taxa de câmbio atual (${nfBRL(s.taxaCambio || 0)}) fica em ${nfBRL(s.subtotalBRL || 0)}.`
     );
+    linhas.push('Você pode parcelar em até 12x no cartão, pagar no PIX ou boleto.');
 
     // Cashback do Clube Braziliana
     if (s.clienteClube && (s.cashbackUSD || 0) > 0) {
