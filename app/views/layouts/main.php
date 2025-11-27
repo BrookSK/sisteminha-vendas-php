@@ -162,6 +162,7 @@ use Core\Auth;
                 <li><a class="dropdown-item" href="/admin/clients">Clientes</a></li>
                 <li><a class="dropdown-item" href="/admin/attendances">Atendimentos</a></li>
                 <li><a class="dropdown-item" href="/admin/simulator-products">Produtos do Simulador</a></li>
+                <li><a class="dropdown-item" href="/admin/simulator-stores">Lojas do Simulador</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/costs">Custos</a></li>
