@@ -12,7 +12,7 @@ class FabianaPurchasesController extends Controller
 {
     public function index()
     {
-        $this->requireRole(['admin']);
+        $this->requireRole(['manager','admin']);
 
         $setting = new Setting();
         [$defaultFrom, $defaultTo] = $setting->currentPeriod();

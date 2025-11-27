@@ -36,12 +36,15 @@
       <div class="p-2 border rounded h-100">
         <div class="text-muted small">Saldo total em caixa com a Fabiana (manual)</div>
         <div class="fw-bold">$ <?= number_format((float)($fabiana_cash_total_usd ?? 0), 2, '.', ',') ?></div>
+        <?php $role = (string)(\Core\Auth::user()['role'] ?? 'seller'); ?>
+        <?php if ($role === 'admin'): ?>
         <form method="post" action="/admin/sales-simulator/fabiana/save-cash" class="mt-2 d-flex align-items-center gap-2">
           <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
           <span class="text-muted small">$</span>
           <input type="number" name="fabiana_cash_total_usd" min="0" step="0.01" value="<?= number_format((float)($fabiana_cash_total_usd ?? 0), 2, '.', '') ?>" class="form-control form-control-sm" style="max-width:130px;">
           <button type="submit" class="btn btn-sm btn-outline-success">Salvar</button>
         </form>
+        <?php endif; ?>
       </div>
     </div>
     <div class="col-md-3">
