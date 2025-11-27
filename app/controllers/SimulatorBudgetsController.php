@@ -76,6 +76,7 @@ class SimulatorBudgetsController extends Controller
         $this->csrfCheck();
         $me = Auth::user();
         $userId = (int)($me['id'] ?? 0);
+        $role = (string)($me['role'] ?? 'seller');
         if ($userId <= 0) { http_response_code(401); echo json_encode(['ok'=>false,'error'=>'not_auth']); return; }
         $name = trim($_POST['name'] ?? '');
         $payloadRaw = $_POST['payload'] ?? '';
@@ -90,14 +91,24 @@ class SimulatorBudgetsController extends Controller
         $paidRaw = $_POST['paid'] ?? null;
         $paid = $paidRaw === '1' || $paidRaw === 'true' || $paidRaw === 'on';
         if ($id > 0) {
-            $model->updateForUser($id, $userId, $name, $payload);
+            if (in_array($role, ['admin','manager'], true)) {
+                // Admins/gerentes podem editar qualquer orçamento por ID
+                $model->updateById($id, $name, $payload);
+            } else {
+                $model->updateForUser($id, $userId, $name, $payload);
+            }
             $savedId = $id;
         } else {
+            // Criação sempre fica atrelada ao usuário logado
             $savedId = $model->createForUser($userId, $name, $payload);
         }
         if ($savedId > 0) {
             // Deixa o modelo definir a data de pagamento automaticamente (NOW) quando marcar como pago
-            $model->setPaidForUser($savedId, $userId, $paid, null);
+            if (in_array($role, ['admin','manager'], true)) {
+                $model->setPaidById($savedId, $paid, null);
+            } else {
+                $model->setPaidForUser($savedId, $userId, $paid, null);
+            }
         }
         header('Content-Type: application/json');
         echo json_encode(['ok'=>true,'id'=>$savedId]);
