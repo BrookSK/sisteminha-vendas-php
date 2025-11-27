@@ -24,7 +24,7 @@ class SimulatorProduct
         $limit = max(1, $limit);
         $offset = max(0, $offset);
 
-        $sql = 'SELECT id, sku, nome, marca, image_url, peso_kg, created_at, updated_at FROM simulator_products';
+        $sql = 'SELECT id, sku, nome, marca, image_url, peso_kg, store_id, created_at, updated_at FROM simulator_products';
         $params = [];
         if ($q !== null && $q !== '') {
             $like = '%'.$q.'%';
@@ -41,7 +41,7 @@ class SimulatorProduct
 
     public function find(int $id): ?array
     {
-        $stmt = $this->db->prepare('SELECT id, sku, nome, marca, image_url, peso_kg, created_at, updated_at FROM simulator_products WHERE id = :id');
+        $stmt = $this->db->prepare('SELECT id, sku, nome, marca, image_url, peso_kg, store_id, created_at, updated_at FROM simulator_products WHERE id = :id');
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) return null;
@@ -54,13 +54,14 @@ class SimulatorProduct
 
     public function create(array $data, array $links = []): int
     {
-        $stmt = $this->db->prepare('INSERT INTO simulator_products (sku, nome, marca, image_url, peso_kg, created_at) VALUES (:sku, :nome, :marca, :image_url, :peso_kg, NOW())');
+        $stmt = $this->db->prepare('INSERT INTO simulator_products (sku, nome, marca, image_url, peso_kg, store_id, created_at) VALUES (:sku, :nome, :marca, :image_url, :peso_kg, :store_id, NOW())');
         $stmt->execute([
             ':sku' => $data['sku'] ?? null,
             ':nome' => $data['nome'],
             ':marca' => $data['marca'] ?? null,
             ':image_url' => $data['image_url'] ?? null,
             ':peso_kg' => (float)($data['peso_kg'] ?? 0),
+            ':store_id' => isset($data['store_id']) && $data['store_id'] ? (int)$data['store_id'] : null,
         ]);
         $id = (int)$this->db->lastInsertId();
 
@@ -82,7 +83,7 @@ class SimulatorProduct
 
     public function update(int $id, array $data, array $links = []): void
     {
-        $stmt = $this->db->prepare('UPDATE simulator_products SET sku=:sku, nome=:nome, marca=:marca, image_url=:image_url, peso_kg=:peso_kg, updated_at=NOW() WHERE id = :id');
+        $stmt = $this->db->prepare('UPDATE simulator_products SET sku=:sku, nome=:nome, marca=:marca, image_url=:image_url, peso_kg=:peso_kg, store_id=:store_id, updated_at=NOW() WHERE id = :id');
         $stmt->execute([
             ':id' => $id,
             ':sku' => $data['sku'] ?? null,
@@ -90,6 +91,7 @@ class SimulatorProduct
             ':marca' => $data['marca'] ?? null,
             ':image_url' => $data['image_url'] ?? null,
             ':peso_kg' => (float)($data['peso_kg'] ?? 0),
+            ':store_id' => isset($data['store_id']) && $data['store_id'] ? (int)$data['store_id'] : null,
         ]);
 
         // Atualiza links (estratégia simples: remove e recria)

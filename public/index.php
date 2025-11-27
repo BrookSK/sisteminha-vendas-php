@@ -308,6 +308,10 @@ $router->group('/admin', function($r) {
     $r->post('/sales-simulator/budgets/duplicate', 'Controllers\\SimulatorBudgetsController@duplicate');
     $r->post('/sales-simulator/budgets/delete', 'Controllers\\SimulatorBudgetsController@delete');
     $r->post('/sales-simulator/budgets/toggle-paid', 'Controllers\\SimulatorBudgetsController@togglePaid');
+    // Lojas do simulador (apenas admin)
+    $r->get('/simulator-stores', 'Controllers\\SimulatorStoresController@index');
+    $r->post('/simulator-stores/create', 'Controllers\\SimulatorStoresController@create');
+    $r->post('/simulator-stores/delete', 'Controllers\\SimulatorStoresController@delete');
     // Produtos do simulador (tela própria)
     $r->get('/simulator-products', 'Controllers\\SimulatorProductsController@index');
     $r->get('/simulator-products/template', 'Controllers\\SimulatorProductsController@template');
@@ -326,7 +330,12 @@ $router->group('/admin', function($r) {
     $r->get('/sales-simulator/products-report', 'Controllers\\SimulatorProductsReportController@index');
     $r->get('/sales-simulator/products-report/product', 'Controllers\\SimulatorProductsReportController@product');
     $r->post('/sales-simulator/products-report/update-purchased', 'Controllers\\SimulatorProductsReportController@updatePurchased');
+    $r->post('/sales-simulator/products-report/update-cash', 'Controllers\\SimulatorProductsReportController@updateCash');
     $r->get('/sales-simulator/products-report/export-pdf', 'Controllers\\SimulatorProductsReportController@exportPdf');
+
+    // Dashboard financeiro para compras da Fabiana (apenas admin)
+    $r->get('/sales-simulator/fabiana', 'Controllers\\FabianaPurchasesController@index');
+    $r->post('/sales-simulator/fabiana/save-cash', 'Controllers\\FabianaPurchasesController@saveCashTotal');
 
     // Vendas Nacionais
     $r->get('/national-sales', 'Controllers\\NationalSalesController@index');
