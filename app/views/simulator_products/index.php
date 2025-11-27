@@ -51,9 +51,8 @@
               <td><?= htmlspecialchars(!empty($p['created_at']) ? date('d/m/Y H:i', strtotime($p['created_at'])) : '-') ?></td>
               <td><?= htmlspecialchars(!empty($p['updated_at']) ? date('d/m/Y H:i', strtotime($p['updated_at'])) : '-') ?></td>
               <td class="text-end">
-                <a href="/admin/simulator-products/edit?id=<?= (int)$p['id'] ?>" class="btn btn-sm btn-outline-primary">Editar</a>
-                <?php $role = (string) (\Core\Auth::user()['role'] ?? 'seller'); ?>
-                <?php if ($role !== 'trainee'): ?>
+                <?php if (in_array($role, ['admin','manager'], true)): ?>
+                  <a href="/admin/simulator-products/edit?id=<?= (int)$p['id'] ?>" class="btn btn-sm btn-outline-primary">Editar</a>
                   <form method="post" action="/admin/simulator-products/delete" class="d-inline" onsubmit="return confirm('Excluir este produto? Esta ação não pode ser desfeita.');">
                     <input type="hidden" name="_csrf" value="<?= htmlspecialchars(\Core\Auth::csrf()) ?>">
                     <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
