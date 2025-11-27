@@ -349,6 +349,20 @@ class Client extends Model
         $this->delete($id);
     }
 
+    public function addCashbackUsd(int $clientId, float $amount): void
+    {
+        if ($clientId <= 0 || !$amount) { return; }
+        try {
+            $stmt = $this->db->prepare('UPDATE clientes SET cashback_balance_usd = cashback_balance_usd + :amt WHERE id = :id');
+            $stmt->execute([
+                ':id' => $clientId,
+                ':amt' => $amount,
+            ]);
+        } catch (\Throwable $e) {
+            // silencioso para não quebrar fluxo do simulador
+        }
+    }
+
     public function isOwner(int $userId, array $clientRow): bool
     {
         if ($userId <= 0) return false;
