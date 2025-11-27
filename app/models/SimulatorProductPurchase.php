@@ -1,11 +1,18 @@
 <?php
 namespace Models;
 
-use Core\Model;
+use Core\Database;
 use PDO;
 
-class SimulatorProductPurchase extends Model
+class SimulatorProductPurchase
 {
+    private PDO $db;
+
+    public function __construct()
+    {
+        // Usa o mesmo banco de produtos que o SimulatorProduct (sisteminha_produtos_dev)
+        $this->db = Database::pdoProducts();
+    }
     public function getForKeys(array $keys): array
     {
         if (empty($keys)) return [];
