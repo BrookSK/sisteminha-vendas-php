@@ -612,8 +612,9 @@
       somaValor: somaProdutosUSD,
       somaFretes: somaFretesUSD,
       taxaServico: taxaServico,
-      subtotalUSD: subtotalUSD,
-      subtotalBRL: subtotalBRL,
+      impostoLocalUSD: impostoLocalUSD,
+      subtotalUSD: subtotalUSD + impostoLocalUSD,
+      subtotalBRL: (subtotalUSD + impostoLocalUSD) * (taxaCambio || 0),
       pesoTotalKg: pesoTotalKg,
       pesoTotalArred: pesoTotalArred,
       impostoImport: impostoImportBRL,
@@ -655,20 +656,23 @@
       liImpLocal.innerHTML = '<span>Imposto local (7%)</span><span>'+nfUSD(impostoLocalUSD)+'</span>';
       usdList.appendChild(liImpLocal);
 
-      // Total em dólar
+      // Total em dólar (inclui imposto local)
+      const simAtual = window.__sim || {};
+      const totalUSDComImpLocal = typeof simAtual.subtotalUSD === 'number' ? simAtual.subtotalUSD : (subtotalUSD + impostoLocalUSD);
+      const totalBRLComImpLocal = typeof simAtual.subtotalBRL === 'number' ? simAtual.subtotalBRL : ((subtotalUSD + impostoLocalUSD) * (taxaCambio || 0));
+
       const liTotal = document.createElement('li');
       liTotal.className = 'list-group-item d-flex justify-content-between fw-bold';
-      liTotal.innerHTML = '<span>Total em USD</span><span>'+nfUSD(subtotalUSD)+'</span>';
+      liTotal.innerHTML = '<span>Total em USD</span><span>'+nfUSD(totalUSDComImpLocal)+'</span>';
       usdList.appendChild(liTotal);
 
-      // Conversão total em reais
+      // Conversão total em reais (inclui imposto local)
       const liTotalBRL = document.createElement('li');
       liTotalBRL.className = 'list-group-item d-flex justify-content-between';
-      liTotalBRL.innerHTML = '<span>Total convertido em BRL</span><span>'+nfBRL(subtotalBRL)+'</span>';
+      liTotalBRL.innerHTML = '<span>Total convertido em BRL</span><span>'+nfBRL(totalBRLComImpLocal)+'</span>';
       usdList.appendChild(liTotalBRL);
 
       // Cashback (quando cliente é do clube e houver valor)
-      const simAtual = window.__sim || {};
       const cashbackUSD = simAtual.cashbackUSD || 0;
       if (clienteClube && cashbackUSD > 0) {
         const liCash = document.createElement('li');
