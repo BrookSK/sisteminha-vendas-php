@@ -8,6 +8,7 @@ use Models\WebhookLog;
 use Models\Container;
 use Models\Log;
 use Models\Demand;
+use Models\SimulatorWebhookProduct;
 
 class WebhooksController extends Controller
 {
@@ -45,8 +46,115 @@ class WebhooksController extends Controller
             $id = (new Container())->create($data);
             $logger->create('containers','sucesso','Container criado id='.$id, $payload);
         }
+
         (new Log())->add(null,'webhook','containers',null,json_encode($payload));
         echo 'OK';
+    }
+
+    public function simulatorProducts()
+    {
+        $raw = file_get_contents('php://input') ?: '';
+        $payload = json_decode($raw, true);
+        $logger = new WebhookLog();
+        if (!is_array($payload)) {
+            $logger->create('simulator_products', 'erro', 'JSON inválido', ['raw' => $raw]);
+            http_response_code(400);
+            echo 'Invalid JSON';
+            return;
+        }
+
+        $required = ['id', 'nome', 'qtd', 'peso_kg', 'valor_usd', 'data'];
+        foreach ($required as $k) {
+            if (!array_key_exists($k, $payload)) {
+                $logger->create('simulator_products', 'erro', 'Campo faltando: ' . $k, $payload);
+                http_response_code(400);
+                echo 'Missing ' . $k;
+                return;
+            }
+        }
+
+        $externalId = trim((string)$payload['id']);
+        $nome = trim((string)$payload['nome']);
+        if ($externalId === '' || $nome === '') {
+            $logger->create('simulator_products', 'erro', 'id/nome inválidos', $payload);
+            http_response_code(400);
+            echo 'Invalid id/nome';
+            return;
+        }
+
+        $qtd = (int)($payload['qtd'] ?? 0);
+        if ($qtd < 0) {
+            $qtd = 0;
+        }
+
+        $pesoKg = (float)($payload['peso_kg'] ?? 0);
+        if ($pesoKg < 0) {
+            $pesoKg = 0.0;
+        }
+
+        $valorUsd = (float)($payload['valor_usd'] ?? 0);
+        if ($valorUsd < 0) {
+            $valorUsd = 0.0;
+        }
+
+        $imageUrl = isset($payload['image_url']) ? trim((string)$payload['image_url']) : '';
+        if ($imageUrl === '') {
+            $imageUrl = null;
+        }
+
+        $storeId = null;
+        if (array_key_exists('store_id', $payload)) {
+            $storeIdInt = (int)$payload['store_id'];
+            if ($storeIdInt > 0) {
+                $storeId = $storeIdInt;
+            }
+        }
+
+        $storeName = isset($payload['store_name']) ? trim((string)$payload['store_name']) : '';
+        if ($storeName === '') {
+            $storeName = null;
+        }
+
+        $linksJson = null;
+        if (array_key_exists('links', $payload)) {
+            $links = $payload['links'];
+            if (is_array($links)) {
+                $linksJson = json_encode($links, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+        }
+
+        $eventDate = trim((string)$payload['data']);
+        if ($eventDate === '') {
+            $eventDate = null;
+        }
+
+        try {
+            $dbp = Database::pdoProducts();
+            $st = $dbp->prepare('SELECT id FROM simulator_webhook_products WHERE external_id = :eid LIMIT 1');
+            $st->execute([':eid' => $externalId]);
+            $exists = (bool)$st->fetch(\PDO::FETCH_ASSOC);
+
+            (new SimulatorWebhookProduct())->upsert([
+                'external_id' => $externalId,
+                'nome' => $nome,
+                'image_url' => $imageUrl,
+                'store_id' => $storeId,
+                'store_name' => $storeName,
+                'qtd' => $qtd,
+                'peso_kg' => $pesoKg,
+                'valor_usd' => $valorUsd,
+                'links_json' => $linksJson,
+                'event_date' => $eventDate,
+            ]);
+
+            $logger->create('simulator_products', $exists ? 'atualizacao' : 'sucesso', $exists ? 'Produto atualizado' : 'Produto criado', $payload);
+            (new Log())->add(null, 'webhook', 'simulator_products', null, json_encode($payload));
+            echo 'OK';
+        } catch (\Throwable $e) {
+            $logger->create('simulator_products', 'erro', $e->getMessage(), $payload);
+            http_response_code(500);
+            echo $e->getMessage();
+        }
     }
 
     public function sales()

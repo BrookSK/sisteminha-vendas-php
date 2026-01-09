@@ -8,6 +8,7 @@
     <li><code><?= htmlspecialchars($base) ?>/webhooks/containers</code></li>
     <li><code><?= htmlspecialchars($base) ?>/webhooks/sales</code></li>
     <li><code><?= htmlspecialchars($base) ?>/webhooks/demands</code></li>
+    <li><code><?= htmlspecialchars($base) ?>/webhooks/simulator-products</code></li>
   </ul>
 
   <h5 class="mt-4">Exemplos de JSON</h5>
@@ -25,6 +26,31 @@
   "status": "Em preparo",
   "valor_transporte": 300.0,
   "data_criacao": "2025-10-14"
+}
+</code></pre>
+  </div>
+
+  <div class="mb-3">
+    <h6>Produtos do Simulador (POST /webhooks/simulator-products)</h6>
+    <div class="small mb-2">
+      <strong>Obrigatórios:</strong> <code>id</code> (string/number, id externo), <code>nome</code> (string), <code>qtd</code> (number), <code>peso_kg</code> (number), <code>valor_usd</code> (number), <code>data</code> (YYYY-MM-DD).
+      <br><strong>Opcionais:</strong> <code>image_url</code> (string), <code>store_id</code> (number), <code>store_name</code> (string), <code>links</code> (array).
+      <br><strong>Extras:</strong> demais campos são ignorados.
+      <br><strong>Comportamento:</strong> upsert por <code>id</code> externo (mapeado para <code>external_id</code>).
+    </div>
+<pre><code class="language-json">{
+  "id": "EXT-PROD-001",
+  "nome": "Shampoo XYZ 300ml",
+  "qtd": 4,
+  "peso_kg": 0.30,
+  "valor_usd": 12.50,
+  "data": "2026-01-09",
+  "image_url": "https://.../produto.jpg",
+  "store_id": 2,
+  "store_name": "Loja Externa",
+  "links": [
+    {"url": "https://site.com/produto", "fonte": "site"}
+  ]
 }
 </code></pre>
   </div>

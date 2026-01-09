@@ -395,6 +395,7 @@ $router->group('/admin', function($r) {
 $router->post('/webhooks/containers', 'Controllers\\WebhooksController@containers');
 $router->post('/webhooks/sales', 'Controllers\\WebhooksController@sales');
 $router->post('/webhooks/demands', 'Controllers\\WebhooksController@demands');
+ $router->post('/webhooks/simulator-products', 'Controllers\\WebhooksController@simulatorProducts');
 
 // Public cron endpoint for backups (token required)
 $router->get('/backups/cron-run', 'Controllers\\BackupsController@cronRun');
