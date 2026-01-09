@@ -7,6 +7,7 @@ use Models\SimulatorBudget;
 use Models\SimulatorProduct;
 use Models\SimulatorProductPurchase;
 use Models\SimulatorStore;
+use Models\SimulatorWebhookProduct;
 use Models\Setting;
 
 class SimulatorProductsReportController extends Controller
@@ -34,6 +35,8 @@ class SimulatorProductsReportController extends Controller
 
         $budgetsModel = new SimulatorBudget();
         $rows = $budgetsModel->listPaidInRange($from, $to);
+
+        $webhookRows = (new SimulatorWebhookProduct())->listInRange($from, $to);
 
         $consolidated = [];
         $allProductIds = [];
@@ -74,6 +77,51 @@ class SimulatorProductsReportController extends Controller
                 $consolidated[$key]['total_valor'] += max(0.0, $valor) * max(1, $qtd);
                 $consolidated[$key]['budget_ids'][(int)$row['id']] = true;
             }
+        }
+
+        foreach ($webhookRows as $wr) {
+            $externalId = trim((string)($wr['external_id'] ?? ''));
+            $name = trim((string)($wr['nome'] ?? ''));
+            if ($externalId === '' || $name === '') {
+                continue;
+            }
+
+            $key = 'wh:'.$externalId;
+            $qtd = (int)($wr['qtd'] ?? 0);
+            if ($qtd < 0) {
+                $qtd = 0;
+            }
+            $pesoKg = (float)($wr['peso_kg'] ?? 0.0);
+            if ($pesoKg < 0) {
+                $pesoKg = 0.0;
+            }
+            $valorUsd = (float)($wr['valor_usd'] ?? 0.0);
+            if ($valorUsd < 0) {
+                $valorUsd = 0.0;
+            }
+
+            if (!isset($consolidated[$key])) {
+                $consolidated[$key] = [
+                    'key' => $key,
+                    'product_id' => null,
+                    'name' => $name,
+                    'total_qtd' => 0,
+                    'total_peso' => 0.0,
+                    'total_valor' => 0.0,
+                    'budget_ids' => [],
+                    'webhook' => [
+                        'image_url' => $wr['image_url'] ?? null,
+                        'store_id' => $wr['store_id'] !== null ? (int)$wr['store_id'] : null,
+                        'store_name' => $wr['store_name'] ?? null,
+                        'links_json' => $wr['links_json'] ?? null,
+                    ],
+                ];
+            }
+
+            $consolidated[$key]['name'] = $name;
+            $consolidated[$key]['total_qtd'] += $qtd;
+            $consolidated[$key]['total_peso'] += max(0.0, $pesoKg) * max(1, $qtd);
+            $consolidated[$key]['total_valor'] += max(0.0, $valorUsd) * max(1, $qtd);
         }
 
         // Enriquecer com dados da base de produtos, quando houver product_id
@@ -134,13 +182,34 @@ class SimulatorProductsReportController extends Controller
             if ($info && array_key_exists('store_id', $info)) {
                 $storeId = $info['store_id'] !== null ? (int)$info['store_id'] : null;
             }
+
+            $imageUrl = $info['image_url'] ?? null;
+            $links = $info['links'] ?? [];
             $storeName = $storeId && isset($storesMap[$storeId]) ? $storesMap[$storeId] : null;
+
+            if (!$info && isset($row['webhook']) && is_array($row['webhook'])) {
+                if ($storeId === null && array_key_exists('store_id', $row['webhook'])) {
+                    $storeId = $row['webhook']['store_id'] !== null ? (int)$row['webhook']['store_id'] : null;
+                }
+                if ($storeName === null && !empty($row['webhook']['store_name'])) {
+                    $storeName = (string)$row['webhook']['store_name'];
+                }
+                if ($imageUrl === null && !empty($row['webhook']['image_url'])) {
+                    $imageUrl = (string)$row['webhook']['image_url'];
+                }
+                if (empty($links) && !empty($row['webhook']['links_json'])) {
+                    $decodedLinks = json_decode((string)$row['webhook']['links_json'], true);
+                    if (is_array($decodedLinks)) {
+                        $links = $decodedLinks;
+                    }
+                }
+            }
             $item = [
                 'key' => $key,
                 'product_id' => $pid,
                 'name' => $info['nome'] ?? $row['name'],
-                'image_url' => $info['image_url'] ?? null,
-                'links' => $info['links'] ?? [],
+                'image_url' => $imageUrl,
+                'links' => $links,
                 'store_id' => $storeId,
                 'store_name' => $storeName,
                 'total_qtd' => $totalQtd,
