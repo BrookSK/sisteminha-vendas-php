@@ -261,10 +261,15 @@ class NationalSale extends Model
     {
         $rows = $this->list(10000, 0, $filters['seller_id'] ?? null, $filters['ym'] ?? null);
         $fh = fopen('php://temp','w+');
-        fputcsv($fh, ['ID','Data','Pedido','Cliente','Suite','Bruto USD','Bruto BRL','Líquido USD','Líquido BRL','Comissão USD','Comissão BRL']);
+        fputcsv($fh, ['ID','Data','Pedido','Vendedor','Cliente','Suite','Bruto USD','Bruto BRL','Líquido USD','Líquido BRL','Comissão USD','Comissão BRL']);
         foreach ($rows as $r) {
             fputcsv($fh, [
-                $r['id'], $r['data_lancamento'], $r['numero_pedido'], $r['cliente_nome'] ?? $r['cliente_id'], $r['suite_cliente'],
+                $r['id'],
+                $r['data_lancamento'],
+                $r['numero_pedido'],
+                ($r['vendedor_nome'] ?? '') !== '' ? $r['vendedor_nome'] : ($r['vendedor_id'] ?? ''),
+                $r['cliente_nome'] ?? $r['cliente_id'],
+                $r['suite_cliente'],
                 number_format((float)$r['total_bruto_usd'],2,'.',''),
                 number_format((float)$r['total_bruto_brl'],2,'.',''),
                 number_format((float)$r['total_liquido_usd'],2,'.',''),
