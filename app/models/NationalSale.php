@@ -9,6 +9,31 @@ class NationalSale extends Model
     private const EMBALAGEM_USD_POR_KG = 9.7; // fallback; overridden via settings
     private const TEAM_GOAL_USD = 50000.0;
 
+    private function listInPeriod(int $limit, int $offset, ?int $sellerId, string $from, string $to): array
+    {
+        $where = [
+            'vn.data_lancamento BETWEEN :from AND :to',
+        ];
+        $p = [':from' => $from, ':to' => $to];
+        if ($sellerId) {
+            $where[] = 'vn.vendedor_id = :sid';
+            $p[':sid'] = $sellerId;
+        }
+        $sql = 'SELECT vn.*, u.name as vendedor_nome, c.nome as cliente_nome FROM vendas_nacionais vn
+                LEFT JOIN usuarios u ON u.id = vn.vendedor_id
+                LEFT JOIN clientes c ON c.id = vn.cliente_id';
+        $sql .= ' WHERE ' . implode(' AND ', $where);
+        $sql .= ' ORDER BY vn.data_lancamento DESC, vn.id DESC LIMIT :lim OFFSET :off';
+        $stmt = $this->db->prepare($sql);
+        foreach ($p as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     private function correiosTable(float $pesoKg): float
     {
         if ($pesoKg <= 0) return 0.0;
@@ -259,7 +284,10 @@ class NationalSale extends Model
 
     public function exportCsv(array $filters): string
     {
-        $rows = $this->list(10000, 0, $filters['seller_id'] ?? null, $filters['ym'] ?? null);
+        $sellerId = $filters['seller_id'] ?? null;
+        $setting = new Setting();
+        [$from, $to] = $setting->currentPeriod();
+        $rows = $this->listInPeriod(10000, 0, $sellerId, $from, $to);
         $fh = fopen('php://temp','w+');
         fputcsv($fh, ['ID','Data','Pedido','Vendedor','Cliente','Suite','Bruto USD','Bruto BRL','Líquido USD','Líquido BRL','Comissão USD','Comissão BRL']);
         foreach ($rows as $r) {
