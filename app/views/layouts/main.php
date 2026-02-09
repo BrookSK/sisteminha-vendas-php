@@ -55,6 +55,7 @@ use Core\Auth;
               <ul class="dropdown-menu" aria-labelledby="menuComissoesSeller">
                 <li><a class="dropdown-item" href="/admin/performance">Meu Desempenho</a></li>
                 <li><a class="dropdown-item" href="/admin/commissions/me">Minhas Comissões</a></li>
+                <li><a class="dropdown-item" href="/admin/commissions/new-calc">Novo Cálculo</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/settings/calculations-simple">Entenda os Cálculos</a></li>
               </ul>
@@ -95,6 +96,7 @@ use Core\Auth;
               <ul class="dropdown-menu" aria-labelledby="menuComissoesTrainee">
                 <li><a class="dropdown-item" href="/admin/performance">Meu Desempenho</a></li>
                 <li><a class="dropdown-item" href="/admin/commissions/me">Minhas Comissões</a></li>
+                <li><a class="dropdown-item" href="/admin/commissions/new-calc">Novo Cálculo</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/admin/settings/calculations-simple">Entenda os Cálculos</a></li>
               </ul>
@@ -206,6 +208,7 @@ use Core\Auth;
                 <li><a class="dropdown-item" href="/admin/performance">Meu Desempenho</a></li>
                 <?php endif; ?>
                 <li><a class="dropdown-item" href="/admin/commissions/me">Minhas Comissões</a></li>
+                <li><a class="dropdown-item" href="/admin/commissions/new-calc">Novo Cálculo</a></li>
                 <?php if ($role !== 'manager'): ?>
                 <li><a class="dropdown-item" href="/admin/commissions">Comissões Empresa</a></li>
                 <?php endif; ?>
