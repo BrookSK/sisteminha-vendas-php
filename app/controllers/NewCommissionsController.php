@@ -20,7 +20,7 @@ class NewCommissionsController extends Controller
         $period = trim($_GET['period'] ?? Commission::defaultPeriod());
         $sellerId = isset($_GET['seller_id']) && $_GET['seller_id'] !== '' ? (int)$_GET['seller_id'] : null;
 
-        if (in_array($role, ['seller','trainee','organic'], true)) {
+        if (in_array($role, ['seller','trainee','manager','organic'], true)) {
             $sellerId = (int)($me['id'] ?? 0) ?: null;
         }
 
