@@ -105,6 +105,17 @@ class MonthlySnapshot extends Model
         $items = $calc['items'] ?? [];
         $team = $calc['team'] ?? [];
 
+        $newComm = new \Models\NewCommission();
+        $newCalc = $newComm->computeRange($fromTs, $toTs, null);
+        $newCompany = $newCalc['company'] ?? null;
+        $newItems = $newCalc['items'] ?? [];
+        $newByUser = [];
+        foreach ($newItems as $it) {
+            $uid = (int)($it['seller_id'] ?? 0);
+            if ($uid <= 0) continue;
+            $newByUser[$uid] = $it;
+        }
+
         $summary = $report->summary($from, $to, null);
         $bySeller = $report->bySeller($from, $to);
         $prolaborePct = (float)$costModel->sumProLaborePercentInPeriod($from, $to);
@@ -162,7 +173,13 @@ class MonthlySnapshot extends Model
             'frozen_by_user_id' => $userId ?: null,
             'frozen_by_user_name' => null,
             'frozen_source' => $source,
-            'extra_json' => null,
+            'extra_json' => $newCompany ? json_encode([
+                'new_commission' => [
+                    'bruto_total_brl' => (float)($newCompany['bruto_total_brl'] ?? 0),
+                    'liquido_novo_brl' => (float)($newCompany['liquido_novo_brl'] ?? 0),
+                    'comissao_brl' => (float)($newCompany['comissao_brl'] ?? 0),
+                ],
+            ]) : null,
         ];
 
         if ($userId > 0) {
@@ -232,7 +249,14 @@ class MonthlySnapshot extends Model
                 'frozen_by_user_id' => $userId ?: null,
                 'frozen_by_user_name' => $companyRow['frozen_by_user_name'] ?? null,
                 'frozen_source' => $source,
-                'extra_json' => null,
+                'extra_json' => isset($newByUser[$uid]) ? json_encode([
+                    'new_commission' => [
+                        'bruto_total_brl' => (float)($newByUser[$uid]['bruto_total_brl'] ?? 0),
+                        'liquido_novo_brl' => (float)($newByUser[$uid]['liquido_novo_brl'] ?? 0),
+                        'percent' => (float)($newByUser[$uid]['percent'] ?? 0),
+                        'comissao_brl' => (float)($newByUser[$uid]['comissao_brl'] ?? 0),
+                    ],
+                ]) : null,
             ];
 
             $this->insertSnapshotRow($row);
