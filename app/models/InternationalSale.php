@@ -9,6 +9,31 @@ class InternationalSale extends Model
     private const EMBALAGEM_USD_POR_KG = 9.7; // fallback; overridden by settings if present
     private const TEAM_GOAL_USD = 50000.0;
 
+    private function listInPeriod(int $limit, int $offset, ?int $sellerId, string $from, string $to): array
+    {
+        $where = [
+            'vi.data_lancamento BETWEEN :from AND :to',
+        ];
+        $p = [':from' => $from, ':to' => $to];
+        if ($sellerId) {
+            $where[] = 'vi.vendedor_id = :sid';
+            $p[':sid'] = $sellerId;
+        }
+        $sql = 'SELECT vi.*, u.name as vendedor_nome, c.nome as cliente_nome FROM vendas_internacionais vi
+                LEFT JOIN usuarios u ON u.id = vi.vendedor_id
+                LEFT JOIN clientes c ON c.id = vi.cliente_id';
+        $sql .= ' WHERE ' . implode(' AND ', $where);
+        $sql .= ' ORDER BY vi.data_lancamento DESC, vi.id DESC LIMIT :lim OFFSET :off';
+        $stmt = $this->db->prepare($sql);
+        foreach ($p as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     public function list(int $limit = 50, int $offset = 0, ?int $sellerId = null, ?string $ym = null, ?string $q = null): array
     {
         $where = [];$p = [];
@@ -246,12 +271,20 @@ class InternationalSale extends Model
 
     public function exportCsv(array $filters): string
     {
-        $rows = $this->list(10000, 0, $filters['seller_id'] ?? null, $filters['ym'] ?? null);
+        $sellerId = $filters['seller_id'] ?? null;
+        $setting = new Setting();
+        [$from, $to] = $setting->currentPeriod();
+        $rows = $this->listInPeriod(10000, 0, $sellerId, $from, $to);
         $fh = fopen('php://temp','w+');
-        fputcsv($fh, ['ID','Data','Pedido','Cliente','Suite','Bruto USD','Bruto BRL','Líquido USD','Líquido BRL','Comissão USD','Comissão BRL']);
+        fputcsv($fh, ['ID','Data','Pedido','Vendedor','Cliente','Suite','Bruto USD','Bruto BRL','Líquido USD','Líquido BRL','Comissão USD','Comissão BRL']);
         foreach ($rows as $r) {
             fputcsv($fh, [
-                $r['id'], $r['data_lancamento'], $r['numero_pedido'], $r['cliente_nome'] ?? $r['cliente_id'], $r['suite_cliente'],
+                $r['id'],
+                $r['data_lancamento'],
+                $r['numero_pedido'],
+                ($r['vendedor_nome'] ?? '') !== '' ? $r['vendedor_nome'] : ($r['vendedor_id'] ?? ''),
+                $r['cliente_nome'] ?? $r['cliente_id'],
+                $r['suite_cliente'],
                 number_format((float)$r['total_bruto_usd'],2,'.',''),
                 number_format((float)$r['total_bruto_brl'],2,'.',''),
                 number_format((float)$r['total_liquido_usd'],2,'.',''),

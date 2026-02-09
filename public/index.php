@@ -155,6 +155,7 @@ $router->group('/admin', function($r) {
     $r->get('/commissions', 'Controllers\\CommissionsController@index'); // admin
     $r->post('/commissions/recalc', 'Controllers\\CommissionsController@recalc'); // admin
     $r->get('/commissions/me', 'Controllers\\CommissionsController@me'); // seller/manager/admin
+    $r->get('/commissions/new-calc', 'Controllers\\NewCommissionsController@index'); // all (new calc)
     $r->get('/commissions/export', 'Controllers\\CommissionsController@exportCsv'); // admin
     $r->get('/commissions/debug', 'Controllers\\CommissionsController@debug'); // seller/manager/admin
     // Atendimentos
